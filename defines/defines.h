@@ -1,0 +1,45 @@
+#pragma once
+
+#define Isc 0xc
+
+//excodes
+#define _INT 0x00
+#define _MOD 0x01
+#define _TLBL 0x02
+#define _TLBS 0x03
+#define _ADEL 0x04
+#define _ADES 0x05
+#define _IBE 0x06
+#define _DBE 0x07
+#define _SYSCALL 0x08
+#define _BP 0x09
+#define _RI 0x0a
+#define _CPU 0x0b
+#define _OV 0x0c
+
+#define BAD_V_ADDR cop0r[8]
+#define SR cop0r[12]
+#define CAUSE cop0r[13]
+//Exception Program Counter
+#define EPC cop0r[14] 
+
+//interrupts
+#define _V_SYNC 0x01
+#define _CD_ROM 0x04
+#define _DMA 0x08
+#define _TIMER_0 0x00
+#define _TIMER_1 0x20
+#define _TIMER_2 0x40
+#define _IRQ7 0x80
+
+#define SET 1
+#define RESET 0
+
+//timer clock sources
+
+#define DOT_CLOCK 0
+#define HBLANK_CLOCK 1
+#define VBLANK_CLOCK 2
+#define SYSTEM_CLOCK 3
+
+
