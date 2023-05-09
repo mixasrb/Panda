@@ -4,7 +4,7 @@
 #include "bus/bus_interface.h"
 #include "gpu/cxd85xxx.h"
 #include "cd_drive/hc05_pux.h"
-#include "peripherals/joyMemCard.h"
+#include "peripherals/joy_mem_card.h"
 #include "debug_utilities/debug_utilities.h"
 
 class Console {

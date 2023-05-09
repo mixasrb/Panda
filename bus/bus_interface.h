@@ -13,7 +13,7 @@
 #include "../timers/timer_0.h"
 #include "../timers/timer_1.h"
 #include "../timers/timer_2.h"
-#include "../peripherals/joyMemCard.h"
+#include "../peripherals/joy_mem_card.h"
 #include "../debug_utilities/debug_utilities.h""
 
 #define BIOS_SIZE (uint32_t)(512 * 1024)

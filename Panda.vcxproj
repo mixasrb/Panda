@@ -161,7 +161,7 @@
     <ClCompile Include="gpu\cxd8xxxx.cpp" />
     <ClCompile Include="gpu\misc.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="peripherals\joyMemCard.cpp" />
+    <ClCompile Include="peripherals\joy_mem_card.cpp" />
     <ClCompile Include="timers\timer_0.cpp" />
     <ClCompile Include="timers\timer_1.cpp" />
     <ClCompile Include="timers\timer_2.cpp" />
@@ -183,7 +183,7 @@
     <ClInclude Include="dependencies\olcPixelGameEngine.h" />
     <ClInclude Include="gpu\cxd85xxx.h" />
     <ClInclude Include="gpu\misc.hpp" />
-    <ClInclude Include="peripherals\joyMemCard.h" />
+    <ClInclude Include="peripherals\joy_mem_card.h" />
     <ClInclude Include="timers\timer.h" />
     <ClInclude Include="timers\timer_0.h" />
     <ClInclude Include="timers\timer_1.h" />
