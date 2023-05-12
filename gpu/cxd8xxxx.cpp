@@ -308,9 +308,9 @@ void cxd85xxx::readGpu32(const uint32_t& addr, uint32_t& data) {
 	switch (addr) {
 	case 0x1f801810:
 		if (b_trans_command) {
-			data = collect_list[0];
-			collect_list.erase(collect_list.begin());
-			if (collect_list.empty())
+			data = collectList[0];
+			collectList.erase(collectList.begin());
+			if (collectList.empty())
 				b_trans_command = false;
 		}
 		if (b_gp1Result) {
@@ -331,14 +331,15 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		fifo.push_back(data);
 
 		if (collect) {
-			collect_list.push_back(fifo.back());
+			collectList.push_back(fifo.back());
 			collect--;
 		}
 		else {
 			command = fifo.back();
-			if (collect_list.size() != 0) {
-				std::cout << "[GPU] EMULATION PAUSED! collect list size != 0  0x" << std::hex << collect_list.size() << std::endl;
-				isEmulationPaused = true;
+			//	collect_list.clear();//!!!!
+			if (!collectList.empty()) {
+				//std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << collectList.size() << std::endl;
+			//	isEmulationPaused = true;
 			}
 
 			collect = gp0Lookup[command >> 24].collectCount - 1;
@@ -417,7 +418,7 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			}
 			break;
 		default:
-			std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << data << std::endl;
+			//std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << data << std::endl;
 			//isEmulationPaused = true;
 			break;
 		}
@@ -474,14 +475,6 @@ void cxd85xxx::writeVram(const vertex_t& possition, const uint16_t& data, const 
 		p.y = possition.y + drawOffset.y;
 		updateVramView(p, data);
 	}
-
-	/*vram[((int16_t)possition.x + (int16_t)drawing_offset.x) * 2 * size_y + ((int16_t)possition.y + (int16_t)drawing_offset.y)] = data << 8 >> 8;
-	vram[(((int16_t)possition.x + (int16_t)drawing_offset.x) * 2 + 1) * size_y + ((int16_t)possition.y + (int16_t)drawing_offset.y)] = data >> 8;
-	updateVramView(possition, data);*/
-
-	/*updateVramView(possition, data);
-	vram[possition.x * 2 * size_y + possition.y] = data << 8 >> 8;
-	vram[(possition.x * 2 + 1) * size_y + possition.y] = data >> 8;*/
 }
 
 void cxd85xxx::readVram(const vertex_t& position, uint16_t& data) {
@@ -505,27 +498,6 @@ uint16_t cxd85xxx::format24to16Color(const uint32_t& input) {
 float cxd85xxx::edgeFunc(vertex_t v1, vertex_t v2, vertex_t p) {
 	return ((float)v1.y - (float)v2.y) * ((float)p.x - (float)v1.x) +
 		((float)v1.x - (float)v2.x) * ((float)v1.y - (float)p.y);
-}
-
-void cxd85xxx::CheckDrawingOffset(vertex_t& v1, vertex_t& v2, vertex_t& v3, vertex_t& v4) {
-	//???
-	/*if ((uint16_t)v1.x < (uint16_t)v1Draw.x) v1.x = v1Draw.x;
-	if ((uint16_t)v1.y < (uint16_t)v1Draw.y) v1.y = v1Draw.y;
-	if ((uint16_t)v2.x < (uint16_t)v1Draw.x) v2.x = v1Draw.x;
-	if ((uint16_t)v2.y < (uint16_t)v1Draw.y) v2.y = v1Draw.y;
-	if ((uint16_t)v3.x < (uint16_t)v1Draw.x) v3.x = v1Draw.x;
-	if ((uint16_t)v3.y < (uint16_t)v1Draw.y) v3.y = v1Draw.y;
-	if ((uint16_t)v4.x < (uint16_t)v1Draw.x) v4.x = v1Draw.x;
-	if ((uint16_t)v4.y < (uint16_t)v1Draw.y) v4.y = v1Draw.y;
-
-	if ((uint16_t)v1.x > v4Draw.x) v1.x = v4Draw.x;
-	if ((uint16_t)v1.y > v4Draw.y) v1.y = v4Draw.y;
-	if ((uint16_t)v2.x > v4Draw.x) v2.x = v4Draw.x;
-	if ((uint16_t)v2.y > v4Draw.y) v2.y = v4Draw.y;
-	if ((uint16_t)v3.x > v4Draw.x) v3.x = v4Draw.x;
-	if ((uint16_t)v3.y > v4Draw.y) v3.y = v4Draw.y;
-	if ((uint16_t)v4.x > v4Draw.x) v4.x = v4Draw.x;
-	if ((uint16_t)v4.y > v4Draw.y) v4.y = v4Draw.y;*/
 }
 
 void cxd85xxx::rasterization(param_t* p_param, const RasterizationModes& color_mode, const RasterizationModes& transparency_mode,
@@ -657,17 +629,12 @@ void cxd85xxx::drawMonochromeRect(param_t param) {
 	int16_t x = x1;
 	int16_t y = y1;
 
-	x1 += drawOffset.x;
-	y1 += drawOffset.y;
-	x2 += drawOffset.x;
-	y2 += drawOffset.y;
-
-	uint16_t data = format24to16Color(param.command_color1);
+	uint16_t color16 = format24to16Color(param.command_color1);
 
 	for (int16_t y = y1; y < y2; y++) {
 		for (int16_t x = x1; x < x2; x++) {
 			vertex_t position(x, y);
-			writeVram(position, data, false);
+			writeVram(position, color16, false);
 		}
 	}
 	return;
@@ -741,40 +708,33 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
+
 	int16_t xMin = psx::gpu::min(arrayX, 4);
 	int16_t yMin = psx::gpu::min(arrayY, 4);
 	int16_t xMax = psx::gpu::max(arrayX, 4);
 	int16_t yMax = psx::gpu::max(arrayY, 4);
 
 	uint16_t texData;
+	psxColor16_t pallete_color = 0;
 	vertex_t pTex;
-	int16_t arrayTexX[4] = { param.texCoord1Palette.elem.x, param.texCoord2TexPage.elem.x,
-		param.texCoord3.elem.x, param.texCoord4.elem.x };
-	int16_t arrayTexY[4] = { param.texCoord1Palette.elem.y, param.texCoord2TexPage.elem.y,
-		param.texCoord3.elem.y, param.texCoord4.elem.y };
-	int16_t xTexMin = psx::gpu::min(arrayTexX, 4);
-	int16_t yTexMin = psx::gpu::min(arrayTexY, 4);
-	int16_t xTexMax = psx::gpu::max(arrayTexX, 4);
-	int16_t yTexMax = psx::gpu::max(arrayTexY, 4);
-
-	psxColor24_t blending = param.command_color1;
-
 	vertex_t p;
 	vertex_t pClut;
-	psxColor16_t pallete_color = 0;
 
-	float ratioX = ((float)(xTexMax - xTexMin) / (float)(xMax - xMin));
-	float ratioY = ((float)(yTexMax - yTexMin) / (float)(yMax - yMin));
+	int16_t xTexMin = param.texCoord1Palette.elem.x;
+	int16_t yTexMin = param.texCoord1Palette.elem.y;
+	psxColor24_t blending = param.command_color1;
 
-	for (int y = 0; y < yMax - yMin; y++) {
-		pTex.y = gpuStat.elem.tex_page_y_base * 256 + yTexMin + (uint32_t)((float)y * ratioY);
+	for (uint32_t y = 0; y < yMax - yMin; y++) {
+		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
 		p.y = yMin + y;
-		for (int x = 0; x < xMax - xMin; x++) {
-			pTex.x = gpuStat.elem.tex_page_x_base * 64 + (xTexMin >> 1) + ((uint32_t)((float)x * ratioX) >> 1);
+		for (uint32_t x = 0; x < xMax - xMin; x++) {
+			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 1);
+			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			pClut.x = clut.elem.xCoord * 16 +
-				(texData >> (((uint32_t)((float)x * ratioX) & 0x1) * 8) & 0xff);
+				(texData >> ((x & 0x1) * 8) & 0xff);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, pallete_color.data);
 			if (pallete_color.data) {
@@ -812,20 +772,17 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 	int16_t yTexMin = param.texCoord1Palette.elem.y;
 	psxColor24_t blending = param.command_color1;
 
-	float ratioX = 1.;
-	float ratioY = 1.;
-
-	for (int y = 0; y < yMax - yMin; y++) {
-		pTex.y = gpuStat.elem.tex_page_y_base * 256 + yTexMin + (uint32_t)((float)y * ratioY);
-		pTex.y = (pTex.y & (~(tex_win_mask.y * 8))) | ((tex_win_offset.y & tex_win_mask.y) * 8);
+	for (uint32_t y = 0; y < yMax - yMin; y++) {
+		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
 		p.y = yMin + y;
-		for (int x = 0; x < xMax - xMin; x++) {
-			pTex.x = gpuStat.elem.tex_page_x_base * 64 + (xTexMin >> 2) + ((uint32_t)((float)x * ratioX) >> 2);
-			pTex.x = (pTex.x & (~(tex_win_mask.x * 8))) | ((tex_win_offset.x & tex_win_mask.x) * 8);
+		for (uint32_t x = 0; x < xMax - xMin; x++) {
+			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 2);
+			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
-			pClut.x = clut.elem.xCoord * 16 +
-				(texData >> (((uint32_t)((float)x * ratioX) & 0x3) * 4) & 0xf);
+			pClut.x = (clut.elem.xCoord << 4) +
+				(texData >> ((x & 0x3) << 2) & 0xf);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, pallete_color.data);
 			if (pallete_color.data) {
@@ -835,26 +792,25 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 					pallete_color.component.blue = (float)pallete_color.component.blue * (float)blending.component.blue / (float)0x80;
 				}
 				writeVram(p, pallete_color.data);
-
 			}
 		}
 	}
 }
 
 void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height) {
-	const int x1 = (dest_coord << 16 >> 16) & 0x3ff;
-	int x2 = x1 + (width_height << 16 >> 16);
-	const int y1 = (dest_coord >> 16) & 0x1ff;
-	int y2 = y1 + (width_height >> 16);
-	int x;
-	int y = y1;
+	const uint32_t x1 = (dest_coord << 16 >> 16) & 0x3ff;
+	uint32_t x2 = x1 + (width_height << 16 >> 16);
+	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
+	uint32_t y2 = y1 + (width_height >> 16);
+	uint32_t x;
+	uint32_t y = y1;
 
 
-	std::vector<uint16_t> buffer(collect_list.size() * 2);
-	for (int i = 0; i < buffer.size(); i += 2) {
-		buffer[i] = collect_list[i / 2] << 16 >> 16;
-		buffer[i + 1] = collect_list[i / 2] >> 16;
-		collect_list.pop_back();
+	std::vector<uint16_t> buffer(collectList.size() << 1);
+	for (uint32_t i = 0; i < (buffer.size() >> 1); i++) {
+		buffer[i * 2] = collectList[0];
+		buffer[i * 2 + 1] = collectList[0] >> 16;
+		collectList.erase(collectList.begin());
 	}
 
 	do {
@@ -867,6 +823,11 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 		} while (x < x2);
 		y++;
 	} while (y < y2);
+
+	if (!buffer.empty()) {
+		std::cout << "[GPU] EMULATION PAUSED! 0xa0... command buffer not empty 0x" << std::hex << buffer.size() << std::endl;
+		isEmulationPaused = true;
+	}
 }
 
 void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height) {
@@ -878,7 +839,7 @@ void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width
 	int y = y1;
 
 	uint16_t data;
-	std::vector<uint16_t> buffer(collect_list.size() * 2);
+	std::vector<uint16_t> buffer(collectList.size() * 2);
 
 	do {
 		x = x1;
@@ -899,29 +860,57 @@ void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width
 	for (int i = 0; i < buffer.size(); i += 2) {
 		temp = buffer[i];
 		temp |= (uint32_t)buffer[i + 1] << 16;
-		collect_list.push_back(temp);
+		collectList.push_back(temp);
 	}
+}
+
+void cxd85xxx::copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight) {
+	const uint16_t sourceX1 = sourceCoord << 16 >> 16;
+	const uint16_t sourceY1 = sourceCoord >> 16;
+
+	const uint16_t destX1 = destCoord << 16 >> 16;
+	const uint16_t destY1 = destCoord >> 16;
+
+	const uint16_t width = widthHeight << 16 >> 16;
+	const uint16_t height = widthHeight >> 16;
+
+	uint16_t x;
+	uint16_t y = 0;
+
+	uint16_t data;
+
+	do {
+		x = 0;
+		do {
+			vertex_t sourcePosition(sourceX1 + x, sourceY1 + y);
+			readVram(sourcePosition, data);
+			vertex_t destPosition(destX1 + x, destY1 + y);
+			writeVram(destPosition, data, true);
+			x++;
+		} while (x < width);
+		y++;
+	} while (y < height);
 }
 
 //gp0 commands
 
 void cxd85xxx::nop(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	/*std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
 }
 
 void cxd85xxx::clearCache(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	/*std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
 }
 
 void cxd85xxx::fillRectVram(const uint32_t& commandColor) {
 	param_t param;
 	param.type = RECT_PARAM;
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -952,20 +941,26 @@ void cxd85xxx::unknown(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::copyRectVramVram(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	uint32_t widthHeight = collectList.back();
+	collectList.pop_back();
+	uint32_t destCoord = collectList.back();
+	collectList.pop_back();
+	uint32_t sourceCoord = collectList.back();
+	collectList.pop_back();
+	copyRectVramVram(sourceCoord, destCoord, widthHeight);
 }
 
 void cxd85xxx::copyRectCpuVram(const uint32_t& commandColor) {
 	if (b_collect_param) {
 		b_collect_param = false;
-		width_height = collect_list.back();
-		collect_list.pop_back();
-		dest_coord = collect_list.back();
-		collect_list.pop_back();
+		width_height = collectList.back();
+		collectList.pop_back();
+		dest_coord = collectList.back();
+		collectList.pop_back();
 		//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height << 16 >> 16) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
 		collect = (width_height >> 16) * (width_height << 16 >> 16) / 2;
-		collect += collect & 0x1;
+		if ((collect * 2) < ((width_height >> 16) * (width_height << 16 >> 16) / 2))
+			collect += collect & 0x1;
 	}
 	else {
 		copyRectCpuVram(dest_coord, width_height);
@@ -973,10 +968,10 @@ void cxd85xxx::copyRectCpuVram(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::copyRectVramCpu(const uint32_t& commandColor) {
-	width_height = collect_list.back();
-	collect_list.pop_back();
-	source_coord = collect_list.back();
-	collect_list.pop_back();
+	width_height = collectList.back();
+	collectList.pop_back();
+	source_coord = collectList.back();
+	collectList.pop_back();
 	copyRectVramCpu(source_coord, width_height);
 	b_trans_command = true;
 }
@@ -989,12 +984,12 @@ void cxd85xxx::interruptRequest(const uint32_t& commandColor) {
 void cxd85xxx::mono3PolyOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = TRIANGLE_PARAM;
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
 		3, param.vert1, param.vert2, param.vert3);
@@ -1008,14 +1003,14 @@ void cxd85xxx::mono3PolySemiTransp(const uint32_t& commandColor) {
 void cxd85xxx::mono4PolyOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = RECT_PARAM;
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	drawMonochromeRect(param);
 }
@@ -1023,35 +1018,35 @@ void cxd85xxx::mono4PolyOpaq(const uint32_t& commandColor) {
 void cxd85xxx::mono4PolySemiTransp(const uint32_t& commandColor) {
 	param_t param;
 	param.type = RECT_PARAM;
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	drawMonochromeRect(param);
 }
 
 void cxd85xxx::tex3PolyOpaqTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	/*std::cout << "~[GPU] unhandled GPU0 command {only bypass} 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
 
 	param_t param;
-	param.texCoord3 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord2TexPage = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	param.color3 = command;
 
@@ -1066,8 +1061,28 @@ void cxd85xxx::tex3PolyOpaqRawTex(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::tex3PolySemiTranspTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	/*std::cout << "~[GPU] unhandled GPU0 command {only bypass} 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
+
+	param_t param;
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	param.color3 = command;
+
+	//just a bypass
+	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
+	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::tex3PolySemiTranspRawTex(const uint32_t& commandColor) {
@@ -1088,22 +1103,22 @@ void cxd85xxx::tex4PolyOpaqTexBlend(const uint32_t& commandColor) {
 		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
 		break;
 	}
-	param.texCoord4 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord3 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord2TexPage = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord4 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	param.color3 = command;
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
@@ -1130,22 +1145,22 @@ void cxd85xxx::tex4PolyOpaqRawTex(const uint32_t& commandColor) {
 		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
 		break;
 	}
-	param.texCoord4 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord3 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord2TexPage = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord4 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	param.color3 = command;
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
@@ -1177,22 +1192,22 @@ void cxd85xxx::tex4PolySemiTranspRawTex(const uint32_t& commandColor) {
 		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
 		break;
 	}
-	param.texCoord4 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord3 = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord2TexPage = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord4 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	param.color3 = command;
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
@@ -1209,16 +1224,16 @@ void cxd85xxx::tex4PolySemiTranspRawTex(const uint32_t& commandColor) {
 void cxd85xxx::shaded3PolyOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = SHADED_3_POINT_PARAM;
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.color3 = (psxColor24_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.color2 = (psxColor24_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.color3 = (psxColor24_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.color2 = (psxColor24_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
 		3, param.vert1, param.vert2, param.vert3, (0, 0));
@@ -1232,20 +1247,20 @@ void cxd85xxx::shaded3PolySemiTransp(const uint32_t& commandColor) {
 void cxd85xxx::shaded4PolyOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = SHADED_4_POINT_PARAM;
-	param.vert4 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.color4 = (psxColor24_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert3 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.color3 = (psxColor24_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.color2 = (psxColor24_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.color4 = (psxColor24_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.color3 = (psxColor24_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.color2 = (psxColor24_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	rasterization((param_t*)&param, PSX_SHADED, PSX_OPAQUE,
 		4, param.vert1, param.vert2, param.vert3, param.vert4);
@@ -1257,8 +1272,30 @@ void cxd85xxx::shaded4PolySemiTransp(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::shadedTex3PolyOpaqTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	/*std::cout << "~[GPU] unhandled GPU0 command {only bypass} 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
+
+	param_t param;
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	param.color3 = command;
+
+	//just a bypass
+	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
+	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::shadedTex3PolySemiTranspTexBlend(const uint32_t& commandColor) {
@@ -1284,10 +1321,10 @@ void cxd85xxx::undocumented(const uint32_t& commandColor) {
 void cxd85xxx::monoLineOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = MONOCHROME_LINE_PARAM;
-	param.vert2 = (vertex_t)collect_list.back();
-	collect_list.pop_back();;
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();;
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
 	drawMonochromeLine(param);
 }
@@ -1330,10 +1367,10 @@ void cxd85xxx::shadedPolyLineSemiTransp(const uint32_t& commandColor) {
 void cxd85xxx::monoRectVarOpaq(const uint32_t& commandColor) {
 	param_t param;
 
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t((size_x_y << 16 >> 16), (size_x_y >> 16));
 	param.vert3 = param.vert1 + vertex_t(0, (size_x_y >> 16));
 	param.vert2 = param.vert1 + vertex_t((size_x_y << 16 >> 16), 0);
@@ -1344,10 +1381,10 @@ void cxd85xxx::monoRectVarOpaq(const uint32_t& commandColor) {
 void cxd85xxx::monoRectVarSemiTransp(const uint32_t& commandColor) {
 	param_t param;
 
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t((size_x_y << 16 >> 16), (size_x_y >> 16));
 	param.vert3 = param.vert1 + vertex_t(0, (size_x_y >> 16));
 	param.vert2 = param.vert1 + vertex_t((size_x_y << 16 >> 16), 0);
@@ -1357,15 +1394,12 @@ void cxd85xxx::monoRectVarSemiTransp(const uint32_t& commandColor) {
 
 void cxd85xxx::monoRect1x1Opaq(const uint32_t& commandColor) {
 	param_t param;
-	param.type = RECT_PARAM;
-	uint32_t size_x_y = 0x00010001;
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
-	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
-	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.command_color1 = command;
-	drawMonochromeRect(param);
+
+	uint16_t color16 = format24to16Color(param.command_color1);
+	writeVram(param.vert1, color16, false);
 }
 
 void cxd85xxx::monoRect1x1SemiTransp(const uint32_t& commandColor) {
@@ -1397,14 +1431,14 @@ void cxd85xxx::texRectVarOpaqTexBlend(const uint32_t& commandColor) {
 	param_t param;
 	param.type = TEXTURED_4_POINT_OPAQUE_BLENDING_PARAM;
 
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
 
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
 
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1433,14 +1467,14 @@ void cxd85xxx::texRectVarOpaqRawTex(const uint32_t& commandColor) {
 	param_t param;
 	param.type = TEXTURED_RECT_OPAQUE_RAW_PARAM;
 
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
 
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
 
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1466,11 +1500,11 @@ void cxd85xxx::texRectVarSemiTranspTexBlend(const uint32_t& commandColor) {
 
 	param.type = TEXTURED_RECT_OPAQUE_RAW_PARAM;
 
-	uint32_t size_x_y = collect_list.back();
-	collect_list.pop_back();
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
 
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
 	//calculating texture coodriantes
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
@@ -1479,8 +1513,8 @@ void cxd85xxx::texRectVarSemiTranspTexBlend(const uint32_t& commandColor) {
 	param.texCoord4.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	//calculating verteces
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
@@ -1530,10 +1564,10 @@ void cxd85xxx::texRect1x1SemiTranspRawTex(const uint32_t& commandColor) {
 void cxd85xxx::texRect8x8OpaqTexBlend(const uint32_t& commandColor) {
 	param_t param;
 	uint32_t size_x_y = 0x00080008;
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1562,10 +1596,10 @@ void cxd85xxx::texRect8x8OpaqTexBlend(const uint32_t& commandColor) {
 void cxd85xxx::texRect8x8OpaqRawTex(const uint32_t& commandColor) {
 	param_t param;
 	uint32_t size_x_y = 0x00080008;
-	param.texCoord1Palette = (texcoordData_t)collect_list.back();
-	collect_list.pop_back();
-	param.vert1 = (vertex_t)collect_list.back();
-	collect_list.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
 	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1602,13 +1636,67 @@ void cxd85xxx::texRect8x8SemiTranspRawTex(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::texRect16x16OpaqTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	uint32_t size_x_y = 0x00100010;
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
+	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
+	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
+	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
+	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
+	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+
+	param.texCoord4.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+	param.command_color1 = command;
+
+	if (gpuStat.elem.tex_page_colors == 2)
+		drawTexRect15Bit(param);
+	else if (gpuStat.elem.tex_page_colors == 1)
+		drawTexRect8Bit(param);
+	else  if (gpuStat.elem.tex_page_colors == 0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::texRect16x16OpaqRawTex(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	uint32_t size_x_y = 0x00100010;
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
+	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
+	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
+	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
+	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
+	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+
+	param.texCoord4.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+	param.command_color1 = command;
+
+	if (gpuStat.elem.tex_page_colors == 2)
+		drawTexRect15Bit(param);
+	else if (gpuStat.elem.tex_page_colors == 1)
+		drawTexRect8Bit(param);
+	else  if (gpuStat.elem.tex_page_colors == 0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::texRect16x16SemiTranspTexBlend(const uint32_t& commandColor) {
@@ -1632,10 +1720,6 @@ void cxd85xxx::texWindowSetting(const uint32_t& commandColor) {
 	tex_win_mask.y = commandColor << 22 >> 27;
 	tex_win_offset.x = commandColor << 17 >> 27;
 	tex_win_offset.y = commandColor << 12 >> 27;
-	if (commandColor << 8) {
-		std::cout << "[GPU] EMULATION PAUSED! texture win != 0";
-		isEmulationPaused = true;
-	}
 }
 
 void cxd85xxx::setDrawAreaTopLeft(const uint32_t& commandColor) {

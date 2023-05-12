@@ -1,4 +1,5 @@
 #include "console.h"
+#include "defines/defines.h"
 
 bool isCpuStopped = false;
 extern bool isEmulationPaused;
@@ -16,10 +17,17 @@ void Console::reset() {
 void Console::clock() {
 	if (!isCpuStopped)
 		cpuSOC.clock();
+
 	bus.dma.clock();
+
 	gpu.videoClock();
+
 	cdDrive.clock();
-	bus.timer2.clock(0);
+
+	bus.timer0.clock(SYSTEM_CLOCK);
+	bus.timer1.clock(SYSTEM_CLOCK);
+	bus.timer2.clock(SYSTEM_CLOCK);
+
 	joyMemCard.clock();
 }
 

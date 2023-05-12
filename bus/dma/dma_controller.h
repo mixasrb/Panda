@@ -6,6 +6,7 @@
 
 #include "../../debug_utilities/debug_utilities.h""
 #include "dma.h"
+#include "dma_0.h"
 #include "dma_2.h"
 #include "dma_3.h"
 #include "dma_6.h"
@@ -19,9 +20,10 @@ public:
 
 	busInterface* pbus;
 
-	dma2 dma_2;
-	dma3 dma_3;
-	dma6 dma_6;
+	dma0 dma0;
+	dma2 dma2;
+	dma3 dma3;
+	dma6 dma6;
 
 	dma* ppDMA[7];
 
@@ -49,7 +51,7 @@ public:
 			uint32_t otc_master_enable : 1;
 			uint32_t : 4;
 		}reg;
-	}dpcr;
+	}controlRegister;
 
 	union interruptRegister_t
 	{
@@ -76,10 +78,8 @@ public:
 			uint32_t IRQ_flag_dma6 : 1;
 			uint32_t IRQ_master_flag : 1;
 		}reg;
-	}dicr;
+	}interruptRegister;
 
-	//uint32_t wait;
-	//bool irq = false;
 	//debug
 	debugUtilities* p_debugger;
 };

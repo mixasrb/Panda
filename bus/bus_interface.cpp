@@ -15,7 +15,7 @@ extern bool isEmulationPaused;
 
 #define MEMORY_CONTROL_1 (addr >= 0x1f801000 && addr <= 0x1f801020)
 
-#define INPUT_CONTROLLER (addr >= 0x1f801040 && addr <= 0x1f80104e)
+#define JOY_MEM_CARD (addr >= 0x1f801040 && addr <= 0x1f80104e)
 
 #define MEMORY_CONTROL_2 (addr == 0x1f801060)
 
@@ -28,7 +28,7 @@ extern bool isEmulationPaused;
 
 #define CD_DRIVE (addr >= 0x1f801800 && addr <= 0x1f801803)
 
-#define GPU (addr == 0x1f801810 || addr == 0x1f801814)
+#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814))
 
 #define BIOS ((addr >= 0x1fc00000 && addr <= (0x1fc00000 + BIOS_SIZE)) || \
 (addr >= 0x9fc00000 && addr <= (0x9fc00000 + BIOS_SIZE)) || \
@@ -37,6 +37,7 @@ extern bool isEmulationPaused;
 #define POST ((addr << 4 >> 4) == 0x0f802041)
 
 #define CACHE_CONTROL (addr == 0xfffe0130)
+
 
 void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
@@ -127,7 +128,7 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		dma.ReadDMA32(addr, data, clocks);
 		clocks = 3;
 	}
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
 		pJoyMemCard->cpuRead32(addr, data);
 		clocks = 3;
@@ -149,8 +150,6 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 }
 
 void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
-	/*if (data == 0xffdc00b8)
-		isEmulationPaused = true;*/
 
 	if (RAM) {
 		const bool accessICache = ((pCp0->get(Isc) & 0x10000) != 0x10000) && (cacheControl != 0x800);
@@ -212,7 +211,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 		dma.WriteDMA32(addr, data, cycles);
 	else if (GPU)
 		pGpu->writeGpu32(addr, data);
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		pJoyMemCard->cpuWrite32(addr, data);
 	}
@@ -293,10 +292,6 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		data = biosChip.biosData[(addr & 0x000fffff) + 1] << (2 * 4) | biosChip.biosData[addr & 0x000fffff];
 		clocks = 13;
 	}
-	else if (DMA) {
-		dma.ReadDMA16(addr, data, clocks);
-		clocks = 4;//??
-	}
 	else if ((addr >= 0x1f801c00) && (addr < 0x1f801d80)) {
 		//std::cout << "[BUS] unhandled SPU Voice Registers read16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		clocks = 18;//??
@@ -307,7 +302,7 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		clocks = 18;//??
 		return;
 	}
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PAUSED! unhandled addr read16 0x" << std::hex << addr << "\n";
 		pJoyMemCard->cpuRead16(addr, data);
 		clocks = 3;
@@ -384,8 +379,6 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 		cacheControl = data;
 		std::cout << "[BUS] unhandled cache control reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	}
-	else if (DMA)
-		dma.WriteDMA16(addr, data, cycles);
 	else if ((addr >= 0x1f801c00) && (addr < 0x1f801d80)) {
 		//std::cout << "[BUS] unhandled SPU Voice Registers write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
@@ -398,7 +391,7 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 		//std::cout << "[BUS] unhandled SPU Reverb Configuration Area write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
 	}
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		pJoyMemCard->cpuWrite16(addr, data);
 	}
@@ -453,7 +446,7 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 		pCdDrive->ReadCdDrive8(addr, data);
 		clocks = 8;//??
 	}
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PASUED! unhandled read8 adress 0x" << addr << "\n";
 		pJoyMemCard->cpuRead8(addr, data);
 		clocks = 3;
@@ -490,7 +483,7 @@ void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t&
 		post = data;
 	else if (CD_DRIVE)
 		pCdDrive->WriteCdDrive8(addr, data);
-	else if (INPUT_CONTROLLER) {
+	else if (JOY_MEM_CARD) {
 		//std::cout << "[BUS] EMULATION PASUED! unhandled write8 adress 0x" << std::hex << addr << " data 0x" << std::hex << (uint32_t)data << "\n";
 		pJoyMemCard->cpuWrite8(addr, data);
 	}

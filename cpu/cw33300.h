@@ -235,9 +235,8 @@ public:
 	bool isInstructionExecuted;
 
 	void setBiosCallFlag();
-	void printBiosCall(const uint8_t& reg, uint32_t v);
+	void printBiosCall();
 	std::optional<char> biosCallFlag;
-	bool b = false;
 
 	std::string getInstructionStr(const uint32_t& opcode, const uint32_t& pc = 0, const bool& b = false);
 	std::string getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc);

@@ -248,7 +248,7 @@ public:
 
 	uint32_t command;
 	uint32_t collect = 0;
-	std::vector<uint32_t> collect_list;
+	std::vector<uint32_t> collectList;
 
 	struct vertex_t
 	{
@@ -340,6 +340,7 @@ public:
 	uint32_t dest_coord;
 	uint32_t source_coord;
 	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
+	void copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
 	bool b_trans_command = false;
 
 	uint8_t* vram = new uint8_t[size_x * size_y];
@@ -356,7 +357,6 @@ public:
 		PSX_SEMI_TRANSPARENT
 	};
 
-	void CheckDrawingOffset(vertex_t& v1, vertex_t& v2, vertex_t& v3, vertex_t& v4);
 	void rasterization(param_t* p_param, const RasterizationModes& color_mode, const RasterizationModes& transparency_mode,
 		const uint8_t& vertex_count, vertex_t v1, vertex_t v2, vertex_t v3, vertex_t v4 = (0, 0));
 

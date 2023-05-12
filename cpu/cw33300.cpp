@@ -5,7 +5,7 @@ extern bool areExecutedCpuInstructionsLogged;
 extern bool areGTEInstructionsLogged;
 extern bool isButtonPressed;
 
-extern const char* sideloadPath;
+extern const char* g_sideloadPath;
 extern bool bSideload;
 
 cw33300::cw33300() {
@@ -112,49 +112,26 @@ cw33300::cw33300() {
 }
 
 uint32_t cw33300::get(const uint8_t& reg) {
-	uint32_t value;
-	if (reg)
-		value = r[reg];
-	else
-		value = 0;
-
-	//debug
-	if (areExecutedCpuInstructionsLogged) {
-		std::stringstream ss;
-		ss << "get: r[" << std::to_string((uint16_t)reg) << "]" <<
-			" {0x" << std::hex << r[reg] << "}" << "\n";
-		p_debugger->log(ss.str());
-	}
-
-	return value;
+	return r[reg];
 }
 
 void cw33300::set(const uint8_t& reg, const uint32_t& value) {
 	if (reg != 0)
 		r[reg] = value;
-
-	//debug
-	if (areExecutedCpuInstructionsLogged) {
-		std::stringstream ss;
-		ss << "set: r[" << std::to_string((uint16_t)reg) << "]" <<
-			" {0x" << std::hex << value << "}" << "\n";
-		p_debugger->log(ss.str());
-	}
-
-	printBiosCall(reg, value);
 }
 
 void cw33300::decodeExecute(const uint32_t& opcode) {
 	//debug 
 	/*executedOpcodes.pop_back();
-	std::string s = LogOpcode(opcode, pc_old);
+	std::string s = getInstructionStr(opcode, pc_old);
 	executedOpcodes.insert(executedOpcodes.begin(), s);*/
 	/*if (s.find("N/A") != std::string::npos)
 		isEmulationPaused = true;*/
 
 		//debug
 	if (areExecutedCpuInstructionsLogged)
-		p_debugger->log(getInstructionStr(opcode, pc_old, false) + "\n");
+		//p_debugger->log(getInstructionStr(opcode, pc_old, false) + "\n");
+		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 
 	isCurrentOpcodeBranch = false;
 	uint8_t prim_opcode = opcode >> 26;
@@ -173,14 +150,13 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 				opcode << 11 >> 27, opcode << 16 >> 27);
 
 		else if (sec_opcode == 0x08) { //jr
-			JR(opcode << 6 >> 27);
 			isCurrentOpcodeBranch = true;
+			JR(opcode << 6 >> 27);
 		}
 
 		else if (sec_opcode == 0x09) { //jalr
-
-			JALR(opcode << 6 >> 27, opcode << 16 >> 27);
 			isCurrentOpcodeBranch = true;
+			JALR(opcode << 6 >> 27, opcode << 16 >> 27);
 		}
 
 		else if (sec_opcode >= 0xc && sec_opcode <= 0xd) //sys/brk
@@ -211,6 +187,7 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 	}
 
 	else if (prim_opcode == 0x1) { //BcondZ
+		isCurrentOpcodeBranch = true;
 		switch (opcode << 11 >> 27) {
 		case 0x10:
 			(this->*b_cond_z[2].instr)(
@@ -232,18 +209,20 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 	}
 
 	else if (prim_opcode >= 0x2 && prim_opcode <= 0x3) { //j_jal
+		isCurrentOpcodeBranch = true;
 		(this->*j_jal[prim_opcode - 0x2].instr)(
 			opcode << 6 >> 6);
-		isCurrentOpcodeBranch = true;
 	}
 
 	else if (prim_opcode == 0x04 || prim_opcode == 0x05) { //beq/bne
+		isCurrentOpcodeBranch = true;
 		(this->*beq_bne[prim_opcode & 0x03].instr)(
 			opcode << 6 >> 27,
 			opcode << 11 >> 27, opcode & 0x0000ffff);
 	}
 
 	else if (prim_opcode == 0x06 || prim_opcode == 0x07) { //blez/bgtz
+		isCurrentOpcodeBranch = true;
 		(this->*blez_bgtz[prim_opcode - 0x06].instr)(
 			opcode << 6 >> 27, opcode & 0x0000ffff);
 	}
@@ -349,7 +328,6 @@ void cw33300::clock() {
 		return;
 	}*/
 
-	//main
 	if (clocks == 0) {
 
 		cp0.checkForInterrupts();
@@ -358,6 +336,8 @@ void cw33300::clock() {
 		case 0:
 			cycle = 1;
 		label0:
+			//debug
+			setBiosCallFlag();
 			//fetch
 			read32(pc, opcodes[0], instructionFetchClocks0);
 
@@ -379,7 +359,10 @@ void cw33300::clock() {
 			clocks = instructionFetchClocks1 + memoryClocks;
 
 			//debug
-			setBiosCallFlag();
+			printBiosCall();
+
+
+			//debug
 			isInstructionExecuted = true;
 
 			break;
@@ -392,6 +375,8 @@ void cw33300::clock() {
 			cycle = 0;
 			isPipelineFull = true;
 
+			//debug
+			setBiosCallFlag();
 			//fetch
 			read32(pc, opcodes[1], instructionFetchClocks1);
 
@@ -410,7 +395,9 @@ void cw33300::clock() {
 			clocks = instructionFetchClocks0 + memoryClocks;
 
 			//debug
-			setBiosCallFlag();
+			printBiosCall();
+
+			//debug
 			isInstructionExecuted = true;
 
 			break;
@@ -653,40 +640,28 @@ void cw33300::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 
 void cw33300::BLTZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
-	if (temp < 0) {
+	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::BGEZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
-	if (temp >= 0) {
+	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	set(31, pc - 8 + 8);
-	if (temp < 0) {
+	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
-	//std::cout << "Unhandled opcode: BLTZAL " << "op:" << std::hex << opcode << std::endl;
-	//isEmulationPaused = true;
 }
 
 void cw33300::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	set(31, pc - 8 + 8);
-	if (temp >= 0) {
+	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
-	//std::cout << "Unhandled opcode: BGEZAL " << "op:" << std::hex << opcode << std::endl;
-	//isEmulationPaused = true;
 }
 
 void cw33300::J(const uint32_t& imm) {
@@ -699,33 +674,25 @@ void cw33300::JAL(const uint32_t& imm) {
 }
 
 void cw33300::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	if (get(rs) == get(rt)) {
+	if (get(rs) == get(rt))
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	if (get(rs) != get(rt)) {
+	if (get(rs) != get(rt))
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::BLEZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
-	if (temp <= 0) {
+	if (temp <= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::BGTZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
-	if (temp > 0) {
+	if (temp > 0)
 		pc = pc + (int16_t)imm * 4 - 4;
-		isCurrentOpcodeBranch = true;
-	}
 }
 
 void cw33300::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
@@ -954,78 +921,123 @@ void cw33300::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 //debug
 
 void cw33300::setBiosCallFlag() {
-	if (pc == 0xa0)
+	if (pc == 0xa0) {
 		biosCallFlag = 'a';
-	if (pc == 0xb0)
+		//isEmulationPaused = true;
+	}
+	if (pc == 0xb0) {
 		biosCallFlag = 'b';
-	if (pc == 0xc0)
+		//isEmulationPaused = true;
+	}
+	if (pc == 0xc0) {
 		biosCallFlag = 'c';
+		//isEmulationPaused = true;
+	}
 }
 
-void cw33300::printBiosCall(const uint8_t& reg, uint32_t v) {
-	/*if (b && reg == 4) {
-		b = false;
-		std::cout << (uint8_t)get(4) << std::endl;
-	}*/
+void cw33300::printBiosCall() {
+	uint32_t call = get(9);
 
-	if (reg == 0x09 && biosCallFlag.has_value())
+	if (biosCallFlag.has_value())
 		switch (biosCallFlag.value()) {
 		case 'a':
 			biosCallFlag.reset();
-			if (v > 0xb5)
-				v = 0xb5;
-			//std::cout << pBus->biosChip.A[v].info << std::endl;
+			if (call > 0xb5)
+				call = 0xb5;
+			std::cout << pBus->biosChip.A[call].info << std::endl;
+
+			if (call == 0x3c) {
+				std::stringstream ss;
+				//std::cout << (char)get(4);
+				ss << (char)get(4);
+				p_debugger->log(ss.str());
+			}
 
 			break;
 		case 'b':
 			biosCallFlag.reset();
-			if (v >= 0x5e && v <= 0xff)
-				v = 0x5e;
-			if (v > 0xff)
-				v = 0x5f;
-			/*if ((v != 0x0b) && (v != 0x17))
-				std::cout << pBus->biosChip.B[v].info << std::endl;*/
+			if (call >= 0x5e && call <= 0xff)
+				call = 0x5e;
+			if (call > 0xff)
+				call = 0x5f;
+			if ((call != 0x0b) && (call != 0x17)/* && (call != 0x3d)*/)
+				std::cout << pBus->biosChip.B[call].info << std::endl;
 
-			/*
-			if (v == 0x08) {
+			if (call == 0x02) {
+				//isEmulationPaused = true;
+				std::cout << "t 0x" << std::hex << get(4) << std::endl;
+				std::cout << "reload 0x" << std::hex << get(5) << std::endl;
+				std::cout << "flags 0x" << std::hex << get(6) << std::endl;
+			}
+
+			if (call == 0x08) {
+				std::cout << "class 0x" << std::hex << get(4) << std::endl;
+				std::cout << "spec 0x" << std::hex << get(5) << std::endl;
+				std::cout << "mode 0x" << std::hex << get(6) << std::endl;
+				std::cout << "func 0x" << std::hex << get(7) << std::endl;
+			}
+
+			if ((call == 0x07) || (call == 0x20)) {
 				std::cout << "event 0x" << std::hex << get(4) << std::endl;
+				std::cout << "specs 0x" << std::hex << get(5) << std::endl;
+			}
 
+			if (/*(v == 0x0b) || */(call == 0x0c) || (call == 0x09)) {
+				uint8_t cycles;
+				uint32_t ptr;
+				uint32_t data;
+				read32(0x120, ptr, cycles);
+				ptr += 7 * 4 * (get(4) & 0xffff);
+				read32(ptr, data, cycles);
+				std::cout << "event 0x" << std::hex << get(4) << std::endl;
+				std::cout << "class 0x" << std::hex << data << std::endl;
+				read32(ptr + 0x4, data, cycles);
+				std::cout << "flag 0x" << std::hex << data << std::endl;
+				read32(ptr + 0x8, data, cycles);
+				std::cout << "specs 0x" << std::hex << data << std::endl;
+				read32(ptr + 0xc, data, cycles);
+				std::cout << "mode 0x" << std::hex << data << std::endl;
+			}
+
+			/*if (call == 0x0b) {
+				uint8_t cycles;
+				uint32_t ptr;
+				uint32_t data;
+				read32(0x120, ptr, cycles);
+				ptr += 7 * 4 * (get(4) & 0xffff);
+				read32(ptr, data, cycles);
+				if (data != 0xf0000009) {
+					std::cout << "event 0x" << std::hex << get(4) << std::endl;
+					std::cout << "class 0x" << std::hex << data << std::endl;
+					read32(ptr + 0x4, data, cycles);
+					std::cout << "flag 0x" << std::hex << data << std::endl;
+					read32(ptr + 0x8, data, cycles);
+					std::cout << "specs 0x" << std::hex << data << std::endl;
+					read32(ptr + 0xc, data, cycles);
+					std::cout << "mode 0x" << std::hex << data << std::endl;
+				}
 			}*/
-			//if (v == 0x0b) {
-			//	//std::cout << "event 0x" << std::hex << get(4) << std::endl;
-			//	uint8_t cycles;
-			//	uint32_t ptr;
-			//	uint32_t data;
-			//	read32(0x120, ptr, cycles);
-			//	ptr += 7 * 4 * (get(4) & 0xffff);
-			//	read32(ptr, data, cycles);
-			//	if (data != 0xf0000009) {
-			//		std::cout << pBus->biosChip.B[v].info << std::endl;
-			//		std::cout << "event 0x" << std::hex << get(4) << std::endl;
-			//		std::cout << "class 0x" << std::hex << data << std::endl;
-			//		read32(ptr + 0x4, data, cycles);
-			//		std::cout << "flag 0x" << std::hex << data << std::endl;
-			//		read32(ptr + 0x8, data, cycles);
-			//		std::cout << "specs 0x" << std::hex << data << std::endl;
-			//		read32(ptr + 0xc, data, cycles);
-			//		std::cout << "mode 0x" << std::hex << data << std::endl;
-			//	}
-			//}
 
-			//b = true
-			if (v == 0x3d) {
+			if (call == 0x3d) {
 				std::stringstream ss;
+				//std::cout << (char)get(4);
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
-				//b = true;
+			}
+
+			if (call == 0x4f) {
+				std::cout << "port 0x" << std::hex << get(4) << std::endl;
+				std::cout << "sector 0x" << std::hex << get(5) << std::endl;
+				std::cout << "dst 0x" << std::hex << get(6) << std::endl;
+				//isEmulationPaused = true;
 			}
 
 			break;
 		case 'c':
 			biosCallFlag.reset();
-			if (v > 0x20)
-				v = 0x20;
-			//std::cout << pBus->biosChip.C[v].info << std::endl;
+			if (call > 0x20)
+				call = 0x20;
+			std::cout << pBus->biosChip.C[call].info << std::endl;
 
 			break;
 		}
@@ -1233,7 +1245,7 @@ std::string cw33300::getDecodedInstructionStr(const uint32_t& opcode, const uint
 
 void cw33300::sideLoad() {
 	bSideload = false;
-	std::ifstream file(sideloadPath, std::ifstream::binary | std::ifstream::ate);
+	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
 	if (!file.is_open())
 		throw std::runtime_error("failed to open sideload!\n");
 

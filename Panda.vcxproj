@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClCompile Include="bios_chip\bios_chip.cpp" />
     <ClCompile Include="bus\bus_interface.cpp" />
+    <ClCompile Include="bus\dma\dma_0.cpp" />
     <ClCompile Include="bus\dma\dma_2.cpp" />
     <ClCompile Include="bus\dma\dma_3.cpp" />
     <ClCompile Include="bus\dma\dma_6.cpp" />
@@ -170,6 +171,7 @@
     <ClInclude Include="bios_chip\bios_chip.h" />
     <ClInclude Include="bus\bus_interface.h" />
     <ClInclude Include="bus\dma\dma.h" />
+    <ClInclude Include="bus\dma\dma_0.h" />
     <ClInclude Include="bus\dma\dma_2.h" />
     <ClInclude Include="bus\dma\dma_3.h" />
     <ClInclude Include="bus\dma\dma_6.h" />

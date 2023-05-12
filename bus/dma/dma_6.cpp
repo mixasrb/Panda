@@ -72,17 +72,17 @@ void dma6::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void dma6::triggerIRQ() {
-	if (p_dma->dicr.reg.IRQ_enable_dma6)
-		p_dma->dicr.reg.IRQ_flag_dma6 = 1;
+	if (p_dma->interruptRegister.reg.IRQ_enable_dma6)
+		p_dma->interruptRegister.reg.IRQ_flag_dma6 = 1;
 	else
-		p_dma->dicr.reg.IRQ_flag_dma6 = 0;
+		p_dma->interruptRegister.reg.IRQ_flag_dma6 = 0;
 
-	if (p_dma->dicr.reg.IRQ_master_enable &&
-		p_dma->dicr.reg.IRQ_enable_dma6 &&
-		p_dma->dicr.reg.IRQ_flag_dma6)
-		p_dma->dicr.reg.IRQ_master_flag = 1;
+	if (p_dma->interruptRegister.reg.IRQ_master_enable &&
+		p_dma->interruptRegister.reg.IRQ_enable_dma6 &&
+		p_dma->interruptRegister.reg.IRQ_flag_dma6)
+		p_dma->interruptRegister.reg.IRQ_master_flag = 1;
 	else
-		p_dma->dicr.reg.IRQ_master_flag = 0;
+		p_dma->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
 void dma6::Clock() {

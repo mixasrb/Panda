@@ -2,7 +2,8 @@
 #include "../bus/bus_interface.h"
 
 extern bool isEmulationPaused;
-extern const char* cdPath;
+extern const char* g_cdPath;
+extern uint8_t g_driveStatus;
 
 hc05_pux::hc05_pux() {
 	commandLookup.resize(20);
@@ -16,6 +17,7 @@ hc05_pux::hc05_pux() {
 		{"GetClock ",&hc05_pux::xxxxx},{"Test      ",&hc05_pux::Test},{"GetID     ",&hc05_pux::GetID},{"ReadS   ",&hc05_pux::ReadS},
 		{"Reset    ",&hc05_pux::xxxxx},{"GetQ     ",&hc05_pux::xxxxx},{"ReadTOC   ",&hc05_pux::xxxxx},{"VideoCD ",&hc05_pux::xxxxx},
 	};
+	driveStatus = static_cast<driveStatus_t>(g_driveStatus);
 }
 
 
@@ -88,13 +90,18 @@ void hc05_pux::clock() {
 
 
 
-
 	bool bDeliverResponseINT = !responsesINT.empty() && (irq_flag_read.data == 0);
 	if (bDeliverResponseINT) {
-
 		irq_flag_read.reg.int_1_7 = responsesINT[0];
 		responsesINT.erase(responsesINT.begin());
+		if (irq_flag_read.reg.int_1_7)
+			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irq_flag_read.reg.int_1_7) << std::endl;
+		if (irq_flag_read.reg.int_8)
+			std::cout << "~[CD_DRIVE] sent INT8" << std::endl;
+		if (irq_flag_read.reg.int_10)
+			std::cout << "~[CD_DRIVE] sent INT10" << std::endl;
 
+		//if (requestReg.reg.smen)
 		pBus->pCp0->interruptHandler(_CD_ROM);
 	}
 
@@ -112,7 +119,7 @@ void hc05_pux::clock() {
 
 
 
-	if (clocks >= waitClocksFirstResponse && bFirstResponse) {
+	if (clocks >= (waitClocksFirstResponse+ 0x36cd2) && bFirstResponse) {
 		bFirstResponse = false;
 		clocks = 0;
 
@@ -121,7 +128,7 @@ void hc05_pux::clock() {
 
 
 
-	if (clocks >= waitClocksSecondResponse && bSecondResponse &&
+	if (clocks >= (waitClocksSecondResponse+0x36cd2) && bSecondResponse &&
 		!bFirstResponse && !bDataResponse && responsesINT.empty() && (irq_flag_read.data == 0)) {
 		bSecondResponse = false;
 		clocks = 0;
@@ -131,22 +138,13 @@ void hc05_pux::clock() {
 
 
 
-	if (clocks >= waitClocksDataResponse && bDataResponse &&
+	if (clocks >= (waitClocksDataResponse+ 0x36cd2) && bDataResponse &&
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irq_flag_read.data == 0)) {
 		clocks = 0;
 
 		sendResponseINT(dataResponseINT, tempDataResponseFifo.data(), tempDataResponseFifo.size());
 
-		readSector(cdPath, amm, ass, asect);
-		asect++;
-		if (asect == 75) {
-			asect = 0;
-			ass++;
-		}
-		if (ass == 60) {
-			ass = 0;
-			amm++;
-		}
+		readSector(amm, ass, asect);
 	}
 
 
@@ -238,12 +236,12 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 
 			requestReg.data = data;
 			if (data & 0x80) {
-				bufferCounter = sectorSize;
-				std::cout << "~[CD_DRIVE] load data fifo, bufferCounter " << std::hex << "0x" << bufferCounter << std::endl;
+				//bufferCounter = sectorSize;
+				std::cout << "~[CD_DRIVE] load data fifo\n";
 			}
 			else {
-				bufferCounter = 0;
-				std::cout << "~[CD_DRIVE] reset data fifo, bufferCounter " << std::hex << "0x" << bufferCounter << std::endl;
+			//	bufferCounter = 0;
+				//std::cout << "~[CD_DRIVE] reset data fifo, bufferCounter " << std::hex << "0x" << bufferCounter << std::endl;
 			}
 
 			break;
@@ -297,8 +295,8 @@ void hc05_pux::executeCommand(const uint8_t& command) {
 	(this->*commandLookup[command].command)(command);
 }
 
-void hc05_pux::readSector(const char* path, uint8_t amm, uint8_t ass, uint8_t asect) {
-	std::ifstream file(path, std::ios::binary);
+void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
+	std::ifstream file(g_cdPath, std::ios::binary);
 	if (file.is_open()) {
 
 		if (sectorSize == 0x800)
@@ -308,9 +306,20 @@ void hc05_pux::readSector(const char* path, uint8_t amm, uint8_t ass, uint8_t as
 
 		file.read((char*)buffer, sectorSize);
 
-		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
 		std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
+		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
+		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
+
+		asect++;
+		if (asect == 75) {
+			asect = 0;
+			ass++;
+		}
+		if (ass == 60) {
+			ass = 0;
+			amm++;
+		}
+		//bufferCounter = 0;
 
 		bufferCounter = sectorSize;
 		file.close();
@@ -319,7 +328,9 @@ void hc05_pux::readSector(const char* path, uint8_t amm, uint8_t ass, uint8_t as
 		throw std::runtime_error("Failed to open rom!\n");
 }
 
-
+uint8_t hc05_pux::fromHexToDec8(const uint8_t& hex) {
+	return (hex >> 4) * 10 + (hex & 0x0f);
+}
 
 //Cd Drive Commands
 
@@ -336,17 +347,31 @@ uint8_t hc05_pux::Getstat(const uint8_t& command) {
 }
 
 uint8_t hc05_pux::Setloc(const uint8_t& command) {
-	amm = from_hex(paramFifo[paramFifo.size() - 3]);
-	std::cout << std::hex << "~[CD_DRIVE] amm: 0x" << (uint16_t)paramFifo[paramFifo.size() - 3] << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
+	uint8_t temp;
 
-	ass = from_hex(paramFifo[paramFifo.size() - 2]);
-	std::cout << std::hex << "~[CD_DRIVE] ass: 0x" << (uint16_t)paramFifo[paramFifo.size() - 2] << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
+	temp = paramFifo[paramFifo.size() - 3];
+	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x9) || (temp >= 0x99)) {
+		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock amm value 0x" << std::hex << (uint16_t)temp << std::endl;
+		isEmulationPaused = true;
+	}
+	amm = fromHexToDec8(temp);
+	std::cout << "~[CD_DRIVE] amm: " << std::dec << (uint16_t)amm << std::endl;
 
-	asect = from_hex(paramFifo[paramFifo.size() - 1]);
-	std::cout << std::hex << "~[CD_DRIVE] asect: 0x" << (uint16_t)paramFifo[paramFifo.size() - 1] << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
+	temp = paramFifo[paramFifo.size() - 2];
+	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x5) || (temp >= 0x60)) {
+		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock ass value 0x" << std::hex << (uint16_t)temp << std::endl;
+		isEmulationPaused = true;
+	}
+	ass = fromHexToDec8(temp);
+	std::cout << "~[CD_DRIVE] ass: " << std::dec << (uint16_t)ass << std::endl;
+
+	temp = paramFifo[paramFifo.size() - 1];
+	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x7) || (temp >= 0x75)) {
+		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x" << std::hex << (uint16_t)temp << std::endl;
+		isEmulationPaused = true;
+	}
+	asect = fromHexToDec8(temp);
+	std::cout << "~[CD_DRIVE] asect: " << std::dec << (uint16_t)asect << std::endl;
 
 	uint8_t response[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, response, 1);
@@ -400,6 +425,7 @@ uint8_t hc05_pux::Setmode(const uint8_t& command) {
 		doubleSpeed = (mode & 0x80) ? true : false;
 		std::cout << std::hex << "~[CD_DRIVE] mode: 0x" << (uint16_t)mode << std::endl;
 		std::cout << std::hex << "~[CD_DRIVE] doubleSpeed: 0x" << (uint16_t)(doubleSpeed) << std::endl;
+		std::cout << std::hex << "~[CD_DRIVE] sector size: 0x" << (uint16_t)(sectorSize) << std::endl;
 	};
 
 	SetMode();
@@ -440,7 +466,7 @@ uint8_t hc05_pux::Test(const uint8_t& command) {
 		break;
 	}
 	default:
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function!\n";
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function\n";
 		isEmulationPaused = true;
 		break;
 	}
@@ -451,22 +477,31 @@ uint8_t hc05_pux::GetID(const uint8_t& command) {
 	std::vector<uint8_t> firstResponse = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 
-	//no disc
-	/*stat = STAT_NULL | STAT_ID_ERROR;
-	std::vector<uint8_t> secondResponse = { stat, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	responseINT_t secondINT = INT5;*/
-
-	//unlincenced mode:1
-	/*stat = stat | STAT_ID_ERROR;
-	std::vector<uint8_t> secondResponse = { stat, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	responseINT_t secondINT = INT5;*/
-
-	//licenced disc
-	std::vector<uint8_t> secondResponse = { stat, 0x00, 0x20, 0x00, 0x53, 0x43, 0x45, 0x41 };
-	responseINT_t secondINT = INT2;
+	std::vector<uint8_t> secondResponse;
+	responseINT_t secondINT;
+	switch (driveStatus) {
+	case NO_DISC:
+		stat = STAT_NULL | STAT_ID_ERROR;
+		secondResponse = { stat, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+		secondINT = INT5;
+		break;
+	case UNLICENCED_DISC_MODE_1:
+		stat = stat | STAT_ID_ERROR;
+		secondResponse = { stat, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+		secondINT = INT5;
+		break;
+	case LICENCED_MODE_2:
+		secondResponse = { stat, 0x00, 0x20, 0x00, 0x53, 0x43, 0x45, 0x41 };
+		secondINT = INT2;
+		break;
+	default:
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled drive status 0x"
+			<< std::hex << driveStatus;
+		isEmulationPaused = true;
+		break;
+	}
 
 	setSecondResponse(0x4a00, secondINT, secondResponse.data(), secondResponse.size());
-
 	return 0;
 }
 
@@ -479,16 +514,4 @@ uint8_t hc05_pux::ReadS(const uint8_t& command) {
 	uint32_t dataWaitClocks = doubleSpeed ? 0x36cd2 : 0x6e1cd;
 	setDataResponse(dataWaitClocks, INT1, dataResponse, 1);
 	return 0;
-}
-
-//?!?
-int hc05_pux::from_hex(uint16_t h) {
-	int d = 0;
-	int power = 1;
-	while (h) {
-		d += h % 16 * power;
-		h /= 16;
-		power *= 10;
-	}
-	return d;
 }

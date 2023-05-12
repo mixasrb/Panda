@@ -4,6 +4,14 @@
 extern bool isEmulationPaused;
 
 void Timer0::clock(uint8_t source) {
+	if (mode == 0) {
+		if (curr_val.data == 0xffff) {
+			count_mode.reg.reached_target = 1;
+			curr_val.data = 0;
+		}
+		else
+			curr_val.data++;
+	}
 }
 
 void Timer0::ReadTimer32(const uint32_t& addr, uint16_t* data) {
@@ -13,6 +21,8 @@ void Timer0::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 		break;
 	case 4:
 		*data = count_mode.data;
+		count_mode.reg.reached_target = 0;
+		count_mode.reg.reached_ffff = 0;
 		break;
 	case 8:
 		*data = target_val.data;

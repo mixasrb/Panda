@@ -10,6 +10,8 @@ class busInterface;
 
 class joyMemCard {
 public:
+	joyMemCard();
+
 	busInterface* pBus;
 
 	void clock();
@@ -18,7 +20,7 @@ public:
 	void cpuWrite8(const uint32_t& addr, const uint8_t& data);
 
 	void cpuRead16(const uint32_t& addr, uint16_t& data);
-	void cpuWrite16(const uint32_t& addr, const uint16_t&  data);
+	void cpuWrite16(const uint32_t& addr, const uint16_t& data);
 
 	void cpuRead32(const uint32_t& addr, uint32_t& data);
 	void cpuWrite32(const uint32_t& addr, const uint32_t& data);
@@ -126,21 +128,30 @@ public:
 
 	bool txen = false;
 	bool rxen = false;
-	uint32_t clocks = 0;
-	uint32_t sendingClocks = 0;
-	uint32_t receivingClocks = 0;
-	uint32_t ackClocks = 0;
+	uint64_t clocks = 0;
+	uint64_t sendingClocks = 0;
+	uint64_t receivingClocks = 0;
+	uint64_t ackClocks = 0;
+	uint64_t ackPendingClocks = 0;
 
 	bool bSendingData = false;
 	bool bReceivingData = false;
+	bool bACK = false;
 
 	std::vector<uint8_t> rxFifo;
 
 	bool b_irq_7_change = false;
-	uint8_t lastTxData = 0;
 	uint8_t swlo = 0xff;
 	uint8_t swhi = 0xff;
 	uint8_t tx = 0;
+
+	uint8_t msb;
+	uint8_t lsb;
+
+	const uint32_t NUMBER_OF_BLOCKS = 16;
+	const uint32_t NUMBER_OF_FRAMES_PRE_BLOCK = 64; //sectors
+	const uint32_t SIZE_OF_FRAME = 128;
+	std::vector<uint8_t> memCard1;
 
 	//debug
 	debugUtilities* p_debugger;

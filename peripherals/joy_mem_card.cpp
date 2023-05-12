@@ -4,6 +4,14 @@
 
 extern bool isEmulationPaused;
 
+joyMemCard::joyMemCard() {
+	memCard1.assign(NUMBER_OF_BLOCKS * NUMBER_OF_FRAMES_PRE_BLOCK * SIZE_OF_FRAME, 0);
+	memCard1[0x00] = 'M';
+	memCard1[0x01] = 'C';
+	memCard1[0x7f] = 0x0e;
+	joy_rx_data.elem.first_entry = 0xff;
+}
+
 void joyMemCard::clock() {
 	if (txen)
 		joyStat.elem.tx_read_flag_1 = SET;
@@ -14,11 +22,15 @@ void joyMemCard::clock() {
 			joyStat.elem.ackInputLevel = HIGH;
 	}
 
+
+	voltageLevel_t oldAckInputLevel = joyStat.elem.ackInputLevel;
+
 	if (bReceivingData) {
 		receivingClocks--;
 		if (receivingClocks == 0) {
 			bReceivingData = false;
 			joyStat.elem.rx_fifo_not_empty = SET;
+			joyStat.elem.ackInputLevel = LOW;
 		}
 	}
 
@@ -27,69 +39,69 @@ void joyMemCard::clock() {
 		if (sendingClocks == 0) {
 			bSendingData = false;
 			bReceivingData = true;
-			joyStat.elem.ackInputLevel = LOW;
 		}
 	}
 
-	if (joyStat.elem.ackInputLevel = LOW) {
+	if ((oldAckInputLevel == HIGH) && (joyStat.elem.ackInputLevel == LOW)) {
 		if (joyCtrl.elem.ack_interrupt_enable) {
 			joyStat.elem.irq = SET;
+			//std::cout << "[JOY/MEMCARD] IRQ7" << std::endl;
 			pBus->pCp0->interruptHandler(_IRQ7);
 		}
 	}
 }
 
 void joyMemCard::cpuRead8(const uint32_t& addr, uint8_t& data) {
-	//EmulationPaused = true;
-	//std::cout << "[PAD] read8 addr 0x" << addr << std::endl;
 	switch (addr) {
 	case 0x1f801040:
 		data = joy_rx_data.elem.first_entry;
 		joyStat.elem.rx_fifo_not_empty = RESET;
+		//std::cout << "[JOY/MEMCARD] received data < 0x" << (uint16_t)data << std::endl;
 		break;
 	default:
-		std::cout << "[PAD] EMULATION PAUSED! unhandled read8 addr 0x" << addr << std::endl;
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled read8 addr 0x" << addr << std::endl;
 		isEmulationPaused = true;
 		break;
 	}
 }
 
 void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
-	//EmulationPaused = true;
-	//std::cout << "[PAD] write8 addr 0x" << addr
-	//	<< " data 0x" << (uint16_t)data << std::endl;
 	switch (addr) {
 	case 0x1f801040:
 		joy_tx_data.elem.data_to_be_sent = data;
 
 		bSendingData = true;
-		sendingClocks = 0x88;
-		receivingClocks = 0x88 + 10;
-		ackClocks = 100;
+		sendingClocks = 0x880;
+		receivingClocks = 0x880;
+		ackClocks = 0x20;
 
+		//std::cout << "[JOY/MEMCARD] sent tx data >>>>>> 0x" << (uint16_t)data << std::endl;
 
-		if ((joy_tx_data.elem.data_to_be_sent == 0x1) && (sequvenceIndex == 0)) {
-			joy_rx_data.elem.first_entry = 0;
-			device = PAD;
+		if (sequvenceIndex == 0) {
+			joy_rx_data.elem.first_entry = 0xff;
 			sequvenceIndex++;
+			if (joy_tx_data.elem.data_to_be_sent == 0x1)
+				device = PAD;
+			else if (joy_tx_data.elem.data_to_be_sent == 0x81) {
+				bSendingData = false;
+				sendingClocks = 0x880;
+				receivingClocks = 0x880;
+				ackClocks = 0x20;
+				device = MEM_CARD;
+				sequvenceIndex = 0;
+			}
+			else {
+				std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled tx device 0x" << (uint16_t)data << std::endl;
+				isEmulationPaused = true;
+			}
+			break;
 		}
-		else if ((joy_tx_data.elem.data_to_be_sent == 0x81) && (sequvenceIndex == 0)) {
-			joy_rx_data.elem.first_entry = 0;
-			device = MEM_CARD;
-			bSendingData = false;
-			sequvenceIndex++;
-		}
-		else if ((joy_tx_data.elem.data_to_be_sent == 0x42) && (device == PAD) && (sequvenceIndex == 1)) {
-			joy_rx_data.elem.first_entry = 0x41;
-			sequvenceIndex++;
-		}
-		else if ((joy_tx_data.elem.data_to_be_sent == 0x52) && (device == MEM_CARD) && (sequvenceIndex == 1)) {
-			joy_rx_data.elem.first_entry = 0x00;
-			bSendingData = false;
-			sequvenceIndex++;
-		}
-		else if ((joy_tx_data.elem.data_to_be_sent == 0) && (device == PAD)) {
-			if (sequvenceIndex == 2) {
+		else if (device == PAD) {
+			if (sequvenceIndex == 1) {
+				joy_rx_data.elem.first_entry = 0x41;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 2) {
 				joy_rx_data.elem.first_entry = 0x5a;
 				sequvenceIndex++;
 			}
@@ -104,28 +116,62 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				sequvenceIndex = 0;
 			}
 		}
-		else if ((joy_tx_data.elem.data_to_be_sent == 0) && (device == MEM_CARD)) {
-			bSendingData = false;
-			if (sequvenceIndex == 2) {
-				joy_rx_data.elem.first_entry = 0x00;
+		else if (device == MEM_CARD) {
+			if (sequvenceIndex == 1) {
+				joy_rx_data.elem.first_entry = 0x08;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 2) {
+				joy_rx_data.elem.first_entry = 0x5a;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 3) {
+				joy_rx_data.elem.first_entry = 0x5d;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 4) {
 				joy_rx_data.elem.first_entry = 0x00;
+				msb = joy_tx_data.elem.data_to_be_sent;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 5) {
+				joy_rx_data.elem.first_entry = 0x00;
+				lsb = joy_tx_data.elem.data_to_be_sent;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 6) {
+				joy_rx_data.elem.first_entry = 0x5c;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 7) {
+				joy_rx_data.elem.first_entry = 0x5d;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 8) {
+				joy_rx_data.elem.first_entry = msb;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 9) {
+				joy_rx_data.elem.first_entry = lsb;
+				sequvenceIndex++;
+			}
+			else if ((sequvenceIndex > 9) && (sequvenceIndex <= 9 + 128)) {
+				joy_rx_data.elem.first_entry = memCard1[sequvenceIndex - 10];
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 9 + 128 + 1) {
+				joy_rx_data.elem.first_entry = msb ^ lsb ^ 0x0e;
+				sequvenceIndex++;
+			}
+			else if (sequvenceIndex == 9 + 128 + 2) {
+				joy_rx_data.elem.first_entry = 0x47;
 				sequvenceIndex = 0;
 			}
 		}
-		else {
-			//bSendingData = false;
-			std::cout << "[PAD] EMULATION PAUSED! unhandled tx data 0x" << (uint16_t)data
-				<< " device " << device << std::endl;
-			//isEmulationPaused = true;
-		}
 
-		lastTxData = data;
 		break;
 	default:
-		std::cout << "[PAD] EMULATION PAUSED! unhandled write8 addr 0x" << addr
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled write8 addr 0x" << addr
 			<< " data 0x" << (uint16_t)data << std::endl;
 		isEmulationPaused = true;
 		break;
@@ -133,8 +179,6 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 }
 
 void joyMemCard::cpuRead16(const uint32_t& addr, uint16_t& data) {
-	//isEmulationPaused = true;
-	//std::cout << "[PAD] read16 addr 0x" << addr << std::endl;
 	switch (addr) {
 	case 0x1f801044:
 		data = joyStat.data;
@@ -149,41 +193,25 @@ void joyMemCard::cpuRead16(const uint32_t& addr, uint16_t& data) {
 		data = joyBaud.baudrateReloadValue;
 		break;
 	default:
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled read16 addr 0x" << addr << std::endl;
 		isEmulationPaused = true;
-		std::cout << "[PAD] EMULATION PAUSED! unhandled read16 addr 0x" << addr << std::endl;
 		break;
 	}
 }
 
 void joyMemCard::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
-	//isEmulationPaused = true;
-	//std::cout << "[PAD] write16 addr 0x" << addr
-	//	<< " data 0x" << data << std::endl;
 	switch (addr) {
 	case 0x1f801048:
 		joyMode.data = data;
+
 		if (data != 0xd) {
-			std::cout << "[PAD] EMULATION PAUSED! unhandled joy mode 0x"
+			std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled joy mode 0x"
 				<< data << std::endl;
 			isEmulationPaused = true;
 		}
 		break;
 	case 0x1f80104a: {
 		joyCtrl.data = data;
-		/*if (joy_ctrl.elem.reset)
-			reset();
-		if (joy_ctrl.elem.tx_enable)
-			joyStat.elem.tx_read_flag_1 = SET;
-		if (joy_ctrl.elem.acknowledge) {
-			joyStat.elem.rxParityError = RESET;
-			joyStat.elem.irq = RESET;
-		}
-		if (joy_ctrl.elem.joyn_output == SET)
-			joyStat.elem.irq = SET;
-		if (joy_ctrl.elem.joyn_output) {
-			b_irq_7_change = true;
-			wait_clocks = 100;
-		}*/
 
 		auto changeState = [=] {
 			txen = joyCtrl.elem.tx_enable ? true : false;
@@ -198,19 +226,19 @@ void joyMemCard::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 			joy.slotNumber = joyCtrl.elem.desiredSlotNumber ? JOY2 : JOY1;
 
 			if (joyCtrl.elem.rx_interrupt_mode) {
-				std::cout << "[PAD] EMULATION PAUSED! unhandled rx interrupt mode 0x"
+				std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled rx interrupt mode 0x"
 					<< joyCtrl.elem.rx_interrupt_mode << std::endl;
 				isEmulationPaused = true;
 			}
 
 			if (joyCtrl.elem.tx_interrupt_enable) {
-				std::cout << "[PAD] EMULATION PAUSED! unhandled tx interrupt"
+				std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled tx interrupt"
 					<< std::endl;
 				isEmulationPaused = true;
 			}
 
 			if (joyCtrl.elem.rx_interrupt_enable) {
-				std::cout << "[PAD] EMULATION PAUSED! unhandled rx interrupt"
+				std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled rx interrupt"
 					<< std::endl;
 				isEmulationPaused = true;
 			}
@@ -222,14 +250,15 @@ void joyMemCard::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 
 	case 0x1f80104e:
 		joyBaud.baudrateReloadValue = data;
+
 		if (data != 0x88) {
-			std::cout << "[PAD] EMULATION PAUSED! unhandled baudrate reload value 0x"
+			std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled baudrate reload value 0x"
 				<< data << std::endl;
 			isEmulationPaused = true;
 		}
 		break;
 	default:
-		std::cout << "[PAD] EMULATION PAUSED! unhandled write16 addr 0x" << addr
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled write16 addr 0x" << addr
 			<< " data 0x" << data << std::endl;
 		isEmulationPaused = true;
 		break;
@@ -237,25 +266,21 @@ void joyMemCard::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 }
 
 void joyMemCard::cpuRead32(const uint32_t& addr, uint32_t& data) {
-	//isEmulationPaused = true;
-	//std::cout << "[PAD] read32 addr 0x" << addr << std::endl;
 	switch (addr) {
 	case 0x1f801044:
 		data = joyStat.data;
 		break;
 	default:
-		std::cout << "[PAD] EMULATION PAUSED! unhandled read32 addr 0x" << addr << std::endl;
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled read32 addr 0x" << addr << std::endl;
 		isEmulationPaused = true;
 		break;
 	}
 }
 
 void joyMemCard::cpuWrite32(const uint32_t& addr, const uint32_t& data) {
-	//isEmulationPaused = true;
-	std::cout << "[PAD] write32 addr 0x" << " data 0x" << data << std::endl;
 	switch (addr) {
 	default:
-		std::cout << "[PAD] EMULATION PAUSED! unhandled write32 addr 0x" << addr
+		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled write32 addr 0x" << addr
 			<< " data 0x" << data << std::endl;
 		isEmulationPaused = true;
 		break;
@@ -264,7 +289,7 @@ void joyMemCard::cpuWrite32(const uint32_t& addr, const uint32_t& data) {
 
 void joyMemCard::reset() {
 	joy_tx_data.data = RESET;
-	joy_rx_data.data = RESET;
+	joy_rx_data.data = 0xff;
 	joyStat.data = RESET;
 	joyMode.data = RESET;
 	joyCtrl.data = RESET;

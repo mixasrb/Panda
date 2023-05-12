@@ -1,9 +1,9 @@
 #include "bios_chip.h"
 
-extern const char* biosPath;
+extern const char* g_biosPath;
 
 biosChip::biosChip() {
-	std::ifstream file(biosPath, std::ios::binary);
+	std::ifstream file(g_biosPath, std::ios::binary);
 
 	if (!file.is_open())
 		throw std::runtime_error("failed to open BIOS\n");

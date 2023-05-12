@@ -21,6 +21,20 @@ public:
 	void clock();
 	uint32_t clocks = 0;
 
+	enum driveStatus_t :uint8_t {
+		DOOR_OPEN = 0,
+		SPIN_UP = 1,
+		DETECT_BUSY = 2,
+		NO_DISC = 3,
+		AUDIO_DISC = 4,
+		UNLICENCED_DISC_MODE_1 = 5,
+		UNLICENCED_DISC_MODE_2 = 6,
+		UNLICENCED_DISC_MODE_2_AUDIO = 7,
+		DEBUG_YAROZE_MODE_2 = 8,
+		LICENCED_MODE_2 = 9,
+		MODCHIP_AUDIO_MODE_1 = 10
+	}driveStatus;
+
 	union IndexStatus {
 		uint8_t data;
 		struct {
@@ -149,13 +163,13 @@ public:
 	uint8_t ass;
 	uint8_t asect;
 
-	void readSector(const char* path, uint8_t amm, uint8_t ass, uint8_t asect);
+	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
 	uint16_t sectorSize;
 
 	bool doubleSpeed = false;
 
 
-	int from_hex(uint16_t h);
+	uint8_t fromHexToDec8(const uint8_t& h);
 
 	//debug
 	debugUtilities* p_debugger;

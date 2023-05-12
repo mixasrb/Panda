@@ -54,6 +54,18 @@ void cp0::RFE() {
 }
 
 void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
+
+	if ((code == _ADEL) || (code == _ADES)) {
+		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
+		isEmulationPaused = true;
+		return;
+	}
+	else if ((code == _BP) || (code == _OV)) {
+		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
+		isEmulationPaused = true;
+		return;
+	}
+
 	SR = (SR & 0xffffffc0) | ((SR & 0xf) << 2);
 	//setting cause of exception
 	CAUSE = CAUSE >> 7 << 7;
@@ -62,14 +74,6 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 	if ((code == _ADEL) || (code == _ADES) || (code == _SYSCALL) || (code == _BP) || (code == _OV)) {
 		if ((code == _ADEL) || (code == _ADES)) {
 			BAD_V_ADDR = addrRef;
-			std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-			isEmulationPaused = true;
-			return;
-		}
-		else if ((code == _BP) || (code == _OV)) {
-			std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-			isEmulationPaused = true;
-			return;
 		}
 
 		EPC = pCpuSoC->pc - 8;
@@ -89,7 +93,7 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 }
 
 void cp0::interruptHandler(const uint32_t& irq) {
-	pCpuSoC->pBus->interruptStat |= irq;
+		pCpuSoC->pBus->interruptStat |= irq;
 }
 
 void cp0::checkForInterrupts() {
@@ -100,6 +104,7 @@ void cp0::checkForInterrupts() {
 
 	const bool executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
 
-	if (executeInterrupt)
+	if (executeInterrupt) {
 		exceptionHandler(_INT);
+	}
 }

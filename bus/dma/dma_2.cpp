@@ -76,17 +76,17 @@ void dma2::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void dma2::triggerIRQ() {
-	if (pDMAController->dicr.reg.IRQ_enable_dma2)
-		pDMAController->dicr.reg.IRQ_flag_dma2 = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_enable_dma2)
+		pDMAController->interruptRegister.reg.IRQ_flag_dma2 = 1;
 	else
-		pDMAController->dicr.reg.IRQ_flag_dma2 = 0;
+		pDMAController->interruptRegister.reg.IRQ_flag_dma2 = 0;
 
-	if (pDMAController->dicr.reg.IRQ_master_enable &&
-		pDMAController->dicr.reg.IRQ_enable_dma2 &&
-		pDMAController->dicr.reg.IRQ_flag_dma2)
-		pDMAController->dicr.reg.IRQ_master_flag = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
+		pDMAController->interruptRegister.reg.IRQ_enable_dma2 &&
+		pDMAController->interruptRegister.reg.IRQ_flag_dma2)
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	else
-		pDMAController->dicr.reg.IRQ_master_flag = 0;
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
 void dma2::endDMATransfer() {

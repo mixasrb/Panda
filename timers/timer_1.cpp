@@ -4,7 +4,16 @@
 extern bool isEmulationPaused;
 
 void Timer1::clock(uint8_t source) {
-	if (mode == 0x148) {
+	if (mode == 0) {
+		if (source == SYSTEM_CLOCK)
+			if (curr_val.data == 0xffff) {
+				count_mode.reg.reached_target = 1;//
+				curr_val.data = 0;
+			}
+			else
+				curr_val.data++;
+	}
+	else if (mode == 0x148) {
 		if (source == HBLANK_CLOCK)
 			if (curr_val.data == target_val.reg.counter_target_value) {
 				count_mode.reg.reached_target = 1;
@@ -22,7 +31,7 @@ void Timer1::clock(uint8_t source) {
 	else if (mode == 0x100) {
 		if (source == HBLANK_CLOCK)
 			if (curr_val.data == 0xffff) {
-				count_mode.reg.reached_ffff = 1;
+				count_mode.reg.reached_ffff = 1;//
 				curr_val.data = 0;
 			}
 			else

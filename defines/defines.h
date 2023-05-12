@@ -42,4 +42,17 @@
 #define VBLANK_CLOCK 2
 #define SYSTEM_CLOCK 3
 
+//drive status
+#define _DOOR_OPEN 0
+#define _SPIN_UP 1
+#define _DETECT_BUSY 2
+#define _NO_DISC 3
+#define _AUDIO_DISC 4
+#define _UNLICENCED_DISC_MODE_1 5
+#define _UNLICENCED_DISC_MODE_2 6
+#define _UNLICENCED_DISC_MODE_2_AUDIO 7
+#define _DEBUG_YAROZE_MODE_2 8
+#define _LICENCED_MODE_2 9
+#define _MODCHIP_AUDIO_MODE_1 10
+
 

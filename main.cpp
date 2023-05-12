@@ -11,16 +11,21 @@ bool areExecutedCpuInstructionsLogged = false;
 bool areGTEInstructionsLogged = false;
 bool isButtonPressed = false;
 
-const char* biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
+const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
 bool bSideload = false;
-const char* sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpx.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/cpu/access-time/access-time.exe");
 
-const char* cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin");
-//const char* cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
-//const char* cdPath = ("D:/projects/emulation_psx/binaries/roms/crash.bin");
-//const char* cdPath = ("D:/projects/emulation_psx/binaries/roms/helloworld.ps-exe");
-//const char* cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
+uint8_t g_driveStatus = _LICENCED_MODE_2;
+
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin");
+// char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
 
 class Demo : public olc::PixelGameEngine {
 public:
@@ -109,7 +114,8 @@ public:
 			if (GetKey(olc::Key::Q).bPressed) {
 				//PSX.bus.interruptMask |= 0x200;
 				//PSX.bus.pCdDrive->irq_flag_read.reg.int_1_7 = 0x3;
-				PSX.cpuSOC.cp0.interruptHandler(0x8);
+				PSX.cpuSOC.cp0.interruptHandler(0x80);
+				PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
@@ -220,7 +226,7 @@ public:
 
 int main() {
 	Demo app;
-	if (app.Construct(1024, 512 + 16, 1, 1, false, true))
+	if (app.Construct(1024, 512 + 160, 1, 1, false, true))
 		app.Start();
 	return EXIT_SUCCESS;
 }
