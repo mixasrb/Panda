@@ -2,7 +2,7 @@
 #include "../bus_interface.h"
 
 extern bool isCpuStopped;
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 void dma6::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
@@ -33,7 +33,7 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 			(channelControl.data != 0)) {
 			std::cout << "[DMA6] EMULATION PAUSED! unhandled sync channel control mode data 0x"
 				<< std::hex << channelControl.data << std::endl;
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
@@ -50,12 +50,12 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 
 void dma6::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA6] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void dma6::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA6] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void dma6::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {

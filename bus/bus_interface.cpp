@@ -1,6 +1,6 @@
 #include "bus_interface.h"
 
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 //Memory map
 #define RAM ((addr >= 0x00000000 && addr < 0x1f000000) || \
@@ -105,7 +105,7 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read32 0x" << std::hex << addr << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 			break;
 		}
 		clocks = 3;//??
@@ -135,12 +135,12 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 	}
 	else if (CD_DRIVE) {
 		//std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read32 0x" << std::hex << addr << "\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 
 	//debug
@@ -199,7 +199,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 			break;
 		}
 	}
@@ -217,7 +217,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 
 	//debug
@@ -279,7 +279,7 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read16 0x" << std::hex << addr << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 			break;
 		}
 		clocks = 3;
@@ -309,12 +309,12 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 	}
 	else if (CD_DRIVE) {
 		std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read16 0x" << std::hex << addr << "\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PAUSED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 
 	//debug
@@ -371,7 +371,7 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 			break;
 		}
 	}
@@ -397,7 +397,7 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 	}
 	else {
 		std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 
 	//debug
@@ -454,7 +454,7 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PASUED! unhandled read8 0x" << addr << "\n";
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 
 	//debug
@@ -489,7 +489,7 @@ void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t&
 	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write8 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 
 	//debug

@@ -1,7 +1,7 @@
 #include "dma_controller.h"
 #include "../bus_interface.h"
 
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 dmaController::dmaController() {
 	ppDMA[0] = &dma0;
@@ -26,7 +26,7 @@ void dmaController::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cyc
 		data = interruptRegister.data;
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
 
@@ -38,7 +38,7 @@ void dmaController::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8
 		else {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 			<< " data 0x" << std::hex << data << std::endl;
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 	}
 	else if (addr == 0x1f8010f0) 
@@ -54,19 +54,19 @@ void dmaController::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 			<< " data 0x" << std::hex << (uint16_t)data << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
 
 void dmaController::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled read16" << " addr 0x" << std::hex << addr << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void dmaController::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 		<< " data 0x" << std::hex << (uint16_t)data << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void dmaController::ConnectBus(busInterface* p) {

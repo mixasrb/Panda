@@ -1,7 +1,7 @@
 #include "cxd85xxx.h"
 #include "../bus/bus_interface.h"
 
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 cxd85xxx::cxd85xxx() {
 	gpuStat.data = 0x1c000000;
@@ -287,7 +287,7 @@ void cxd85xxx::videoClock() {
 		scanline = 0;
 
 		//Vblank synchronization timer 1
-		pBus->timer1.clock(VBLANK_CLOCK);
+		pBus->timer1.clock(_VBLANK_CLOCK);
 	}
 
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
@@ -299,7 +299,7 @@ void cxd85xxx::videoClock() {
 		scanline++;
 
 		//Hblank clocking timer 1
-		pBus->timer1.clock(HBLANK_CLOCK);
+		pBus->timer1.clock(_HBLANK_CLOCK);
 	}
 }
 
@@ -413,7 +413,7 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 				break;
 			default:
 				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
-				isEmulationPaused = true;
+				g_emulationPaused = true;
 				break;
 			}
 			break;
@@ -826,7 +826,7 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 
 	if (!buffer.empty()) {
 		std::cout << "[GPU] EMULATION PAUSED! 0xa0... command buffer not empty 0x" << std::hex << buffer.size() << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
 

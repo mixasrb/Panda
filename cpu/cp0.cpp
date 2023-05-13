@@ -1,7 +1,7 @@
 #include "cp0.h"
 #include "cw33300.h"
 
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 uint32_t cp0::get(uint8_t reg) {
 	return cop0r[reg];
@@ -17,7 +17,7 @@ void cp0::set(uint8_t reg, uint32_t v) {
 
 	if (SR & 0x400000) {
 		std::cout << "[CP0] EMULATION PAUSED! unhandled BEV\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
 
@@ -27,7 +27,7 @@ void cp0::MFC0(uint8_t rt, uint8_t rd) {
 
 void cp0::CFC0(uint8_t rt, uint8_t rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpuSoC->opcode << " pc 0x" << pCpuSoC->pc - 4 << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cp0::MTC0(uint8_t rt, uint8_t rd) {
@@ -36,17 +36,17 @@ void cp0::MTC0(uint8_t rt, uint8_t rd) {
 
 void cp0::CTC0(uint8_t rt, uint8_t rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpuSoC->opcode << " pc 0x" << pCpuSoC->pc - 4 << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cp0::BC0F(uint16_t imm) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpuSoC->opcode << " pc 0x" << pCpuSoC->pc - 4 << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cp0::COP0(uint32_t imm) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpuSoC->opcode << " pc 0x" << pCpuSoC->pc - 4 << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cp0::RFE() {
@@ -57,12 +57,12 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 
 	if ((code == _ADEL) || (code == _ADES)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 		return;
 	}
 	else if ((code == _BP) || (code == _OV)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 		return;
 	}
 

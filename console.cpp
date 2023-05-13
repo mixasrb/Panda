@@ -2,7 +2,7 @@
 #include "defines/defines.h"
 
 bool isCpuStopped = false;
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 
 Console::Console() {
 	connectComponents();
@@ -24,9 +24,9 @@ void Console::clock() {
 
 	cdDrive.clock();
 
-	bus.timer0.clock(SYSTEM_CLOCK);
-	bus.timer1.clock(SYSTEM_CLOCK);
-	bus.timer2.clock(SYSTEM_CLOCK);
+	bus.timer0.clock(_SYSTEM_CLOCK);
+	bus.timer1.clock(_SYSTEM_CLOCK);
+	bus.timer2.clock(_SYSTEM_CLOCK);
 
 	joyMemCard.clock();
 }

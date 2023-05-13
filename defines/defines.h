@@ -37,10 +37,10 @@
 
 //timer clock sources
 
-#define DOT_CLOCK 0
-#define HBLANK_CLOCK 1
-#define VBLANK_CLOCK 2
-#define SYSTEM_CLOCK 3
+#define _SYSTEM_CLOCK 0
+#define _HBLANK_CLOCK 1
+#define _VBLANK_CLOCK 2
+#define _DOT_CLOCK 3
 
 //drive status
 #define _DOOR_OPEN 0

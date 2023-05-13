@@ -1,9 +1,9 @@
 #include "cw33300.h"
 
-extern bool isEmulationPaused;
-extern bool areExecutedCpuInstructionsLogged;
-extern bool areGTEInstructionsLogged;
-extern bool isButtonPressed;
+extern bool g_emulationPaused;
+extern bool g_executedCpuInstructionsLogged;
+extern bool g_GteInstructionsLogged;
+extern bool g_buttonPressed;
 
 extern const char* g_sideloadPath;
 extern bool bSideload;
@@ -129,7 +129,7 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 		isEmulationPaused = true;*/
 
 		//debug
-	if (areExecutedCpuInstructionsLogged)
+	if (g_executedCpuInstructionsLogged)
 		//p_debugger->log(getInstructionStr(opcode, pc_old, false) + "\n");
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 
@@ -182,7 +182,7 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 
 		else {
 			std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << secLookup[opcode << 26 >> 26].name << " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
-			isEmulationPaused = true;
+			g_emulationPaused = true;
 		}
 	}
 
@@ -249,9 +249,9 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 
 		//LWCn/SWCn
 		if (prim_opcode & 0x20) {
-			if (areGTEInstructionsLogged) {
+			if (g_GteInstructionsLogged) {
 				std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop opcode " << primLookup[prim_opcode].name << " op " << std::hex << opcode << " pc " << std::hex << pc_old - 4 << std::endl;
-				isEmulationPaused = true;
+				g_emulationPaused = true;
 			}
 		}
 		//other
@@ -275,35 +275,35 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 					break;
 				case 0x8:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop 0 opcode BCnF/BCnT 0x" << primLookup[prim_opcode].name << " op " << std::hex << opcode << " pc " << std::hex << pc_old - 4 << std::endl;
-					isEmulationPaused = true;
+					g_emulationPaused = true;
 					break;
 				case 0x10:
 					cp0.RFE();
 					break;
 				default:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop 0 opcode 0x" << primLookup[prim_opcode].name << " op " << std::hex << opcode << " pc " << std::hex << pc_old - 4 << std::endl;
-					isEmulationPaused = true;
+					g_emulationPaused = true;
 					break;
 				}
 				break;
 				//cop2
 			case 2:
-				if (areGTEInstructionsLogged) {
+				if (g_GteInstructionsLogged) {
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop 2 opcode " << primLookup[prim_opcode].name << " op " << std::hex << opcode << " pc " << std::hex << pc_old - 4 << std::endl;
-					isEmulationPaused = true;
+					g_emulationPaused = true;
 				}
 				break;
 			default:
 				std::cout << "[CPU] EMULATION PAUSED! unhandled cop " << (uint16_t)(prim_opcode & 0x03) << " op 0x"
 					<< std::hex << opcode << std::endl;
-				isEmulationPaused = true;
+				g_emulationPaused = true;
 				break;
 			}
 		}
 	}
 	else {
 		std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << primLookup[prim_opcode].name << " op " << std::hex << opcode << " pc " << std::hex << pc_old - 4 << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 
 }
@@ -439,7 +439,7 @@ void cw33300::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 
 void cw33300::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode:" << secLookup[opcode << 26 >> 26].name << "op:" << std::hex << opcode << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cw33300::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
@@ -625,7 +625,7 @@ void cw33300::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 
 void cw33300::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode:" << secLookup[opcode << 26 >> 26].name << "op:" << std::hex << opcode << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cw33300::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
@@ -838,7 +838,7 @@ void cw33300::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cw33300::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode:" << primLookup[opcode >> 26].name << "op:" << std::hex << opcode << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cw33300::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -890,7 +890,7 @@ void cw33300::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cw33300::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode:" << primLookup[opcode >> 26].name << "op:" << std::hex << opcode << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 }
 
 void cw33300::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {

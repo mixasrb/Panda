@@ -6,10 +6,10 @@
 
 #include "console.h"
 
-bool isEmulationPaused = false;
-bool areExecutedCpuInstructionsLogged = false;
-bool areGTEInstructionsLogged = false;
-bool isButtonPressed = false;
+bool g_emulationPaused = false;
+bool g_executedCpuInstructionsLogged = false;
+bool g_GteInstructionsLogged = false;
+bool g_buttonPressed = false;
 
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
@@ -23,7 +23,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin");
-// char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
 
@@ -70,7 +70,7 @@ public:
 				PSX_SQUARE = 0x80
 			};
 
-			if (!isEmulationPaused) {
+			if (!g_emulationPaused) {
 				if (GetKey(olc::Key::SHIFT).bHeld)
 					PSX.joyMemCard.swlo ^= PSX_SELECT;
 				if (GetKey(olc::Key::CTRL).bHeld)
@@ -101,11 +101,11 @@ public:
 			const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 			const uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCK / 60;
 
-			if (!isEmulationPaused)
+			if (!g_emulationPaused)
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
 					PSX.clock();
 
-					if (isEmulationPaused) break;
+					if (g_emulationPaused) break;
 				}
 
 
@@ -119,16 +119,16 @@ public:
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
-				isEmulationPaused = !isEmulationPaused;
+				g_emulationPaused = !g_emulationPaused;
 
 			if (GetKey(olc::Key::L).bPressed)
-				areExecutedCpuInstructionsLogged = !areExecutedCpuInstructionsLogged;
+				g_executedCpuInstructionsLogged = !g_executedCpuInstructionsLogged;
 
 			if (GetKey(olc::Key::G).bPressed)
-				areGTEInstructionsLogged = !areGTEInstructionsLogged;
+				g_GteInstructionsLogged = !g_GteInstructionsLogged;
 
 			if (GetKey(olc::Key::H).bPressed)
-				isButtonPressed = !isButtonPressed;
+				g_buttonPressed = !g_buttonPressed;
 
 			if (GetKey(olc::Key::D).bPressed)
 				PSX.debugger.dump("logs/ram.bin", PSX.bus.ram, 2048 * 1024);
@@ -208,10 +208,10 @@ public:
 			else
 				DrawSprite(0, 0, PSX.gpu.getVram());
 
-			if (isEmulationPaused)
+			if (g_emulationPaused)
 				DrawString(800, 500 + 16, "EMULATION PAUSED!", olc::RED);
 
-			if (areGTEInstructionsLogged)
+			if (g_GteInstructionsLogged)
 				DrawString(600, 500 + 16, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
 
 		}

@@ -1,7 +1,7 @@
 #include "hc05_pux.h"
 #include "../bus/bus_interface.h"
 
-extern bool isEmulationPaused;
+extern bool g_emulationPaused;
 extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
@@ -272,7 +272,7 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! unhandled Interrupt Flag Register (W) state 0x"
 					<< std::hex << (uint16_t)data << std::endl;
-				isEmulationPaused = true;
+				g_emulationPaused = true;
 			}
 
 			break;
@@ -336,7 +336,7 @@ uint8_t hc05_pux::fromHexToDec8(const uint8_t& hex) {
 
 uint8_t hc05_pux::xxxxx(const uint8_t& command) {
 	std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled command!" << std::endl;
-	isEmulationPaused = true;
+	g_emulationPaused = true;
 	return 0;
 }
 
@@ -352,7 +352,7 @@ uint8_t hc05_pux::Setloc(const uint8_t& command) {
 	temp = paramFifo[paramFifo.size() - 3];
 	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x9) || (temp >= 0x99)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock amm value 0x" << std::hex << (uint16_t)temp << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 	amm = fromHexToDec8(temp);
 	std::cout << "~[CD_DRIVE] amm: " << std::dec << (uint16_t)amm << std::endl;
@@ -360,7 +360,7 @@ uint8_t hc05_pux::Setloc(const uint8_t& command) {
 	temp = paramFifo[paramFifo.size() - 2];
 	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x5) || (temp >= 0x60)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock ass value 0x" << std::hex << (uint16_t)temp << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 	ass = fromHexToDec8(temp);
 	std::cout << "~[CD_DRIVE] ass: " << std::dec << (uint16_t)ass << std::endl;
@@ -368,7 +368,7 @@ uint8_t hc05_pux::Setloc(const uint8_t& command) {
 	temp = paramFifo[paramFifo.size() - 1];
 	if (((temp & 0x0f) > 0x9) || ((temp >> 4) > 0x7) || (temp >= 0x75)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x" << std::hex << (uint16_t)temp << std::endl;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 	}
 	asect = fromHexToDec8(temp);
 	std::cout << "~[CD_DRIVE] asect: " << std::dec << (uint16_t)asect << std::endl;
@@ -467,7 +467,7 @@ uint8_t hc05_pux::Test(const uint8_t& command) {
 	}
 	default:
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function\n";
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 		break;
 	}
 	return 0;
@@ -497,7 +497,7 @@ uint8_t hc05_pux::GetID(const uint8_t& command) {
 	default:
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled drive status 0x"
 			<< std::hex << driveStatus;
-		isEmulationPaused = true;
+		g_emulationPaused = true;
 		break;
 	}
 

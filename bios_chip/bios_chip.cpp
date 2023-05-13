@@ -10,6 +10,7 @@ biosChip::biosChip() {
 
 	file.read((char*)biosData, BIOS_SIZE);
 
+	//debug
 	A.resize(0xb6);
 	A = {
 		{"A(00h) or B(32h) FileOpen(filename,accessmode)"},
