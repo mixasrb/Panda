@@ -7,7 +7,7 @@ extern bool g_GteInstructionsLogged;
 extern bool g_buttonPressed;
 
 extern const char* g_sideloadPath;
-extern bool bSideload;
+extern bool g_sideload;
 
 cw33300::cw33300() {
 	cp0.pCpu = this;
@@ -324,16 +324,11 @@ void cw33300::reset() {
 void cw33300::clock() {
 
 	//SIDELOAD debug
-	if ((pc == 0x80030000) && (bSideload))
+	if ((pc == 0x80030000) && (g_sideload))
 		sideLoad();
 
 	//debug
 	isInstructionExecuted = false;
-
-	/*if (pc & 0x3) {
-		cp0.exceptionHandler(_IBE);
-		return;
-	}*/
 
 	if (clocks == 0) {
 
@@ -1251,7 +1246,7 @@ std::string cw33300::getDecodedInstructionStr(const uint32_t& opcode, const uint
 }
 
 void cw33300::sideLoad() {
-	bSideload = false;
+	g_sideload = false;
 	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
 	if (!file.is_open())
 		throw std::runtime_error("failed to open sideload!\n");

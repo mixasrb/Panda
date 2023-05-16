@@ -13,12 +13,12 @@ bool g_buttonPressed = false;
 
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph101.bin");
 
-bool bSideload = false;
+bool g_sideload = false;
 const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpx.exe");
 
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tekken3/Tekken 3 (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin");
@@ -33,7 +33,6 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy V
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin");
-
 //bypass mdec amm 1 ass 2 assec 15 => amm 2 ass 44 asect 15 ???
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
 
