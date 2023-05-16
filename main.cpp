@@ -11,20 +11,30 @@ bool g_executedCpuInstructionsLogged = false;
 bool g_GteInstructionsLogged = false;
 bool g_buttonPressed = false;
 
-const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
+const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph101.bin");
 
 bool bSideload = false;
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/cpu/access-time/access-time.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpx.exe");
 
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tekken3/Tekken 3 (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin");
+
+//bypass mdec amm 1 ass 2 assec 15 => amm 2 ass 44 asect 15 ???
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
 
 class Demo : public olc::PixelGameEngine {
@@ -71,28 +81,51 @@ public:
 			};
 
 			if (!g_emulationPaused) {
-				if (GetKey(olc::Key::SHIFT).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_SELECT;
-				if (GetKey(olc::Key::CTRL).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_START;
+				if (GetKey(olc::Key::F).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_SELECT;
+				if (GetKey(olc::Key::H).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_START;
+
+				else if (GetKey(olc::Key::W).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_UP;
+				else if (GetKey(olc::Key::D).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_RIGHT;
+				else if (GetKey(olc::Key::S).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_DOWN;
+				else if (GetKey(olc::Key::A).bHeld)
+					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_LEFT;
+
+				if (GetKey(olc::Key::I).bHeld)
+					PSX.joyMemCard.swhiPad1 ^= PSX_TRIANGLE;
+				if (GetKey(olc::Key::L).bHeld)
+					PSX.joyMemCard.swhiPad1 ^= PSX_CIRCLE;
+				if (GetKey(olc::Key::K).bHeld)
+					PSX.joyMemCard.swhiPad1 ^= PSX_CROSS;
+				if (GetKey(olc::Key::J).bHeld)
+					PSX.joyMemCard.swhiPad1 ^= PSX_SQUARE;
+
+				if (GetKey(olc::Key::NP1).bHeld)
+					PSX.joyMemCard.swloPad2 ^= PSX_SELECT;
+				if (GetKey(olc::Key::NP2).bHeld)
+					PSX.joyMemCard.swloPad2 ^= PSX_START;
 
 				else if (GetKey(olc::Key::UP).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_JOYPAD_UP;
+					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_UP;
 				else if (GetKey(olc::Key::RIGHT).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_JOYPAD_RIGHT;
+					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_RIGHT;
 				else if (GetKey(olc::Key::DOWN).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_JOYPAD_DOWN;
+					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_DOWN;
 				else if (GetKey(olc::Key::LEFT).bHeld)
-					PSX.joyMemCard.swlo ^= PSX_JOYPAD_LEFT;
+					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_LEFT;
 
 				if (GetKey(olc::Key::NP8).bHeld)
-					PSX.joyMemCard.swhi ^= PSX_TRIANGLE;
+					PSX.joyMemCard.swhiPad2 ^= PSX_TRIANGLE;
 				if (GetKey(olc::Key::NP6).bHeld)
-					PSX.joyMemCard.swhi ^= PSX_CIRCLE;
+					PSX.joyMemCard.swhiPad2 ^= PSX_CIRCLE;
 				if (GetKey(olc::Key::NP5).bHeld)
-					PSX.joyMemCard.swhi ^= PSX_CROSS;
+					PSX.joyMemCard.swhiPad2 ^= PSX_CROSS;
 				if (GetKey(olc::Key::NP4).bHeld)
-					PSX.joyMemCard.swhi ^= PSX_SQUARE;
+					PSX.joyMemCard.swhiPad2 ^= PSX_SQUARE;
 			}
 
 
@@ -112,35 +145,40 @@ public:
 			//debugger
 
 			if (GetKey(olc::Key::Q).bPressed) {
-				//PSX.bus.interruptMask |= 0x200;
-				//PSX.bus.pCdDrive->irq_flag_read.reg.int_1_7 = 0x3;
-				PSX.cpuSOC.cp0.interruptHandler(0x80);
-				PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
+				//HAHHAHA BYPASS
+				if (PSX.bus.dma.interruptRegister.reg.IRQ_enable_dma1 && PSX.bus.dma.interruptRegister.reg.IRQ_master_enable) {
+					PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
+					PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
+					PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);
+				}
+				/*PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
+				PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
+				PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);*/
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
 				g_emulationPaused = !g_emulationPaused;
 
-			if (GetKey(olc::Key::L).bPressed)
+			if (GetKey(olc::Key::X).bPressed)
 				g_executedCpuInstructionsLogged = !g_executedCpuInstructionsLogged;
 
-			if (GetKey(olc::Key::G).bPressed)
+			if (GetKey(olc::Key::C).bPressed)
 				g_GteInstructionsLogged = !g_GteInstructionsLogged;
 
-			if (GetKey(olc::Key::H).bPressed)
+			if (GetKey(olc::Key::B).bPressed)
 				g_buttonPressed = !g_buttonPressed;
 
-			if (GetKey(olc::Key::D).bPressed)
+			if (GetKey(olc::Key::R).bPressed)
 				PSX.debugger.dump("logs/ram.bin", PSX.bus.ram, 2048 * 1024);
 
 			if (GetKey(olc::Key::V).bPressed)
 				PSX.debugger.dump("logs/vram.bin", PSX.gpu.vram, 2048 * 512 * 2);
 
 			bool executeOneInstruction = false;
-			if (GetKey(olc::Key::I).bPressed)
+			if (GetKey(olc::Key::O).bPressed)
 				executeOneInstruction = true;
 
-			if (GetKey(olc::Key::O).bHeld)
+			if (GetKey(olc::Key::P).bHeld)
 				executeOneInstruction = true;
 
 			if (executeOneInstruction) {
@@ -206,7 +244,7 @@ public:
 				DrawString(0, 36 * 9, ss.str());
 			}
 			else
-				DrawSprite(0, 0, PSX.gpu.getVram());
+				DrawSprite(0, 0, PSX.gpu.getVramSprite());
 
 			if (g_emulationPaused)
 				DrawString(800, 500 + 16, "EMULATION PAUSED!", olc::RED);

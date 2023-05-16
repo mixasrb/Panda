@@ -4,12 +4,13 @@
 #include <iostream>
 #include <sstream>
 
-#include "../../debug_utilities/debug_utilities.h""
 #include "dma.h"
 #include "dma_0.h"
 #include "dma_2.h"
 #include "dma_3.h"
 #include "dma_6.h"
+
+#include "../../debug_utilities/debug_utilities.h"
 
 class busInterface;
 
@@ -18,7 +19,7 @@ public:
 
 	dmaController();
 
-	busInterface* pbus;
+	busInterface* pbus = nullptr;
 
 	dma0 dma0;
 	dma2 dma2;
@@ -36,11 +37,9 @@ public:
 
 	void clock();
 
-	union controlRegister_t
-	{
+	union controlRegister_t {
 		uint32_t data;
-		struct
-		{
+		struct {
 			uint32_t : 8;
 			uint32_t gpu_priority : 3;
 			uint32_t gpu_master_enable : 1;
@@ -53,11 +52,9 @@ public:
 		}reg;
 	}controlRegister;
 
-	union interruptRegister_t
-	{
+	union interruptRegister_t {
 		uint32_t data;
-		struct
-		{
+		struct {
 			uint32_t : 6;
 			uint32_t : 9;
 			uint32_t force_IRQ : 1;
@@ -81,5 +78,5 @@ public:
 	}interruptRegister;
 
 	//debug
-	debugUtilities* p_debugger;
+	debugUtilities* p_debugger = nullptr;
 };

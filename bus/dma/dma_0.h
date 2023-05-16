@@ -2,6 +2,8 @@
 
 #include "dma.h"
 
+#define CLOCKS_PER_WORD_DMA_0 272.f/256.f;
+
 class dmaController;
 
 class dma0 :
@@ -30,7 +32,7 @@ public:
 	blockControl_t blockControl;
 	channelControl_t channelControl;
 
-	uint64_t clocks;
+	uint64_t clocks = 0;
 	uint32_t memAddrTemp;
 	uint32_t elementCount;
 };

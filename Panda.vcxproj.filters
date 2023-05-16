@@ -24,7 +24,7 @@
     <ClCompile Include="peripherals\joy_mem_card.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gpu\misc.cpp">
+    <ClCompile Include="gpu\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gpu\cxd8xxxx.cpp">
@@ -72,6 +72,9 @@
     <ClCompile Include="bus\dma\dma_0.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\cp2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="console.h">
@@ -80,7 +83,7 @@
     <ClInclude Include="peripherals\joy_mem_card.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gpu\misc.hpp">
+    <ClInclude Include="gpu\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gpu\cxd85xxx.h">
@@ -138,6 +141,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bus\dma\dma_0.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu\cp2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

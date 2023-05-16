@@ -1,13 +1,15 @@
 #pragma once
 
 #include <cstdint>
+
 #include "../debug_utilities/debug_utilities.h"
 
 class cw33300;
+class busInterface;
 
 class cp0 {
 public:
-	cw33300* pCpuSoC;
+	cw33300* pCpu;
 
 	uint32_t cop0r[64];
 

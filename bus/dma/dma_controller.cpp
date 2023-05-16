@@ -8,16 +8,19 @@ dmaController::dmaController() {
 	ppDMA[2] = &dma2;
 	ppDMA[3] = &dma3;
 	ppDMA[6] = &dma6;
+
+	controlRegister.data = 0;
+	interruptRegister.data = 0;
 }
 
 void dmaController::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
-		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 2) || 
+		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 2) ||
 			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 6))
 			ppDMA[(addr - 0x1f801080) >> 4]->ReadDMA32(addr, data, cycles);
 		else {
-			/*std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
-			isEmulationPaused = true;*/
+			std::cout << "[dma] emulation paused! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
+			//g_emulationPaused = true;
 		}
 	}
 	else if (addr == 0x1f8010f0)
@@ -37,11 +40,11 @@ void dmaController::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8
 			ppDMA[(addr - 0x1f801080) >> 4]->WriteDMA32(addr, data, cycles);
 		else {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
-			<< " data 0x" << std::hex << data << std::endl;
+				<< " data 0x" << std::hex << data << std::endl;
 			g_emulationPaused = true;
 		}
 	}
-	else if (addr == 0x1f8010f0) 
+	else if (addr == 0x1f8010f0)
 		controlRegister.data = data;
 	else if (addr == 0x1f8010f4) {
 		uint32_t dicrTemp = interruptRegister.data;
@@ -102,6 +105,6 @@ void dmaController::clock() {
 		dma6.Clock();
 
 	//0->1
-	if (interruptRegister.reg.IRQ_master_flag && !bOldMasterFlag)
-		pbus->pCp0->interruptHandler(_DMA);
+	if (!bOldMasterFlag && interruptRegister.reg.IRQ_master_flag)
+		pbus->pCpu->cp0.interruptHandler(_IRQ_DMA);
 }

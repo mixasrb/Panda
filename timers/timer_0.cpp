@@ -7,15 +7,15 @@ void Timer0::clock(uint8_t source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {
-			counterMode.elem.reachedTarget = 1;
 			currentValue.elem.currentCounterValue = 0;
+			counterMode.elem.reachedTarget = 1;
 			return;
 		}
 
 		if ((currentValue.elem.currentCounterValue == 0xffff) &&
 			!counterMode.elem.resetCounterTo) {
-			counterMode.elem.reachedFFFF = 1;
 			currentValue.elem.currentCounterValue = 0;
+			counterMode.elem.reachedFFFF = 1;
 			return;
 		}
 
@@ -48,8 +48,8 @@ void Timer0::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 		counterMode.data = data;
 		mode = counterMode.data & 0x3ff;
 
-		clockSource = static_cast<clockSource_t>((counterMode.elem.clockSource & 1) ?
-			_DOT_CLOCK : _SYSTEM_CLOCK);
+		clockSource = (counterMode.elem.clockSource & 1) ?
+			DOT_CLOCK : SYSTEM_CLOCK;
 
 		if (counterMode.elem.synchronizationMode == 3)
 			bSynchronize = true;

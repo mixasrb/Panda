@@ -271,15 +271,11 @@ void cxd85xxx::videoClock() {
 	const uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCK / 60;
 	const uint32_t CPU_CLOCKS_PER_SCANLINE = 2172;
 
-	cpuFrameClocks++;
-	cpuScanlineClocks++;
-
 	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME) {
-
 		cpuFrameClocks = 0;
 
 		//V-Sync interrupt is naturally edge trigered
-		pBus->pCp0->interruptHandler(_V_SYNC);
+		pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
 
 		if (gpuStat.elem.vertical_res && gpuStat.elem.vertical_interlace)
 			gpuStat.elem.drawing_even_odd_lines = ~gpuStat.elem.drawing_even_odd_lines;
@@ -288,6 +284,13 @@ void cxd85xxx::videoClock() {
 
 		//Vblank synchronization timer 1
 		pBus->timer1.clock(_VBLANK_CLOCK);
+
+		//HAHHAHA BYPASS SPU_DMA
+		if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4 && pBus->dma.interruptRegister.reg.IRQ_master_enable) {
+			pBus->dma.interruptRegister.reg.IRQ_master_flag = 1;
+			pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
+			pBus->pCpu->cp0.interruptHandler(_IRQ_DMA);
+		}
 	}
 
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
@@ -300,7 +303,11 @@ void cxd85xxx::videoClock() {
 
 		//Hblank clocking timer 1
 		pBus->timer1.clock(_HBLANK_CLOCK);
+
 	}
+
+	cpuFrameClocks++;
+	cpuScanlineClocks++;
 }
 
 void cxd85xxx::readGpu32(const uint32_t& addr, uint32_t& data) {
@@ -336,7 +343,7 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		}
 		else {
 			command = fifo.back();
-			//	collect_list.clear();//!!!!
+			collectList.clear();//!!!!
 			if (!collectList.empty()) {
 				//std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << collectList.size() << std::endl;
 			//	isEmulationPaused = true;
@@ -362,7 +369,7 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			gpuStat.data = 0x1c802000;
 			break;
 		case 0x2:
-			gpuStat.elem.irq1 = RESET;
+			gpuStat.elem.irq1 = 0;
 		case 0x3:
 			gpuStat.elem.display_enable = data & 0x1;
 			break;
@@ -409,7 +416,10 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 				b_gp1Result = true;
 				break;
 			case 7:
+				gp1Result = 0xff;
 				std::cout << "~[GPU] unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
+				//g_emulationPaused = true;
+				b_gp1Result = true;
 				break;
 			default:
 				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
@@ -455,34 +465,46 @@ void cxd85xxx::updateVramView(const vertex_t& possition, const psxColor16_t& col
 	vramView.SetPixel(possition.x, possition.y, ConvertPSXtoPC_RGB_Values(color16));
 }
 
-void cxd85xxx::writeVram(const vertex_t& possition, const uint16_t& data, const bool bIgnoreDrawingArea) {
+void cxd85xxx::writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea) {
 	if (bIgnoreDrawingArea) {
-		vram[possition.x * 2 * size_y + possition.y] = data << 8 >> 8;
-		vram[(possition.x * 2 + 1) * size_y + possition.y] = data >> 8;
-		updateVramView(possition, data);
+		if ((position.x >= 1024) || (position.x < 0) || (position.y >= 512) || (position.y) < 0)
+			return;
+
+		vram[position.x * 2 * size_y + position.y] = data << 8 >> 8;
+		vram[(position.x * 2 + 1) * size_y + position.y] = data >> 8;
+		updateVramView(position, data);
 		return;
 	}
 
-	if (((possition.x + drawOffset.x) >= drawAreaTopLeft.x) &&
-		((possition.x + drawOffset.x) <= drawAreaBottomRight.x) &&
-		((possition.y + drawOffset.y) >= drawAreaTopLeft.y) &&
-		((possition.y + drawOffset.y) <= drawAreaBottomRight.y)) {
+	if (((position.x + drawOffset.x) >= drawAreaTopLeft.x) &&
+		((position.x + drawOffset.x) <= drawAreaBottomRight.x) &&
+		((position.y + drawOffset.y) >= drawAreaTopLeft.y) &&
+		((position.y + drawOffset.y) <= drawAreaBottomRight.y)) {
 
-		vram[(possition.x + drawOffset.x) * 2 * size_y + (possition.y + drawOffset.y)] = data << 8 >> 8;
-		vram[((possition.x + drawOffset.x) * 2 + 1) * size_y + (possition.y + drawOffset.y)] = data >> 8;
+		if ((position.x + drawOffset.x >= 1024) || (position.x + drawOffset.x < 0) ||
+			(position.y + drawOffset.y >= 512) || (position.y + drawOffset.y) < 0)
+			return;
+
+		vram[(position.x + drawOffset.x) * 2 * size_y + (position.y + drawOffset.y)] = data << 8 >> 8;
+		vram[((position.x + drawOffset.x) * 2 + 1) * size_y + (position.y + drawOffset.y)] = data >> 8;
 		vertex_t p = { 0, 0 };
-		p.x = possition.x + drawOffset.x;
-		p.y = possition.y + drawOffset.y;
+		p.x = position.x + drawOffset.x;
+		p.y = position.y + drawOffset.y;
 		updateVramView(p, data);
 	}
 }
 
 void cxd85xxx::readVram(const vertex_t& position, uint16_t& data) {
+	if ((position.x >= 1024) || (position.x < 0) || (position.y >= 512) || (position.y) < 0) {
+		data = 0;
+		return;
+	}
+
 	data = vram[position.x * 2 * size_y + position.y];
 	data |= vram[(position.x * 2 + 1) * size_y + position.y] << 8;
 }
 
-olc::Sprite* cxd85xxx::getVram() {
+olc::Sprite* cxd85xxx::getVramSprite() {
 	return &vramView;
 }
 
@@ -495,125 +517,134 @@ uint16_t cxd85xxx::format24to16Color(const uint32_t& input) {
 	return color16.data;
 }
 
-float cxd85xxx::edgeFunc(vertex_t v1, vertex_t v2, vertex_t p) {
-	return ((float)v1.y - (float)v2.y) * ((float)p.x - (float)v1.x) +
-		((float)v1.x - (float)v2.x) * ((float)v1.y - (float)p.y);
+float cxd85xxx::edgeFunc(vertex_t vert1, vertex_t vert2, vertex_t point) {
+	return ((float)vert1.y - (float)vert2.y) * ((float)point.x - (float)vert1.x) +
+		((float)vert1.x - (float)vert2.x) * ((float)vert1.y - (float)point.y);
 }
 
-void cxd85xxx::rasterization(param_t* p_param, const RasterizationModes& color_mode, const RasterizationModes& transparency_mode,
-	const uint8_t& vertex_count, vertex_t v1, vertex_t v2, vertex_t v3, vertex_t v4) {
+void cxd85xxx::rasterization(param_t* pParam, const rasterizationMode_t& colorMode, const rasterizationMode_t& transparencyMode,
+	const uint8_t& vertexCount, vertex_t vert1, vertex_t vert2, vertex_t vert3, vertex_t vert4) {
 
-	if (transparency_mode == PSX_OPAQUE) {
-		if (vertex_count == 4) {
-			vertex_t p;
-			int16_t arrayX[4] = { v1.x, v2.x, v3.x, v4.x };
-			int16_t arrayY[4] = { v1.y, v2.y, v3.y, v4.y };
-			int16_t xMin = psx::gpu::min(arrayX, 4);
-			int16_t xMax = psx::gpu::max(arrayX, 4);
-			int16_t yMin = psx::gpu::min(arrayY, 4);
-			int16_t yMax = psx::gpu::max(arrayY, 4);
-			psxColor24_t c1 = p_param->command_color1;
-			psxColor24_t c2 = p_param->color2;
-			psxColor24_t c3 = p_param->color3;
-			psxColor24_t c4 = p_param->color4;
-			psxColor24_t color;
+	vertex_t calculatedPoint;
+	psxColor24_t calculatedColor;
+	psxColor24_t color1 = pParam->command_color1;
+	psxColor24_t color2 = pParam->color2;
+	psxColor24_t color3 = pParam->color3;
+	psxColor24_t color4 = pParam->color4;
 
-			float P123 = edgeFunc(v1, v2, v3) / 2;
-			float P432 = edgeFunc(v4, v3, v2) / 2;
+	int16_t arrayX[4] = { vert1.x, vert2.x, vert3.x, vert4.x };
+	int16_t arrayY[4] = { vert1.y, vert2.y, vert3.y, vert4.y };
+
+	int16_t xMin = utils::min(arrayX, vertexCount);
+	int16_t xMax = utils::max(arrayX, vertexCount);
+	int16_t yMin = utils::min(arrayY, vertexCount);
+	int16_t yMax = utils::max(arrayY, vertexCount);
+
+	if (vertexCount == 3) {
+		float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+
+		triangleOrientation_t orientation = P123 > 0 ? PSX_CLOCKWISE : PSX_ANTI_CLOCKWISE;
+
+		vertex_t e1 = vert3 - vert2;
+		vertex_t e2 = vert1 - vert3;
+		vertex_t e3 = vert2 - vert1;
+
+		if (orientation == PSX_CLOCKWISE)
 			for (int x = xMin; x <= xMax; x++) {
-				p.x = x;
+				calculatedPoint.x = x;
 				for (int y = yMin; y <= yMax; y++) {
-					p.y = y;
-					float e12 = edgeFunc(v1, v2, p);
-					float e23 = edgeFunc(v2, v3, p);
-					float e32 = edgeFunc(v3, v2, p);
-					float e31 = edgeFunc(v3, v1, p);
-					float e43 = edgeFunc(v4, v3, p);
-					float e24 = edgeFunc(v2, v4, p);
-					if ((e12 >= 0) && (e31 >= 0) && (e23 >= 0)) {
-						float lamda1 = e23 / 2. / P123;
-						float lamda2 = e31 / 2. / P123;
-						float lamda3 = e12 / 2. / P123;
-						color.component.red = (float)c1.component.red * lamda1 + (float)c2.component.red * lamda2 + (float)c3.component.red * lamda3;
-						color.component.green = (float)c1.component.green * lamda1 + (float)c2.component.green * lamda2 + (float)c3.component.green * lamda3;
-						color.component.blue = (float)c1.component.blue * lamda1 + (float)c2.component.blue * lamda2 + (float)c3.component.blue * lamda3;
-						writeVram(p, format24to16Color(color.data));
-					}
-					else if ((e32 >= 0) && (e24 >= 0) && (e43 >= 0)) {
-						float lamda2 = e43 / 2. / P432;
-						float lamda3 = e24 / 2. / P432;
-						float lamda4 = e32 / 2. / P432;
-						color.component.red = (float)c2.component.red * lamda2 + (float)c3.component.red * lamda3 + (float)c4.component.red * lamda4;
-						color.component.green = (float)c2.component.green * lamda2 + (float)c3.component.green * lamda3 + (float)c4.component.green * lamda4;
-						color.component.blue = (float)c2.component.blue * lamda2 + (float)c3.component.blue * lamda3 + (float)c4.component.blue * lamda4;
-						writeVram(p, format24to16Color(color.data));
-					}
-				}
-			}
-		}
-		else if (vertex_count == 3) {
-			vertex_t p;
-			int16_t arrayX[4] = { v1.x, v2.x, v3.x };
-			int16_t arrayY[4] = { v1.y, v2.y, v3.y };
-			int16_t xMin = psx::gpu::min(arrayX, 3);
-			int16_t xMax = psx::gpu::max(arrayX, 3);
-			int16_t yMin = psx::gpu::min(arrayY, 3);
-			int16_t yMax = psx::gpu::max(arrayY, 3);
-			psxColor24_t c1 = p_param->command_color1;
-			psxColor24_t c2 = p_param->color2;
-			psxColor24_t c3 = p_param->color3;
+					calculatedPoint.y = y;
 
-			psxColor24_t color;
-			float P123 = edgeFunc(v1, v2, v3) / 2;
-			if (P123 > 0) {
-				for (int x = xMin; x <= xMax; x++) {
-					p.x = x;
-					for (int y = yMin; y <= yMax; y++) {
-						p.y = y;
-						float e12 = edgeFunc(v1, v2, p);
-						float e23 = edgeFunc(v2, v3, p);
-						float e31 = edgeFunc(v3, v1, p);
-						vertex_t e1 = v3 - v2;
-						vertex_t e2 = v1 - v3;
-						vertex_t e3 = v2 - v1;
+					float e12 = edgeFunc(vert1, vert2, calculatedPoint);
+					float e23 = edgeFunc(vert2, vert3, calculatedPoint);
+					float e31 = edgeFunc(vert3, vert1, calculatedPoint);
+
+					auto testEdgeAndWrite = [&]() {
 						if ((e12 > 0) || ((e12 == 0) ? ((e3.y == 0) && (e3.x < 0)) || (e3.y < 0) : false))
 							if ((e23 > 0) || ((e23 == 0) ? ((e1.y == 0) && (e1.x < 0)) || (e1.y < 0) : false))
 								if ((e31 > 0) || ((e31 == 0) ? ((e2.y == 0) && (e2.x < 0)) || (e2.y < 0) : false)) {
-									float lamda1 = e23 / 2. / P123;
-									float lamda2 = e31 / 2. / P123;
-									float lamda3 = e12 / 2. / P123;
-									color.component.red = (float)c1.component.red * lamda1 + (float)c2.component.red * lamda2 + (float)c3.component.red * lamda3;
-									color.component.green = (float)c1.component.green * lamda1 + (float)c2.component.green * lamda2 + (float)c3.component.green * lamda3;
-									color.component.blue = (float)c1.component.blue * lamda1 + (float)c2.component.blue * lamda2 + (float)c3.component.blue * lamda3;
-									writeVram(p, format24to16Color(color.data));
+									float lamda1 = e23 / 2.f / P123;
+									float lamda2 = e31 / 2.f / P123;
+									float lamda3 = e12 / 2.f / P123;
+									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
 								}
-					}
+					};
+
+					testEdgeAndWrite();
 				}
 			}
-			else {
-				P123 = -P123;
-				for (int x = xMin; x <= xMax; x++) {
-					p.x = x;
-					for (int y = yMin; y <= yMax; y++) {
-						p.y = y;
-						float e21 = edgeFunc(v2, v1, p);
-						float e32 = edgeFunc(v3, v2, p);
-						float e13 = edgeFunc(v1, v3, p);
-						vertex_t e1 = v3 - v2;
-						vertex_t e2 = v1 - v3;
-						vertex_t e3 = v2 - v1;
+
+
+		if (orientation == PSX_ANTI_CLOCKWISE) {
+			P123 = -P123;
+			for (int x = xMin; x <= xMax; x++) {
+				calculatedPoint.x = x;
+				for (int y = yMin; y <= yMax; y++) {
+					calculatedPoint.y = y;
+
+					float e21 = edgeFunc(vert2, vert1, calculatedPoint);
+					float e32 = edgeFunc(vert3, vert2, calculatedPoint);
+					float e13 = edgeFunc(vert1, vert3, calculatedPoint);
+
+					auto testEdgeAndWrite = [&]() {
+
 						if ((e21 > 0) || ((e21 == 0) ? ((e3.y == 0) && (e3.x > 0)) || (e3.y > 0) : false))
 							if ((e32 > 0) || ((e32 == 0) ? ((e1.y == 0) && (e1.x > 0)) || (e1.y > 0) : false))
 								if ((e13 > 0) || ((e13 == 0) ? ((e2.y == 0) && (e2.x > 0)) || (e2.y > 0) : false)) {
-									float lamda1 = e32 / 2. / P123;
-									float lamda2 = e13 / 2. / P123;
-									float lamda3 = e21 / 2. / P123;
-									color.component.red = (float)c1.component.red * lamda1 + (float)c2.component.red * lamda2 + (float)c3.component.red * lamda3;
-									color.component.green = (float)c1.component.green * lamda1 + (float)c2.component.green * lamda2 + (float)c3.component.green * lamda3;
-									color.component.blue = (float)c1.component.blue * lamda1 + (float)c2.component.blue * lamda2 + (float)c3.component.blue * lamda3;
-									writeVram(p, format24to16Color(color.data));
+									float lamda1 = e32 / 2.f / P123;
+									float lamda2 = e13 / 2.f / P123;
+									float lamda3 = e21 / 2.f / P123;
+									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
 								}
-					}
+					};
+
+					testEdgeAndWrite();
+				}
+			}
+		}
+	}
+
+
+	if (vertexCount == 4) {
+		float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+		float P432 = edgeFunc(vert4, vert3, vert2) / 2.f;
+
+		for (int x = xMin; x <= xMax; x++) {
+			calculatedPoint.x = x;
+			for (int y = yMin; y <= yMax; y++) {
+				calculatedPoint.y = y;
+
+				float e12 = edgeFunc(vert1, vert2, calculatedPoint);
+				float e23 = edgeFunc(vert2, vert3, calculatedPoint);
+				float e32 = edgeFunc(vert3, vert2, calculatedPoint);
+				float e31 = edgeFunc(vert3, vert1, calculatedPoint);
+				float e43 = edgeFunc(vert4, vert3, calculatedPoint);
+				float e24 = edgeFunc(vert2, vert4, calculatedPoint);
+
+				if ((e12 >= 0) && (e31 >= 0) && (e23 >= 0)) {
+					float lamda1 = e23 / 2.f / P123;
+					float lamda2 = e31 / 2.f / P123;
+					float lamda3 = e12 / 2.f / P123;
+					calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+					calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+					calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+					writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
+				}
+
+				if ((e32 >= 0) && (e24 >= 0) && (e43 >= 0)) {
+					float lamda2 = e43 / 2.f / P432;
+					float lamda3 = e24 / 2.f / P432;
+					float lamda4 = e32 / 2.f / P432;
+					calculatedColor.component.red = (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3 + (float)color4.component.red * lamda4;
+					calculatedColor.component.green = (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3 + (float)color4.component.green * lamda4;
+					calculatedColor.component.blue = (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3 + (float)color4.component.blue * lamda4;
+					writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
 				}
 			}
 		}
@@ -621,41 +652,29 @@ void cxd85xxx::rasterization(param_t* p_param, const RasterizationModes& color_m
 }
 
 void cxd85xxx::drawMonochromeRect(param_t param) {
-	int16_t x1 = param.vert1.x;
-	int16_t y1 = param.vert1.y;
-	int16_t x2 = param.vert2.x;
-	int16_t y2 = param.vert4.y;
-
-	int16_t x = x1;
-	int16_t y = y1;
-
 	uint16_t color16 = format24to16Color(param.command_color1);
 
-	for (int16_t y = y1; y < y2; y++) {
-		for (int16_t x = x1; x < x2; x++) {
-			vertex_t position(x, y);
-			writeVram(position, color16, false);
+	for (int16_t y = param.vert1.y; y < param.vert4.y; y++)
+		for (int16_t x = param.vert1.x; x < param.vert4.x; x++) {
+			vertex_t p(x, y);
+			writeVram(p, color16, false);
 		}
-	}
-	return;
 }
 
 void cxd85xxx::drawMonochromeLine(param_t param) {
-
 	int16_t arrayX[2] = { param.vert1.x, param.vert2.x };
 	int16_t arrayY[2] = { param.vert1.y, param.vert2.y };
-	int16_t xMin = psx::gpu::min(arrayX, 2);
-	int16_t yMin = psx::gpu::min(arrayY, 2);
-	int16_t xMax = psx::gpu::max(arrayX, 2);
-	int16_t yMax = psx::gpu::max(arrayY, 2);
+	int16_t xMin = utils::min(arrayX, 2);
+	int16_t yMin = utils::min(arrayY, 2);
+	int16_t xMax = utils::max(arrayX, 2);
+	int16_t yMax = utils::max(arrayY, 2);
 
 	vertex_t p;
-	for (int x = xMin; x <= xMax; x++) {
+	for (int16_t x = xMin; x <= xMax; x++) {
 		p.x = x;
-		for (int y = yMin; y <= yMax; y++) {
+		for (int16_t y = yMin; y <= yMax; y++) {
 			p.y = y;
-			float e12 = edgeFunc(param.vert1, param.vert2, p);
-			if (e12 == 0)
+			if (edgeFunc(param.vert1, param.vert2, p) == 0)
 				writeVram(p, format24to16Color(param.command_color1));
 		}
 	}
@@ -667,34 +686,31 @@ void cxd85xxx::drawTexRect15Bit(param_t param) {
 
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
-	int16_t xMin = psx::gpu::min(arrayX, 4);
-	int16_t yMin = psx::gpu::min(arrayY, 4);
-	int16_t xMax = psx::gpu::max(arrayX, 4);
-	int16_t yMax = psx::gpu::max(arrayY, 4);
+	int16_t xMin = utils::min(arrayX, 4);
+	int16_t yMin = utils::min(arrayY, 4);
+	int16_t xMax = utils::max(arrayX, 4);
+	int16_t yMax = utils::max(arrayY, 4);
+
 	uint16_t texData;
 	uint16_t data = 0;
 	vertex_t pTex;
 	vertex_t p;
-	int16_t arrayTexX[4] = { param.texCoord1Palette.elem.x, param.texCoord2TexPage.elem.x,
-		param.texCoord3.elem.x, param.texCoord4.elem.x };
-	int16_t arrayTexY[4] = { param.texCoord1Palette.elem.y, param.texCoord2TexPage.elem.y,
-		param.texCoord3.elem.y, param.texCoord4.elem.y };
-	int16_t xTexMin = psx::gpu::min(arrayTexX, 4);
-	int16_t yTexMin = psx::gpu::min(arrayTexY, 4);
-	int16_t xTexMax = psx::gpu::max(arrayTexX, 4);
-	int16_t yTexMax = psx::gpu::max(arrayTexY, 4);
 
-	float ratioX = ((float)(xTexMax - xTexMin) / (float)(xMax - xMin));
-	float ratioY = ((float)(yTexMax - yTexMin) / (float)(yMax - yMin));
+	int16_t xTexMin = param.texCoord1Palette.elem.x;
+	int16_t yTexMin = param.texCoord1Palette.elem.y;
 
-	for (int y = 0; y < yMax - yMin; y++) {
-		pTex.y = gpuStat.elem.tex_page_y_base * 256 + yTexMin + (uint32_t)((float)y * ratioY);
+	float ratioX = 1.;
+	float ratioY = 1.;
+
+	for (int16_t y = 0; y < yMax - yMin; y++) {
+		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
 		p.y = yMin + y;
-		for (int x = 0; x < xMax - xMin; x++) {
-			pTex.x = gpuStat.elem.tex_page_x_base * 64 + xTexMin + (uint32_t)((float)x * ratioX);
+		for (int16_t x = 0; x < xMax - xMin; x++) {
+			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + xTexMin;
+			pTex.x = ((pTex.x + x) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
-
 			if (texData)
 				writeVram(p, texData);
 		}
@@ -709,10 +725,10 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
 
-	int16_t xMin = psx::gpu::min(arrayX, 4);
-	int16_t yMin = psx::gpu::min(arrayY, 4);
-	int16_t xMax = psx::gpu::max(arrayX, 4);
-	int16_t yMax = psx::gpu::max(arrayY, 4);
+	int16_t xMin = utils::min(arrayX, 4);
+	int16_t yMin = utils::min(arrayY, 4);
+	int16_t xMax = utils::max(arrayX, 4);
+	int16_t yMax = utils::max(arrayY, 4);
 
 	uint16_t texData;
 	psxColor16_t pallete_color = 0;
@@ -724,13 +740,13 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 	int16_t yTexMin = param.texCoord1Palette.elem.y;
 	psxColor24_t blending = param.command_color1;
 
-	for (uint32_t y = 0; y < yMax - yMin; y++) {
+	for (int16_t y = 0; y < yMax - yMin; y++) {
 		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
 		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
 		p.y = yMin + y;
-		for (uint32_t x = 0; x < xMax - xMin; x++) {
+		for (int16_t x = 0; x < xMax - xMin; x++) {
 			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 1);
-			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
+			pTex.x = ((pTex.x + (x >> 1)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			pClut.x = clut.elem.xCoord * 16 +
@@ -757,10 +773,10 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
 
-	int16_t xMin = psx::gpu::min(arrayX, 4);
-	int16_t yMin = psx::gpu::min(arrayY, 4);
-	int16_t xMax = psx::gpu::max(arrayX, 4);
-	int16_t yMax = psx::gpu::max(arrayY, 4);
+	int16_t xMin = utils::min(arrayX, 4);
+	int16_t yMin = utils::min(arrayY, 4);
+	int16_t xMax = utils::max(arrayX, 4);
+	int16_t yMax = utils::max(arrayY, 4);
 
 	uint16_t texData;
 	psxColor16_t pallete_color = 0;
@@ -772,13 +788,13 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 	int16_t yTexMin = param.texCoord1Palette.elem.y;
 	psxColor24_t blending = param.command_color1;
 
-	for (uint32_t y = 0; y < yMax - yMin; y++) {
+	for (int16_t y = 0; y < yMax - yMin; y++) {
 		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
-		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
+		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y * 8))) | ((tex_win_offset.y & tex_win_mask.y) * 8);
 		p.y = yMin + y;
-		for (uint32_t x = 0; x < xMax - xMin; x++) {
+		for (int16_t x = 0; x < xMax - xMin; x++) {
 			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 2);
-			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
+			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x * 8))) | ((tex_win_offset.x & tex_win_mask.x) * 8);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			pClut.x = (clut.elem.xCoord << 4) +
@@ -819,6 +835,8 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 			vertex_t position(x, y);
 			writeVram(position, buffer[0], true);
 			buffer.erase(buffer.begin());
+			if (buffer.size() == 0)
+				return;
 			x++;
 		} while (x < x2);
 		y++;
@@ -831,16 +849,16 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 }
 
 void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height) {
-	const int x1 = source_coord << 16 >> 16;
-	const int x2 = x1 + (width_height << 16 >> 16);
-	const int y1 = source_coord >> 16;
-	const int y2 = y1 + (width_height >> 16);
-	int x;
-	int y = y1;
+	const uint16_t x1 = source_coord << 16 >> 16;
+	const uint16_t x2 = x1 + (width_height << 16 >> 16);
+	const uint16_t y1 = source_coord >> 16;
+	const uint16_t y2 = y1 + (width_height >> 16);
 
 	uint16_t data;
 	std::vector<uint16_t> buffer(collectList.size() * 2);
 
+	uint16_t x;
+	uint16_t y = y1;
 	do {
 		x = x1;
 		do {
@@ -874,11 +892,11 @@ void cxd85xxx::copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& des
 	const uint16_t width = widthHeight << 16 >> 16;
 	const uint16_t height = widthHeight >> 16;
 
-	uint16_t x;
-	uint16_t y = 0;
 
 	uint16_t data;
 
+	uint16_t x;
+	uint16_t y = 0;
 	do {
 		x = 0;
 		do {
@@ -915,7 +933,6 @@ void cxd85xxx::fillRectVram(const uint32_t& commandColor) {
 	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
 	param.command_color1 = command;
-	command = 0;
 
 	int16_t x1 = param.vert1.x;
 	int16_t y1 = param.vert1.y;
@@ -929,8 +946,8 @@ void cxd85xxx::fillRectVram(const uint32_t& commandColor) {
 
 	for (int16_t y = y1; y < y2; y++) {
 		for (int16_t x = x1; x < x2; x++) {
-			vertex_t position(x, y);
-			writeVram(position, data, true);
+			vertex_t p(x, y);
+			writeVram(p, data, true);
 		}
 	}
 }
@@ -959,8 +976,8 @@ void cxd85xxx::copyRectCpuVram(const uint32_t& commandColor) {
 		collectList.pop_back();
 		//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height << 16 >> 16) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
 		collect = (width_height >> 16) * (width_height << 16 >> 16) / 2;
-		if ((collect * 2) < ((width_height >> 16) * (width_height << 16 >> 16) / 2))
-			collect += collect & 0x1;
+		if ((collect * 2) < ((width_height >> 16) * (width_height << 16 >> 16)))
+			collect++;
 	}
 	else {
 		copyRectCpuVram(dest_coord, width_height);
@@ -991,8 +1008,8 @@ void cxd85xxx::mono3PolyOpaq(const uint32_t& commandColor) {
 	param.vert1 = (vertex_t)collectList.back();
 	collectList.pop_back();
 	param.command_color1 = command;
-	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
-		3, param.vert1, param.vert2, param.vert3);
+	/*rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
+		3, param.vert1, param.vert2, param.vert3);*/
 }
 
 void cxd85xxx::mono3PolySemiTransp(const uint32_t& commandColor) {
@@ -1092,17 +1109,7 @@ void cxd85xxx::tex3PolySemiTranspRawTex(const uint32_t& commandColor) {
 
 void cxd85xxx::tex4PolyOpaqTexBlend(const uint32_t& commandColor) {
 	param_t param;
-	switch (command >> 24) {
-	case 0x2c:
-		param.type = TEXTURED_4_POINT_OPAQUE_BLENDING_PARAM;
-		break;
-	case 0x2d:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	case 0x2f:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	}
+	param.type = TEXTURED_4_POINT_OPAQUE_BLENDING_PARAM;
 	param.texCoord4 = (texcoordData_t)collectList.back();
 	collectList.pop_back();
 	param.vert4 = (vertex_t)collectList.back();
@@ -1124,7 +1131,6 @@ void cxd85xxx::tex4PolyOpaqTexBlend(const uint32_t& commandColor) {
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
 		drawTexRect15Bit(param);
 	else if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x80)
-		//	//throw std::runtime_error("unhandled texture page color 8 bit mode!");
 		drawTexRect8Bit(param);
 	else  if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x0)
 		drawTexRect4Bit(param);
@@ -1134,17 +1140,7 @@ void cxd85xxx::tex4PolyOpaqTexBlend(const uint32_t& commandColor) {
 
 void cxd85xxx::tex4PolyOpaqRawTex(const uint32_t& commandColor) {
 	param_t param;
-	switch (command >> 24) {
-	case 0x2c:
-		param.type = TEXTURED_4_POINT_OPAQUE_BLENDING_PARAM;
-		break;
-	case 0x2d:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	case 0x2f:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	}
+	param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
 	param.texCoord4 = (texcoordData_t)collectList.back();
 	collectList.pop_back();
 	param.vert4 = (vertex_t)collectList.back();
@@ -1166,7 +1162,6 @@ void cxd85xxx::tex4PolyOpaqRawTex(const uint32_t& commandColor) {
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
 		drawTexRect15Bit(param);
 	else if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x80)
-		//	//throw std::runtime_error("unhandled texture page color 8 bit mode!");
 		drawTexRect8Bit(param);
 	else  if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x0)
 		drawTexRect4Bit(param);
@@ -1181,17 +1176,7 @@ void cxd85xxx::tex4PolySemiTranspTexBlend(const uint32_t& commandColor) {
 
 void cxd85xxx::tex4PolySemiTranspRawTex(const uint32_t& commandColor) {
 	param_t param;
-	switch (command >> 24) {
-	case 0x2c:
-		param.type = TEXTURED_4_POINT_OPAQUE_BLENDING_PARAM;
-		break;
-	case 0x2d:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	case 0x2f:
-		param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
-		break;
-	}
+	param.type = TEXTURED_4_POINT_OPAQUE_RAW_PARAM;
 	param.texCoord4 = (texcoordData_t)collectList.back();
 	collectList.pop_back();
 	param.vert4 = (vertex_t)collectList.back();
@@ -1213,7 +1198,6 @@ void cxd85xxx::tex4PolySemiTranspRawTex(const uint32_t& commandColor) {
 	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
 		drawTexRect15Bit(param);
 	else if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x80)
-		//	//throw std::runtime_error("unhandled texture page color 8 bit mode!");
 		drawTexRect8Bit(param);
 	else  if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x0)
 		drawTexRect4Bit(param);
@@ -1235,8 +1219,8 @@ void cxd85xxx::shaded3PolyOpaq(const uint32_t& commandColor) {
 	param.vert1 = (vertex_t)collectList.back();
 	collectList.pop_back();
 	param.command_color1 = command;
-	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
-		3, param.vert1, param.vert2, param.vert3, (0, 0));
+	/*rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
+		3, param.vert1, param.vert2, param.vert3, (0, 0));*/
 }
 
 void cxd85xxx::shaded3PolySemiTransp(const uint32_t& commandColor) {
@@ -1272,8 +1256,6 @@ void cxd85xxx::shaded4PolySemiTransp(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::shadedTex3PolyOpaqTexBlend(const uint32_t& commandColor) {
-	/*std::cout << "~[GPU] unhandled GPU0 command {only bypass} 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";*/
 
 	param_t param;
 	param.texCoord3 = (texcoordData_t)collectList.back();
@@ -1366,7 +1348,6 @@ void cxd85xxx::shadedPolyLineSemiTransp(const uint32_t& commandColor) {
 
 void cxd85xxx::monoRectVarOpaq(const uint32_t& commandColor) {
 	param_t param;
-
 	uint32_t size_x_y = collectList.back();
 	collectList.pop_back();
 	param.vert1 = (vertex_t)collectList.back();
@@ -1380,7 +1361,6 @@ void cxd85xxx::monoRectVarOpaq(const uint32_t& commandColor) {
 
 void cxd85xxx::monoRectVarSemiTransp(const uint32_t& commandColor) {
 	param_t param;
-
 	uint32_t size_x_y = collectList.back();
 	collectList.pop_back();
 	param.vert1 = (vertex_t)collectList.back();
@@ -1537,8 +1517,44 @@ void cxd85xxx::texRectVarSemiTranspTexBlend(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::texRectVarSemiTranspRawTex(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+
+	param.type = TEXTURED_RECT_OPAQUE_RAW_PARAM;
+
+	uint32_t size_x_y = collectList.back();
+	collectList.pop_back();
+
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	//calculating texture coodriantes
+	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
+	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
+	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+	param.texCoord4.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	//calculating verteces
+	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
+	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
+
+	param.command_color1 = command;
+
+	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
+
+	if (gpuStat.elem.tex_page_colors == 2)
+		drawTexRect15Bit(param);
+	else if (gpuStat.elem.tex_page_colors == 1)
+		drawTexRect8Bit(param);
+	else  if (gpuStat.elem.tex_page_colors == 0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::texRect1x1OpaqTexBlend(const uint32_t& commandColor) {
@@ -1631,8 +1647,35 @@ void cxd85xxx::texRect8x8SemiTranspTexBlend(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::texRect8x8SemiTranspRawTex(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	uint32_t size_x_y = 0x00080008;
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
+	param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
+	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
+	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
+	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
+	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+
+	param.texCoord4.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
+	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
+	param.command_color1 = command;
+
+	if (gpuStat.elem.tex_page_colors == 2)
+		drawTexRect15Bit(param);
+	else if (gpuStat.elem.tex_page_colors == 1)
+		drawTexRect8Bit(param);
+	else  if (gpuStat.elem.tex_page_colors == 0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::texRect16x16OpaqTexBlend(const uint32_t& commandColor) {

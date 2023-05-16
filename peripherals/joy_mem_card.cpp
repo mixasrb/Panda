@@ -14,7 +14,7 @@ joyMemCard::joyMemCard() {
 
 void joyMemCard::clock() {
 	if (txen)
-		joyStat.elem.tx_read_flag_1 = SET;
+		joyStat.elem.tx_read_flag_1 = 1;//??
 
 	if (joyStat.elem.ackInputLevel == LOW) {
 		ackClocks--;
@@ -29,7 +29,7 @@ void joyMemCard::clock() {
 		receivingClocks--;
 		if (receivingClocks == 0) {
 			bReceivingData = false;
-			joyStat.elem.rx_fifo_not_empty = SET;
+			joyStat.elem.rx_fifo_not_empty = 1;
 			joyStat.elem.ackInputLevel = LOW;
 		}
 	}
@@ -44,9 +44,9 @@ void joyMemCard::clock() {
 
 	if ((oldAckInputLevel == HIGH) && (joyStat.elem.ackInputLevel == LOW)) {
 		if (joyCtrl.elem.ack_interrupt_enable) {
-			joyStat.elem.irq = SET;
+			joyStat.elem.irq = 1;
 			//std::cout << "[JOY/MEMCARD] IRQ7" << std::endl;
-			pBus->pCp0->interruptHandler(_IRQ7);
+			pBus->pCpu->cp0.interruptHandler(_IRQ_7);
 		}
 	}
 }
@@ -55,7 +55,7 @@ void joyMemCard::cpuRead8(const uint32_t& addr, uint8_t& data) {
 	switch (addr) {
 	case 0x1f801040:
 		data = joy_rx_data.elem.first_entry;
-		joyStat.elem.rx_fifo_not_empty = RESET;
+		joyStat.elem.rx_fifo_not_empty = 0;
 		//std::cout << "[JOY/MEMCARD] received data < 0x" << (uint16_t)data << std::endl;
 		break;
 	default:
@@ -71,8 +71,8 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 		joy_tx_data.elem.data_to_be_sent = data;
 
 		bSendingData = true;
-		sendingClocks = 0x880;
-		receivingClocks = 0x880;
+		sendingClocks = 0x880/2;
+		receivingClocks = 0x880/2;
 		ackClocks = 0x20;
 
 		//std::cout << "[JOY/MEMCARD] sent tx data >>>>>> 0x" << (uint16_t)data << std::endl;
@@ -84,9 +84,6 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				device = PAD;
 			else if (joy_tx_data.elem.data_to_be_sent == 0x81) {
 				bSendingData = false;
-				sendingClocks = 0x880;
-				receivingClocks = 0x880;
-				ackClocks = 0x20;
 				device = MEM_CARD;
 				sequvenceIndex = 0;
 			}
@@ -106,13 +103,25 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 3) {
-				joy_rx_data.elem.first_entry = swlo;
-				swlo = 0xff;
+				if (joy.slotNumber == JOY1) {
+					joy_rx_data.elem.first_entry = swloPad1;
+					swloPad1 = 0xff;
+				}
+				else {
+					joy_rx_data.elem.first_entry = swloPad2;
+					swloPad2 = 0xff;
+				}
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 4) {
-				joy_rx_data.elem.first_entry = swhi;
-				swhi = 0xff;
+				if (joy.slotNumber == JOY1) {
+					joy_rx_data.elem.first_entry = swhiPad1;
+					swhiPad1 = 0xff;
+				}
+				else {
+					joy_rx_data.elem.first_entry = swhiPad2;
+					swhiPad2 = 0xff;
+				}
 				sequvenceIndex = 0;
 			}
 		}
@@ -278,25 +287,21 @@ void joyMemCard::cpuRead32(const uint32_t& addr, uint32_t& data) {
 }
 
 void joyMemCard::cpuWrite32(const uint32_t& addr, const uint32_t& data) {
-	switch (addr) {
-	default:
-		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled write32 addr 0x" << addr
-			<< " data 0x" << data << std::endl;
-		g_emulationPaused = true;
-		break;
-	}
+	std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled write32 addr 0x" << addr
+		<< " data 0x" << data << std::endl;
+	g_emulationPaused = true;
 }
 
 void joyMemCard::reset() {
-	joy_tx_data.data = RESET;
+	joy_tx_data.data = 0;
 	joy_rx_data.data = 0xff;
-	joyStat.data = RESET;
-	joyMode.data = RESET;
-	joyCtrl.data = RESET;
-	joyBaud.baudrateReloadValue = RESET;
+	joyStat.data = 0;
+	joyMode.data = 0;
+	joyCtrl.data = 0;
+	joyBaud.baudrateReloadValue = 0;
 }
 
 void joyMemCard::acknowledge() {
-	joyStat.elem.rxParityError = RESET;
-	joyStat.elem.irq = RESET;
+	joyStat.elem.rxParityError = 0;
+	joyStat.elem.irq = 0;
 }

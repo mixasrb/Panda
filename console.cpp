@@ -35,7 +35,7 @@ void Console::connectComponents() {
 	bus.dma.ConnectBus(&bus);
 
 	cpuSOC.pBus = &bus;
-	bus.pCp0 = &cpuSOC.cp0;
+	bus.pCpu= &cpuSOC;
 
 	bus.pGpu = &gpu;
 

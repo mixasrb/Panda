@@ -7,7 +7,7 @@
 #include <list>
 #include <thread>
 
-#include "../gpu/misc.hpp"
+#include "../gpu/utils.h"
 #include "../defines/defines.h"
 #include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
@@ -250,8 +250,7 @@ public:
 	uint32_t collect = 0;
 	std::vector<uint32_t> collectList;
 
-	struct vertex_t
-	{
+	struct vertex_t {
 		vertex_t() {
 		}
 		vertex_t(uint32_t xt, uint32_t yt) {
@@ -271,6 +270,9 @@ public:
 		}
 		vertex_t operator-(vertex_t a) {
 			return vertex_t(x - a.x, y - a.y);
+		}
+		vertex_t operator*(int c) {
+			return vertex_t(c * x, c * y);
 		}
 	};
 
@@ -350,17 +352,22 @@ public:
 
 	float edgeFunc(vertex_t v1, vertex_t v2, vertex_t p);
 
-	enum RasterizationModes {
+	enum rasterizationMode_t {
 		PSX_MONOCHROME,
 		PSX_SHADED,
 		PSX_OPAQUE,
 		PSX_SEMI_TRANSPARENT
 	};
 
-	void rasterization(param_t* p_param, const RasterizationModes& color_mode, const RasterizationModes& transparency_mode,
+	enum triangleOrientation_t {
+		PSX_CLOCKWISE,
+		PSX_ANTI_CLOCKWISE
+	};
+
+	void rasterization(param_t* p_param, const rasterizationMode_t& color_mode, const rasterizationMode_t& transparency_mode,
 		const uint8_t& vertex_count, vertex_t v1, vertex_t v2, vertex_t v3, vertex_t v4 = (0, 0));
 
-	olc::Sprite* getVram();
+	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 

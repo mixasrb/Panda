@@ -6,18 +6,24 @@
 #include <optional>
 #include <fstream>
 
-#include "../bus/bus_interface.h"
 #include "cp0.h"
+#include "cp2.h"
+
 #include "../defines/defines.h"
+
 #include "../debug_utilities/debug_utilities.h"
+
+class busInterface;
 
 class cw33300 {
 public:
 
 	cw33300();
 
-	busInterface* pBus;
 	cp0 cp0;
+	cp2 cp2;
+
+	busInterface* pBus;
 
 	void reset();
 	void clock();
@@ -59,6 +65,7 @@ public:
 	uint32_t lo;
 
 	//inctruction
+private:
 	struct instruction {
 		std::string name;
 	};
@@ -230,6 +237,7 @@ public:
 	void SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 
 	//debug
+public:
 	debugUtilities* p_debugger;
 
 	bool isInstructionExecuted;

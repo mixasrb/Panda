@@ -3,34 +3,35 @@
 #include <cstdint>
 #include <stdio.h>
 
-#include "../cpu/cp0.h"
-#include "../gpu/cxd85xxx.h"
-#include "../bios_chip/bios_chip.h"
-#include "../defines/defines.h"
+#include "../cpu/cw33300.h"
 #include "../bus/dma/dma_controller.h"
 #include "../cd_drive/hc05_pux.h"
+#include "../gpu/cxd85xxx.h"
+#include "../bios_chip/bios_chip.h"
 #include "../timers/timer.h"
 #include "../timers/timer_0.h"
 #include "../timers/timer_1.h"
 #include "../timers/timer_2.h"
 #include "../peripherals/joy_mem_card.h"
-#include "../debug_utilities/debug_utilities.h""
 
-#define BIOS_SIZE (uint32_t)(512 * 1024)
+#include "../defines/defines.h"
+
+#include "../debug_utilities/debug_utilities.h"
+
 #define RAM_SIZE  4 * 2 * 1024 * 1024 / 4
 #define SCRATCHPAD_SIZE  1024 * 1024
 
 class busInterface {
 public:
 
-	cp0* pCp0;
-	cxd85xxx* pGpu;
+	cw33300* pCpu = nullptr;
+	cxd85xxx* pGpu = nullptr;
 	dmaController dma;
-	hc05_pux* pCdDrive;
+	hc05_pux* pCdDrive = nullptr;
 	Timer0 timer0;
 	Timer1 timer1;
 	Timer2 timer2;
-	joyMemCard* pJoyMemCard;
+	joyMemCard* pJoyMemCard = nullptr;
 	biosChip biosChip;
 
 	uint8_t* ram = new uint8_t[RAM_SIZE];
@@ -50,8 +51,8 @@ public:
 
 	uint32_t cacheControl;
 	uint32_t ramSize = 0;
-	uint8_t post;
+	uint8_t post = 0;
 
 	//debug
-	debugUtilities* pDebugger;
+	debugUtilities* pDebugger = nullptr;
 };

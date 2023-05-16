@@ -141,8 +141,10 @@ public:
 	std::vector<uint8_t> rxFifo;
 
 	bool b_irq_7_change = false;
-	uint8_t swlo = 0xff;
-	uint8_t swhi = 0xff;
+	uint8_t swloPad1 = 0xff;
+	uint8_t swhiPad1 = 0xff;
+	uint8_t swloPad2 = 0xff;
+	uint8_t swhiPad2 = 0xff;
 	uint8_t tx = 0;
 
 	uint8_t msb;

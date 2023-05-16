@@ -36,11 +36,12 @@ void Timer2::clock(uint8_t source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {
-			counterMode.elem.reachedTarget = 1;
 			currentValue.elem.currentCounterValue = 0;
+			counterMode.elem.reachedTarget = 1;
 
 			if (counterMode.elem.irqWhenTarget) {
-				pBus->pCp0->interruptHandler(_TIMER_2);
+				if (counterMode.elem.irq == 1)
+					pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_2);
 				counterMode.elem.irq = 0;
 			}
 			return;
@@ -48,13 +49,15 @@ void Timer2::clock(uint8_t source) {
 
 		if ((currentValue.elem.currentCounterValue == 0xffff) &&
 			!counterMode.elem.resetCounterTo) {
-			counterMode.elem.reachedFFFF = 1;
 			currentValue.elem.currentCounterValue = 0;
+			counterMode.elem.reachedFFFF = 1;
 			return;
 		}
 
 		//pulsing
-		if (currentValue.elem.currentCounterValue == 16)
+		if ((!counterMode.elem.irqPulseToggle) &&
+			(counterMode.elem.irq == 0) &&
+			(currentValue.elem.currentCounterValue == 32))
 			counterMode.elem.irq = 1;
 
 		if (counterMode.elem.clockSource == 3) {
@@ -97,8 +100,8 @@ void Timer2::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 		counterMode.data = data;
 		mode = counterMode.data & 0x3ff;
 
-		clockSource = static_cast<clockSource_t>((counterMode.elem.clockSource & 1) ?
-			_SYSTEM_CLOCK : _SYSTEM_CLOCK);
+		clockSource = (counterMode.elem.clockSource & 0x2) ?
+			SYSTEM_CLOCK : SYSTEM_CLOCK;
 
 		if (counterMode.elem.synchronizationMode == 3)
 			bSynchronize = true;

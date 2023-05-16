@@ -38,7 +38,7 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
 			bStart = true;
-			float clks = blockControl.reg.bc_bs * clks_per_word;
+			float clks = blockControl.reg.bc_bs * CLOCKS_PER_WORD_DMA_6;
 			clocks = round(clks) == clks ? clks : round(clks) + 1;
 			channelControl.reg.startTrigger = 0;
 			memAddrTemp = memoryAddress.reg.memAddr;

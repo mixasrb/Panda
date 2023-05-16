@@ -42,7 +42,7 @@ void dma3::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
 			bStart = true;
-			float fcloks = blockControl.reg.bc_bs * clks_per_word;
+			float fcloks = blockControl.reg.bc_bs * CLOCKS_PER_WORD_DMA_3;
 			clocks = round(fcloks) == fcloks ? fcloks : round(fcloks) + 1;
 			channelControl.reg.startTrigger = 0;
 			memAddrTemp = memoryAddress.reg.memAddr;

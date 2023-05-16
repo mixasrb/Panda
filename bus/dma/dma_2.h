@@ -2,6 +2,8 @@
 
 #include "dma.h"
 
+#define CLOCKS_PER_WORD_DMA_2 272.f/256.f;
+
 class dmaController;
 
 class dma2 :

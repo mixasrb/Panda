@@ -45,7 +45,7 @@ void dma0::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
-				float clks = elementCount * clks_per_word;
+				float clks = elementCount * CLOCKS_PER_WORD_DMA_0;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}

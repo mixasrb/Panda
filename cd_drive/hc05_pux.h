@@ -133,11 +133,14 @@ public:
 
 	uint8_t xxxxx(const uint8_t& command);
 	uint8_t Getstat(const uint8_t& command);
+	uint8_t Play(const uint8_t& command);
 	uint8_t Setloc(const uint8_t& command);
 	uint8_t ReadN(const uint8_t& command);
+	uint8_t Stop(const uint8_t& command);
 	uint8_t Pause(const uint8_t& command);
 	uint8_t Init(const uint8_t& command);
 	uint8_t Demute(const uint8_t& command);
+	uint8_t Setfilter(const uint8_t& command);
 	uint8_t Setmode(const uint8_t& command);
 	uint8_t GetTN(const uint8_t& command);
 	uint8_t GetTD(const uint8_t& command);
