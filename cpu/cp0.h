@@ -14,7 +14,7 @@ public:
 	uint32_t cop0r[64];
 
 	uint32_t get(uint8_t reg);
-	void set(uint8_t reg, uint32_t v);
+	void set(uint8_t reg, uint32_t value);
 
 	void MFC0(uint8_t rt, uint8_t rd);
 	void CFC0(uint8_t rt, uint8_t rd);

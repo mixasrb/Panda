@@ -56,6 +56,7 @@ public:
 	uint8_t cycle = 0;
 	uint8_t writeClocks = 0;
 	uint8_t memoryClocks = 0;
+	uint8_t gteClocks = 0;
 
 	uint32_t get(const uint8_t& reg);
 	void set(const uint8_t& reg, const uint32_t& v);

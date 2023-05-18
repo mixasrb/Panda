@@ -27,7 +27,8 @@ void cp0::MFC0(uint8_t rt, uint8_t rd) {
 }
 
 void cp0::CFC0(uint8_t rt, uint8_t rd) {
-	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
+		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
@@ -36,17 +37,20 @@ void cp0::MTC0(uint8_t rt, uint8_t rd) {
 }
 
 void cp0::CTC0(uint8_t rt, uint8_t rd) {
-	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
+		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
 void cp0::BC0F(uint16_t imm) {
-	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
+		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
 void cp0::COP0(uint32_t imm) {
-	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 opcode " << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
+		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
@@ -94,7 +98,7 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 }
 
 void cp0::interruptHandler(const uint32_t& irq) {
-		pCpu->pBus->interruptStat |= irq;
+	pCpu->pBus->interruptStat |= irq;
 }
 
 void cp0::checkForInterrupts() {

@@ -1170,8 +1170,36 @@ void cxd85xxx::tex4PolyOpaqRawTex(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::tex4PolySemiTranspTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	//std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
+	//	gp0Lookup[(commandColor >> 24)].name << "\n";
+
+	param_t param;
+	param.texCoord4 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	param.color3 = command;
+	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
+		drawTexRect15Bit(param);
+	else if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x80)
+		drawTexRect8Bit(param);
+	else  if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::tex4PolySemiTranspRawTex(const uint32_t& commandColor) {

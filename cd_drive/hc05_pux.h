@@ -122,12 +122,12 @@ public:
 	std::vector<uint8_t> tempSecondResponseFifo;
 	std::vector<uint8_t> tempDataResponseFifo;
 
-	struct driveCommandType {
+	struct command_t {
 		std::string name;
 		uint8_t(hc05_pux::* command)(const uint8_t& command);
 	};
 
-	std::vector<driveCommandType> commandLookup;
+	std::vector<command_t> commandLookup;
 
 	void executeCommand(const uint8_t& command);
 
@@ -142,6 +142,7 @@ public:
 	uint8_t Demute(const uint8_t& command);
 	uint8_t Setfilter(const uint8_t& command);
 	uint8_t Setmode(const uint8_t& command);
+	uint8_t GetlocL(const uint8_t& command);
 	uint8_t GetTN(const uint8_t& command);
 	uint8_t GetTD(const uint8_t& command);
 	uint8_t SeekL(const uint8_t& command);
@@ -165,6 +166,9 @@ public:
 	uint8_t amm;
 	uint8_t ass;
 	uint8_t asect;
+	uint8_t ammOld;
+	uint8_t assOld;
+	uint8_t asectOld;
 
 	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
 	uint16_t sectorSize;

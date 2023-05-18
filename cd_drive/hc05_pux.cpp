@@ -8,14 +8,14 @@ extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
 hc05_pux::hc05_pux() {
-	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter
+	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter,GetlocL
 	commandLookup.resize(20);
 	commandLookup = {
 		{"Sync?    ",&hc05_pux::xxxxx},{"Getstat"    ,&hc05_pux::Getstat},{"Setloc   ",&hc05_pux::Setloc},{"Play     ",&hc05_pux::Play},
 		{"Forward  ",&hc05_pux::xxxxx},{"Backward     ",&hc05_pux::xxxxx},{"ReadN     ",&hc05_pux::ReadN},{"MotorOn ",&hc05_pux::xxxxx},
 		{"Stop      ",&hc05_pux::Stop},{"Pause        ",&hc05_pux::Pause},{"Init       ",&hc05_pux::Init},{"Mute    ",&hc05_pux::xxxxx},
 		{"Demute  ",&hc05_pux::Demute},{"Setfilter",&hc05_pux::Setfilter},{"Setmode ",&hc05_pux::Setmode},{"Getparam",&hc05_pux::xxxxx},
-		{"GetlocL  ",&hc05_pux::xxxxx},{"GetlocP      ",&hc05_pux::xxxxx},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::GetTN},
+		{"GetlocL",&hc05_pux::GetlocL},{"GetlocP    ",&hc05_pux::xxxxx},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::GetTN},
 		{"GetTD    ",&hc05_pux::GetTD},{"SeekL        ",&hc05_pux::SeekL},{"SeekP     ",&hc05_pux::xxxxx},{"SetClock",&hc05_pux::xxxxx},
 		{"GetClock ",&hc05_pux::xxxxx},{"Test          ",&hc05_pux::Test},{"GetID     ",&hc05_pux::GetID},{"ReadS   ",&hc05_pux::ReadS},
 		{"Reset    ",&hc05_pux::xxxxx},{"GetQ         ",&hc05_pux::xxxxx},{"ReadTOC   ",&hc05_pux::xxxxx},{"VideoCD ",&hc05_pux::xxxxx},
@@ -313,6 +313,10 @@ void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
 		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
 
+		ammOld = amm;
+		assOld = ass;
+		asectOld = asect;
+
 		asect++;
 		if (asect == 75) {
 			asect = 0;
@@ -477,6 +481,24 @@ uint8_t hc05_pux::Setmode(const uint8_t& command) {
 
 	uint8_t firstResponse[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
+	return 0;
+}
+
+uint8_t hc05_pux::GetlocL(const uint8_t& command) {
+	uint8_t response[8];
+
+	std::ifstream file(g_cdPath, std::ios::binary);
+	if (file.is_open()) {
+		file.seekg(((ammOld * 60 + assOld - 2) * 75 + asectOld) * 0x930 + 0x0c);
+
+		file.read((char*)response, 8);
+
+		file.close();
+	}
+	else
+		throw std::runtime_error("Failed to open rom!\n");
+
+	setFirstResponse(0xc4e1, INT3, response, 8);
 	return 0;
 }
 

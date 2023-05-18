@@ -11,13 +11,14 @@ bool g_executedCpuInstructionsLogged = false;
 bool g_GteInstructionsLogged = false;
 bool g_buttonPressed = false;
 
-const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph101.bin");
+const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
-bool g_sideload = false;
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpx.exe");
+bool g_sideload = false;;
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tekken3/Tekken 3 (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin");
@@ -25,7 +26,6 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin");

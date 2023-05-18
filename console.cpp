@@ -58,6 +58,7 @@ void Console::connectDebugger()
 	bus.dma.p_debugger = &debugger;
 	cpuSOC.p_debugger = &debugger;
 	cpuSOC.cp0.pDebugger = &debugger;
+	cpuSOC.cp2.pDebugger = &debugger;
 	gpu.p_debugger = &debugger;
 	cdDrive.p_debugger = &debugger;
 	joyMemCard.p_debugger = &debugger;
