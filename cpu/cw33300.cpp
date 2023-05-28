@@ -284,7 +284,6 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 					<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
 				g_emulationPaused = true;
 			}
-
 			break;
 		case 2: //cop2
 			if ((prim_opcode & 0x20) == 0)
@@ -305,9 +304,9 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 						break;
 					case 0x8:
 						if ((opcode << 11 >> 27) == 0)
-							cp2.BC2F(opcode);
+							cp2.BC2F(opcode & 0x0000ffff);
 						else
-							cp2.BC2T(opcode);
+							cp2.BC2T(opcode & 0x0000ffff);
 						break;
 					default:
 						std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop2 opcode " << primLookup[prim_opcode].name
@@ -327,7 +326,6 @@ void cw33300::decodeExecute(const uint32_t& opcode) {
 					cp2.SWC2(opcode << 6 >> 27,
 						opcode << 11 >> 27, opcode & 0x0000ffff);
 				}
-
 			break;
 		default:
 			std::cout << "[CPU] EMULATION PAUSED! unhandled cop " << (uint16_t)(prim_opcode & 0x03) << " op 0x"
@@ -980,7 +978,6 @@ void cw33300::printBiosCall() {
 			std::cout << pBus->biosChip.A[call].info << std::endl;
 
 			if (call == 0x3c) {
-				std::cout << "char :" << (char)get(4) << std::endl;
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
@@ -1051,7 +1048,6 @@ void cw33300::printBiosCall() {
 			}*/
 
 			if (call == 0x3d) {
-				std::cout << "char :" << (char)get(4) << std::endl;
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
@@ -1117,162 +1113,150 @@ std::string cw33300::getInstructionStr(const uint32_t& opcode, const uint32_t& p
 std::string cw33300::getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc) {
 	uint8_t prim_opcode = opcode >> 26;
 
-	std::string s = " ";
 	std::stringstream ss;
 
 	if (prim_opcode == 0) { // special
 
 		uint8_t sec_opcode = opcode << 26 >> 26;
 
-		if (sec_opcode >= 0 && sec_opcode <= 0x3) { // shift-imm
+		if (sec_opcode >= 0 && sec_opcode <= 0x3) // shift-imm
 			ss << "rt" << (opcode << 11 >> 27) << " rd" << (opcode << 16 >> 27) << " imm5 0x" << std::hex << (opcode << 21 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode >= 0x4 && sec_opcode < 0x8) { //shift-reg
+		else if (sec_opcode >= 0x4 && sec_opcode < 0x8) //shift-reg
 			ss << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " rd" << (opcode << 16 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode == 0x08) { // jr
+		else if (sec_opcode == 0x08) // jr
 			ss << "rs" << (opcode << 6 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode == 0x09) { // jalr
+		else if (sec_opcode == 0x09) // jalr
 			ss << "rs" << (opcode << 6 >> 27) << " rd" << (opcode << 16 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode >= 0xc && sec_opcode <= 0xd) { //sys/brk
+		else if (sec_opcode >= 0xc && sec_opcode <= 0xd) //sys/brk
 			ss << "comment" << (opcode << 6 >> 12);
-			s = ss.str();
-		}
 
-		else if (sec_opcode == 0x10 || sec_opcode == 0x12) { //mfhi/mflo
+		else if (sec_opcode == 0x10 || sec_opcode == 0x12) //mfhi/mflo
 			ss << "rd" << (opcode << 16 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode == 0x11 || sec_opcode == 0x13) { //mthi/mtlo
+		else if (sec_opcode == 0x11 || sec_opcode == 0x13) //mthi/mtlo
 			ss << "rs" << (opcode << 6 >> 27);
-			s = ss.str();
-		}
 
-		else if ((sec_opcode >> 2) == 0x06) { //mul/div
+		else if ((sec_opcode >> 2) == 0x06) //mul/div
 			ss << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27);
-			s = ss.str();
-		}
 
-		else if (sec_opcode >= 0x20 && sec_opcode <= 0x2f) { // alu_reg
+		else if (sec_opcode >= 0x20 && sec_opcode <= 0x2f) // alu_reg
 			ss << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " rd" << (opcode << 16 >> 27);
-			s = ss.str();
-		}
 	}
 
 	else if (prim_opcode == 0x1) { //BcondZ
 		switch (opcode << 11 >> 27) {
 		case 0x10: //bltzal
-			ss << "BLTZAL rs" << (opcode << 6 >> 27) << " imm" << std::hex << (opcode & 0x0000ffff);
-			s = ss.str();
+			ss << "BLTZAL rs" << (opcode << 6 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 			break;
 		case 0x11: //bgezal
-			ss << "BGEZAL rs" << (opcode << 6 >> 27) << " imm" << std::hex << (opcode & 0x0000ffff);
-			s = ss.str();
+			ss << "BGEZAL rs" << (opcode << 6 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 			break;
 		default:
-			if (!((opcode << 11 >> 27) & 0x1)) { //bltz
-				ss << "BLTZ rs" << (opcode << 6 >> 27) << " imm" << std::hex << (opcode & 0x0000ffff);
-				s = ss.str();
-			}
-			else { //bgez
-				ss << "BGEZ rs" << (opcode << 6 >> 27) << " imm" << std::hex << (opcode & 0x0000ffff);
-				s = ss.str();
-			}
+			if (!((opcode << 11 >> 27) & 0x1)) //bltz
+				ss << "BLTZ rs" << (opcode << 6 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
+			else //bgez
+				ss << "BGEZ rs" << (opcode << 6 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 			break;
 		}
 	}
 
-	else if (prim_opcode >= 0x2 && prim_opcode <= 0x3) { // j_jal
+	else if (prim_opcode >= 0x2 && prim_opcode <= 0x3) // j_jal
 		ss << "imm26 0x" << std::hex << (opcode << 6 >> 6);
-		s = ss.str();
-	}
 
-	else if (prim_opcode == 0x04 || prim_opcode == 0x05) { // beq/bne
+	else if (prim_opcode == 0x04 || prim_opcode == 0x05) // beq/bne
 		ss << "{0x" << std::hex << pc + (int16_t)(opcode & 0x0000ffff) * 4 - 4 << "} "
-			<< std::dec << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
+		<< std::dec << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
-	else if (prim_opcode == 0x06 || prim_opcode == 0x07) { // blez/bgtz
+	else if (prim_opcode == 0x06 || prim_opcode == 0x07) // blez/bgtz
 		ss << "rs" << (opcode << 6 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
 
-	else if (prim_opcode >= 0x08 && prim_opcode < 0x0f) { // alu-imm
+	else if (prim_opcode >= 0x08 && prim_opcode < 0x0f) // alu-imm
 		ss << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
 
-	else if (prim_opcode == 0x0f) { // lui-imm
+	else if (prim_opcode == 0x0f) // lui-imm
 		ss << "rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
 
-	else if (prim_opcode >= 0x20 && prim_opcode <= 0x27) { // load rt,[rs+imm]
-		int16_t imm16 = opcode & 0x0000ffff;
-		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << imm16 + get(opcode << 6 >> 27) << "]"
-			<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
+	else if (prim_opcode >= 0x20 && prim_opcode <= 0x27) // load rt,[rs+imm]
+		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (opcode & 0x0000ffff) + get(opcode << 6 >> 27) << "]"
+		<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
-	else if (prim_opcode >= 0x28 && prim_opcode <= 0x2f) { // store rt,[rs+imm]
-		//ss << "rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		int16_t imm16 = opcode & 0x0000ffff;
-		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << imm16 + get(opcode << 6 >> 27) << "]"
-			<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
-		s = ss.str();
-	}
+	else if (prim_opcode >= 0x28 && prim_opcode <= 0x2f) // store rt,[rs+imm]
+		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (opcode & 0x0000ffff) + get(opcode << 6 >> 27) << "]"
+		<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
-	else if (prim_opcode & 0x10) { // coprocessor
-		if (prim_opcode & 0x20) {
-		}
-		else {
-			switch (prim_opcode & 0x03) {
-			case 0:
-				switch (opcode << 6 >> 27) {
+	else if (prim_opcode & 0x10) { //coprocessors
+		switch (prim_opcode & 0x03) {
+		case 0: //cp0
+			if ((prim_opcode & 0x20) == 0) {
+				switch (opcode << 6 >> 27)
+				{
 				case 0x0:
 					ss << "MFC0 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
-					s = ss.str();
 					break;
 				case 0x2:
 					ss << "CFC0 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
-					s = ss.str();
 					break;
 				case 0x4:
 					ss << "MTC0 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
-					s = ss.str();
 					break;
 				case 0x6:
 					ss << "CTC0 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
-					s = ss.str();
 					break;
 				case 0x8:
+					//
 					break;
 				case 0x10:
 					ss << "RFE";
-					s = ss.str();
-					break;
-				default:
 					break;
 				}
-				break;
 			}
+			else {  //LWC0/SWC0
+				//
+			}
+			break;
+		case 2: //cop2
+			if ((prim_opcode & 0x20) == 0)
+				if (((opcode << 6 >> 27) & 0x10) == 0)
+					switch (opcode << 7 >> 28)
+					{
+					case 0x0:
+						ss << "MFC2 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
+						break;
+					case 0x2:
+						ss << "CFC2 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
+						break;
+					case 0x4:
+						ss << "MTC2 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
+						break;
+					case 0x6:
+						ss << "CTC2 rd" << (opcode << 11 >> 27) << " rt" << (opcode << 16 >> 27);
+						break;
+					case 0x8:
+						if ((opcode << 11 >> 27) == 0)
+							ss << "BC2F imm16 0x" << (opcode & 0x0000ffff);
+						else
+							ss << "BC2T imm16 0x" << (opcode & 0x0000ffff);
+						break;
+					}
+				else
+					ss << "COP2 imm25 0x" << (opcode << 7 >> 7);
+			else
+				if ((prim_opcode & 0x08) == 0) //LWC2
+					ss << "LWC2 rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
+				else //SWC2
+					ss << "SWC2 rs" << (opcode << 6 >> 27) << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
+			break;
 		}
 	}
-	else {
-	}
-	return s;
+
+	else
+		ss << "Unknown ???";
+
+	return ss.str();
 }
 
 void cw33300::sideLoad() {
@@ -1299,11 +1283,17 @@ void cw33300::sideLoad() {
 	uint32_t size = (((uint32_t)buffer[0x1f]) << 24) | (((uint32_t)buffer[0x1e]) << 16)
 		| (((uint32_t)buffer[0x1d]) << 8) | (uint32_t)buffer[0x1c];
 
-	set(29, (((uint32_t)buffer[0x33]) << 24) | (((uint32_t)buffer[0x32]) << 16)
-		| (((uint32_t)buffer[0x31]) << 8) | (uint32_t)buffer[0x30]);
+	uint32_t initialSpFp = (((uint32_t)buffer[0x33]) << 24) | (((uint32_t)buffer[0x32]) << 16)
+		| (((uint32_t)buffer[0x31]) << 8) | (uint32_t)buffer[0x30];
+	if (initialSpFp) {
+		set(29, initialSpFp);
+		set(30, initialSpFp);
+	}
 
-	set(30, (((uint32_t)buffer[0x33]) << 24) | (((uint32_t)buffer[0x32]) << 16)
-		| (((uint32_t)buffer[0x31]) << 8) | (uint32_t)buffer[0x30]);
+	uint32_t initialSpFpOffset = (((uint32_t)buffer[0x37]) << 24) | (((uint32_t)buffer[0x36]) << 16)
+		| (((uint32_t)buffer[0x35]) << 8) | (uint32_t)buffer[0x34];
+	if (initialSpFpOffset)
+		std::runtime_error("Unhandled Initial SP/R29 & FP/R30 Offs in PSX.EXE (sideload)\n");
 
 	uint8_t cycles;
 	for (uint32_t i = 0; i < size; i++) {

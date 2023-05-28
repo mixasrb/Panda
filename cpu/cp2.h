@@ -5,8 +5,6 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-#define TRX cnt[5]
-
 class cw33300;
 
 class cp2 {
@@ -17,6 +15,35 @@ public:
 	uint32_t cop2dat[32];
 	uint32_t cop2cnt[32];
 
+	union flag_t {
+		uint32_t data;
+		struct {
+			uint32_t : 12;
+			uint32_t ir0Sat : 1;
+			uint32_t sy2Sat : 1;
+			uint32_t sx2Sat : 1;
+			uint32_t mac0ResultNegOV : 1;
+			uint32_t mac0ResultPosOV : 1;
+			uint32_t divOV : 1;
+			uint32_t sz3_otcSat : 1;
+			uint32_t colorFifoBSat : 1;
+			uint32_t colorFifoGSat : 1;
+			uint32_t colorFifoRSat : 1;
+			uint32_t ir3Sat : 1;
+			uint32_t ir2Sat : 1;
+			uint32_t ir1Sat : 1;
+			uint32_t mac3ResultNegOV : 1;
+			uint32_t mac2ResultNegOV : 1;
+			uint32_t mac1ResultNegOV : 1;
+			uint32_t mac3ResultPosOV : 1;
+			uint32_t mac2ResultPosOV : 1;
+			uint32_t mac1ResultPosOV : 1;
+			uint32_t errorFlag: 1;
+		}elem;
+	}flag;
+
+	uint32_t getDat(uint8_t reg);
+	uint32_t getCnt(uint8_t reg);
 	void setDat(uint8_t reg, uint32_t value);
 	void setCnt(uint8_t reg, uint32_t value);
 
@@ -41,26 +68,30 @@ public:
 	union commandEncoding_t {
 		uint32_t data;
 		struct {
-			uint32_t : 6;
-			uint32_t fakeOpcode : 6;
-			uint32_t sf : 1;
-			uint32_t multMatrix : 2;
-			uint32_t multVect : 2;
-			uint32_t translationVect : 2;
-			uint32_t : 2;
-			uint32_t im : 1;
-			uint32_t : 4;
 			uint32_t realOpcode : 6;
+			uint32_t : 4;
+			uint32_t lm : 1;
+			uint32_t : 2;
+			uint32_t translationVect : 2;
+			uint32_t multVect : 2;
+			uint32_t multMatrix : 2;
+			uint32_t sf : 1;
+			uint32_t fakeOpcode : 6;
+			uint32_t : 6;
 		};
 	};
 
+	std::vector<uint8_t> unrTable;
+
+	int32_t devide();
+
 	uint8_t XXXXX(uint32_t command);
-	uint8_t RTPS(uint32_t command);
+	uint8_t RTPS(uint32_t commandData);
 	uint8_t NCLIP(uint32_t command);
 	uint8_t OP(uint32_t command);
 	uint8_t DPCS(uint32_t command);
 	uint8_t INTPL(uint32_t command);
-	uint8_t MVMVA(uint32_t command);
+	uint8_t MVMVA(uint32_t commandData);
 	uint8_t NCDS(uint32_t command);
 	uint8_t CDP(uint32_t command);
 	uint8_t NCDT(uint32_t command);
@@ -73,29 +104,10 @@ public:
 	uint8_t DPCT(uint32_t command);
 	uint8_t AVSZ3(uint32_t command);
 	uint8_t AVSZ4(uint32_t command);
-	uint8_t RTPT(uint32_t command);
+	uint8_t RTPT(uint32_t commandData);
 	uint8_t GPF(uint32_t command);
 	uint8_t GPL(uint32_t command);
 	uint8_t NCCT(uint32_t command);
-
-	union matrixReg_t {
-		uint16_t data;
-		struct {
-			uint16_t sign : 1;
-			uint16_t integer : 3;
-			uint16_t fraction : 12;
-		};
-	};
-
-	union translationVect_t {
-		uint32_t data;
-		struct {
-			uint32_t sign : 1;
-			uint32_t fraction : 31;
-		};
-	};
-
-	typedef int16_t vect_t;
 
 	//debug
 	debugUtilities* pDebugger;

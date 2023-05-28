@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void Timer1::clock(uint8_t source) {
+void timer1::clock(uint8_t source) {
 	if (bSynchronize) {
 		if (static_cast<clockSource_t>(source) == VBLANK_CLOCK) {
 			bSynchronize = false;
@@ -31,7 +31,7 @@ void Timer1::clock(uint8_t source) {
 	}
 }
 
-void Timer1::ReadTimer32(const uint32_t& addr, uint16_t* data) {
+void timer1::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		*data = currentValue.data;
@@ -47,7 +47,7 @@ void Timer1::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	}
 }
 
-void Timer1::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
+void timer1::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		currentValue.data = data;

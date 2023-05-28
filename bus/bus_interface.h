@@ -28,9 +28,9 @@ public:
 	cxd85xxx* pGpu = nullptr;
 	dmaController dma;
 	hc05_pux* pCdDrive = nullptr;
-	Timer0 timer0;
-	Timer1 timer1;
-	Timer2 timer2;
+	timer0 timer0;
+	timer1 timer1;
+	timer2 timer2;
 	joyMemCard* pJoyMemCard = nullptr;
 	biosChip biosChip;
 

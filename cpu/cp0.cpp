@@ -8,13 +8,16 @@ uint32_t cp0::get(uint8_t reg) {
 	return cop0r[reg];
 }
 
-void cp0::set(uint8_t reg, uint32_t v) {
+void cp0::set(uint8_t reg, uint32_t value) {
 	if (reg == 13) {
 		CAUSE &= 0xffffcff;
-		CAUSE |= (v & !0xffffcff);
+		CAUSE |= (value & !0xffffcff);
 	}
 	else
-		cop0r[reg] = v;
+		cop0r[reg] = value;
+
+	if(reg == 12)
+		isolateDataCache = (SR & 0x10000) == 0x10000;
 
 	if (SR & 0x400000) {
 		std::cout << "[CP0] EMULATION PAUSED! unhandled BEV\n";

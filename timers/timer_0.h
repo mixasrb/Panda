@@ -5,7 +5,7 @@
 
 class busInterface;
 
-class Timer0 : public Timer {
+class timer0 : public Timer {
 public:
 	void clock(uint8_t source) override;
 	void ReadTimer32(const uint32_t& addr, uint16_t* data) override;

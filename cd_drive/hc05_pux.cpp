@@ -21,6 +21,17 @@ hc05_pux::hc05_pux() {
 		{"Reset    ",&hc05_pux::xxxxx},{"GetQ         ",&hc05_pux::xxxxx},{"ReadTOC   ",&hc05_pux::xxxxx},{"VideoCD ",&hc05_pux::xxxxx},
 	};
 	driveStatus = static_cast<driveStatus_t>(g_driveStatus);
+
+	std::ifstream file(g_cdPath, std::ios::binary | std::ios::ate);
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open rom!\n");
+	}
+
+	size_t fileSize = file.tellg();
+	file.seekg(0);
+	bufferVect.resize(fileSize);
+	file.read(bufferVect.data(), fileSize);
+	file.close();
 }
 
 
@@ -299,40 +310,31 @@ void hc05_pux::executeCommand(const uint8_t& command) {
 }
 
 void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
-	std::ifstream file(g_cdPath, std::ios::binary);
-	if (file.is_open()) {
-
-		if (sectorSize == 0x800)
-			file.seekg(((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x18);
-		else
-			file.seekg(((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x0c);
-
-		file.read((char*)buffer, sectorSize);
-
-		std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
-
-		ammOld = amm;
-		assOld = ass;
-		asectOld = asect;
-
-		asect++;
-		if (asect == 75) {
-			asect = 0;
-			ass++;
-		}
-		if (ass == 60) {
-			ass = 0;
-			amm++;
-		}
-		//bufferCounter = 0;
-
-		bufferCounter = sectorSize;
-		file.close();
-	}
+	if (sectorSize == 0x800)
+		buffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x18);
 	else
-		throw std::runtime_error("Failed to open rom!\n");
+		buffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x0c);
+
+	std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
+	std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
+	std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
+
+	ammOld = amm;
+	assOld = ass;
+	asectOld = asect;
+
+	asect++;
+	if (asect == 75) {
+		asect = 0;
+		ass++;
+	}
+	if (ass == 60) {
+		ass = 0;
+		amm++;
+	}
+	////bufferCounter = 0;
+
+	bufferCounter = sectorSize;
 }
 
 uint8_t hc05_pux::fromHexToDec8(const uint8_t& hex) {

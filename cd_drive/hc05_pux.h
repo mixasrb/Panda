@@ -65,8 +65,9 @@ public:
 	RequestRegister requestReg = { 0 };
 
 	//data fifo
-	uint8_t* buffer = new uint8_t[0x924];
+	uint8_t* buffer = nullptr;
 	uint16_t bufferCounter = 0;
+	std::vector<char> bufferVect;
 
 	std::vector<uint8_t> responseFifo;
 

@@ -277,8 +277,8 @@ void cxd85xxx::videoClock() {
 		//V-Sync interrupt is naturally edge trigered
 		pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
 
-		if (gpuStat.elem.vertical_res && gpuStat.elem.vertical_interlace)
-			gpuStat.elem.drawing_even_odd_lines = ~gpuStat.elem.drawing_even_odd_lines;
+		if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
+			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
 		scanline = 0;
 
@@ -295,9 +295,9 @@ void cxd85xxx::videoClock() {
 
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
 		cpuScanlineClocks = 0;
-		if (!gpuStat.elem.vertical_res) {
+		if (!gpuStat.elem.verticalRes) {
 			scanline = 0;
-			gpuStat.elem.drawing_even_odd_lines = ~gpuStat.elem.drawing_even_odd_lines;
+			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 		}
 		scanline++;
 
@@ -371,10 +371,10 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		case 0x2:
 			gpuStat.elem.irq1 = 0;
 		case 0x3:
-			gpuStat.elem.display_enable = data & 0x1;
+			gpuStat.elem.displayEnable = data & 0x1;
 			break;
 		case 0x4:
-			gpuStat.elem.dma_dir = gp1 & 0x3;
+			gpuStat.elem.dmaDir = gp1 & 0x3;
 			break;
 		case 0x5:
 			display_start.x = gp1 << 22 >> 22;
@@ -389,30 +389,30 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			y2 = gp1 << 12 >> 22;
 			break;
 		case 0x8:
-			gpuStat.elem.horizontal_res_1 = gp1 & 0x3;
-			gpuStat.elem.vertical_res = (gp1 & 0x4 ? 1 : 0);
-			gpuStat.elem.video_mode = (gp1 & 0x8 ? 1 : 0);
-			gpuStat.elem.display_area_color_depth = (gp1 & 0x10 ? 1 : 0);
-			gpuStat.elem.vertical_interlace = (gp1 & 0x20 ? 1 : 0);
-			gpuStat.elem.horizontal_res_2 = gp1 & 0x40;
+			gpuStat.elem.horizontalRes1 = gp1 & 0x3;
+			gpuStat.elem.verticalRes = (gp1 & 0x4 ? 1 : 0);
+			gpuStat.elem.videoMode = (gp1 & 0x8 ? 1 : 0);
+			gpuStat.elem.displayAreaColorDepth = (gp1 & 0x10 ? 1 : 0);
+			gpuStat.elem.verticalInterlace = (gp1 & 0x20 ? 1 : 0);
+			gpuStat.elem.horizontalRes2 = gp1 & 0x40;
 			gpuStat.elem.reverseflag = (gp1 & 0x80 ? 1 : 0);
-			if (gpuStat.elem.vertical_interlace)
-				gpuStat.elem.interlace_field = 1;
+			if (gpuStat.elem.verticalInterlace)
+				gpuStat.elem.interlaceField = 1;
 			else
-				gpuStat.elem.interlace_field = 0;
+				gpuStat.elem.interlaceField = 0;
 			break;
 		case 0x10:
 			switch (gp1 & 0x7) {
 			case 3:
-				gp1Result = gp1_top_left;
+				gp1Result = gp1TopLeft;
 				b_gp1Result = true;
 				break;
 			case 4:
-				gp1Result = gp1_bottom_right;
+				gp1Result = gp1BottomRight;
 				b_gp1Result = true;
 				break;
 			case 5:
-				gp1Result = gp1_draw_offset;
+				gp1Result = gp1DrawOffset;
 				b_gp1Result = true;
 				break;
 			case 7:
@@ -476,20 +476,20 @@ void cxd85xxx::writeVram(const vertex_t& position, const uint16_t& data, const b
 		return;
 	}
 
-	if (((position.x + drawOffset.x) >= drawAreaTopLeft.x) &&
-		((position.x + drawOffset.x) <= drawAreaBottomRight.x) &&
-		((position.y + drawOffset.y) >= drawAreaTopLeft.y) &&
-		((position.y + drawOffset.y) <= drawAreaBottomRight.y)) {
+	if (((position.x + (drawOffset.x >> 5)) >= drawAreaTopLeft.x) &&
+		((position.x + (drawOffset.x >> 5)) <= drawAreaBottomRight.x) &&
+		((position.y + (drawOffset.y >> 5)) >= drawAreaTopLeft.y) &&
+		((position.y + (drawOffset.y >> 5)) <= drawAreaBottomRight.y)) {
 
-		if ((position.x + drawOffset.x >= 1024) || (position.x + drawOffset.x < 0) ||
-			(position.y + drawOffset.y >= 512) || (position.y + drawOffset.y) < 0)
+		if ((position.x + (drawOffset.x >> 5) >= 1024) || (position.x + (drawOffset.x >> 5) < 0) ||
+			(position.y + (drawOffset.y >> 5) >= 512) || (position.y + (drawOffset.y >> 5)) < 0)
 			return;
 
-		vram[(position.x + drawOffset.x) * 2 * size_y + (position.y + drawOffset.y)] = data << 8 >> 8;
-		vram[((position.x + drawOffset.x) * 2 + 1) * size_y + (position.y + drawOffset.y)] = data >> 8;
+		vram[(position.x + (drawOffset.x >> 5)) * 2 * size_y + (position.y + (drawOffset.y >> 5))] = data << 8 >> 8;
+		vram[((position.x + (drawOffset.x >> 5)) * 2 + 1) * size_y + (position.y + (drawOffset.y >> 5))] = data >> 8;
 		vertex_t p = { 0, 0 };
-		p.x = position.x + drawOffset.x;
-		p.y = position.y + drawOffset.y;
+		p.x = position.x + (drawOffset.x >> 5);
+		p.y = position.y + (drawOffset.y >> 5);
 		updateVramView(p, data);
 	}
 }
@@ -569,7 +569,8 @@ void cxd85xxx::rasterization(param_t* pParam, const rasterizationMode_t& colorMo
 									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
 									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
 									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
-									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
+									//writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
+									writeVram(calculatedPoint, 0x2334334);
 								}
 					};
 
@@ -600,7 +601,8 @@ void cxd85xxx::rasterization(param_t* pParam, const rasterizationMode_t& colorMo
 									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
 									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
 									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
-									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
+									//writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
+									writeVram(calculatedPoint, 0x2334334);
 								}
 					};
 
@@ -682,7 +684,7 @@ void cxd85xxx::drawMonochromeLine(param_t param) {
 
 void cxd85xxx::drawTexRect15Bit(param_t param) {
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
@@ -703,12 +705,12 @@ void cxd85xxx::drawTexRect15Bit(param_t param) {
 	float ratioY = 1.;
 
 	for (int16_t y = 0; y < yMax - yMin; y++) {
-		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
-		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
+		pTex.y = (gpuStat.elem.texPageYBase << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 		p.y = yMin + y;
 		for (int16_t x = 0; x < xMax - xMin; x++) {
-			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + xTexMin;
-			pTex.x = ((pTex.x + x) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
+			pTex.x = (gpuStat.elem.texPageXBase << 6) + xTexMin;
+			pTex.x = ((pTex.x + x) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			if (texData)
@@ -720,7 +722,7 @@ void cxd85xxx::drawTexRect15Bit(param_t param) {
 void cxd85xxx::drawTexRect8Bit(param_t param) {
 	clut_t clut = param.texCoord1Palette.elem.attribute;
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
@@ -741,12 +743,12 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 	psxColor24_t blending = param.command_color1;
 
 	for (int16_t y = 0; y < yMax - yMin; y++) {
-		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
-		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y << 3))) | ((tex_win_offset.y & tex_win_mask.y) << 3);
+		pTex.y = (gpuStat.elem.texPageYBase << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 		p.y = yMin + y;
 		for (int16_t x = 0; x < xMax - xMin; x++) {
-			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 1);
-			pTex.x = ((pTex.x + (x >> 1)) & (~(tex_win_mask.x << 3))) | ((tex_win_offset.x & tex_win_mask.x) << 3);
+			pTex.x = (gpuStat.elem.texPageXBase << 6) + (xTexMin >> 1);
+			pTex.x = ((pTex.x + (x >> 1)) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			pClut.x = clut.elem.xCoord * 16 +
@@ -768,7 +770,7 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 void cxd85xxx::drawTexRect4Bit(param_t param) {
 	clut_t clut = param.texCoord1Palette.elem.attribute;
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 
 	int16_t arrayX[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
 	int16_t arrayY[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
@@ -789,12 +791,12 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 	psxColor24_t blending = param.command_color1;
 
 	for (int16_t y = 0; y < yMax - yMin; y++) {
-		pTex.y = (gpuStat.elem.tex_page_y_base << 8) + yTexMin;
-		pTex.y = ((pTex.y + y) & (~(tex_win_mask.y * 8))) | ((tex_win_offset.y & tex_win_mask.y) * 8);
+		pTex.y = (gpuStat.elem.texPageYBase << 8) + yTexMin;
+		pTex.y = ((pTex.y + y) & (~(texWinMask.y * 8))) | ((texWinOffset.y & texWinMask.y) * 8);
 		p.y = yMin + y;
 		for (int16_t x = 0; x < xMax - xMin; x++) {
-			pTex.x = (gpuStat.elem.tex_page_x_base << 6) + (xTexMin >> 2);
-			pTex.x = ((pTex.x + (x >> 2)) & (~(tex_win_mask.x * 8))) | ((tex_win_offset.x & tex_win_mask.x) * 8);
+			pTex.x = (gpuStat.elem.texPageXBase << 6) + (xTexMin >> 2);
+			pTex.x = ((pTex.x + (x >> 2)) & (~(texWinMask.x * 8))) | ((texWinOffset.x & texWinMask.x) * 8);
 			p.x = xMin + x;
 			readVram(pTex, texData);
 			pClut.x = (clut.elem.xCoord << 4) +
@@ -1008,8 +1010,8 @@ void cxd85xxx::mono3PolyOpaq(const uint32_t& commandColor) {
 	param.vert1 = (vertex_t)collectList.back();
 	collectList.pop_back();
 	param.command_color1 = command;
-	/*rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
-		3, param.vert1, param.vert2, param.vert3);*/
+	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
+		3, param.vert1, param.vert2, param.vert3);
 }
 
 void cxd85xxx::mono3PolySemiTransp(const uint32_t& commandColor) {
@@ -1069,7 +1071,7 @@ void cxd85xxx::tex3PolyOpaqTexBlend(const uint32_t& commandColor) {
 
 	//just a bypass
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::tex3PolyOpaqRawTex(const uint32_t& commandColor) {
@@ -1099,7 +1101,7 @@ void cxd85xxx::tex3PolySemiTranspTexBlend(const uint32_t& commandColor) {
 
 	//just a bypass
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::tex3PolySemiTranspRawTex(const uint32_t& commandColor) {
@@ -1247,8 +1249,8 @@ void cxd85xxx::shaded3PolyOpaq(const uint32_t& commandColor) {
 	param.vert1 = (vertex_t)collectList.back();
 	collectList.pop_back();
 	param.command_color1 = command;
-	/*rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
-		3, param.vert1, param.vert2, param.vert3, (0, 0));*/
+	rasterization((param_t*)&param, PSX_MONOCHROME, PSX_OPAQUE,
+		3, param.vert1, param.vert2, param.vert3, (0, 0));
 }
 
 void cxd85xxx::shaded3PolySemiTransp(const uint32_t& commandColor) {
@@ -1305,17 +1307,61 @@ void cxd85xxx::shadedTex3PolyOpaqTexBlend(const uint32_t& commandColor) {
 
 	//just a bypass
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
-	gpuStat.elem.tex_dis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::shadedTex3PolySemiTranspTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	param.color3 = command;
+
+	//just a bypass
+	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute) << 7 >> 7;
+	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 }
 
 void cxd85xxx::shadedTex4PolyOpaqTexBlend(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	param.texCoord4 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert4 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord3 = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert3 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord2TexPage = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.texCoord1Palette = (texcoordData_t)collectList.back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	param.color3 = command;
+	if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x100)
+		drawTexRect15Bit(param);
+	else if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x80)
+		drawTexRect8Bit(param);
+	else  if ((param.texCoord2TexPage.elem.attribute & 0x180) == 0x0)
+		drawTexRect4Bit(param);
+	else
+		throw std::runtime_error("texture page color mode RESERVED!");
 }
 
 void cxd85xxx::shadedTex4PolySemiTranspTexBlend(const uint32_t& commandColor) {
@@ -1332,7 +1378,7 @@ void cxd85xxx::monoLineOpaq(const uint32_t& commandColor) {
 	param_t param;
 	param.type = MONOCHROME_LINE_PARAM;
 	param.vert2 = (vertex_t)collectList.back();
-	collectList.pop_back();;
+	collectList.pop_back();
 	param.vert1 = (vertex_t)collectList.back();
 	collectList.pop_back();
 	param.command_color1 = command;
@@ -1360,8 +1406,14 @@ void cxd85xxx::shadedLineOpaq(const uint32_t& commandColor) {
 }
 
 void cxd85xxx::shadedLineSemiTransp(const uint32_t& commandColor) {
-	std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
-		gp0Lookup[(commandColor >> 24)].name << "\n";
+	param_t param;
+	param.vert2 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	collectList.pop_back();
+	param.vert1 = (vertex_t)collectList.back();
+	collectList.pop_back();
+	param.command_color1 = command;
+	drawMonochromeLine(param);
 }
 
 void cxd85xxx::shadedPolyLineOpaq(const uint32_t& commandColor) {
@@ -1453,7 +1505,7 @@ void cxd85xxx::texRectVarOpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1461,11 +1513,11 @@ void cxd85xxx::texRectVarOpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1488,16 +1540,16 @@ void cxd85xxx::texRectVarOpaqRawTex(const uint32_t& commandColor) {
 	param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
 
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1531,14 +1583,14 @@ void cxd85xxx::texRectVarSemiTranspTexBlend(const uint32_t& commandColor) {
 	param.command_color1 = command;
 
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1572,14 +1624,14 @@ void cxd85xxx::texRectVarSemiTranspRawTex(const uint32_t& commandColor) {
 	param.command_color1 = command;
 
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1618,7 +1670,7 @@ void cxd85xxx::texRect8x8OpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1627,11 +1679,11 @@ void cxd85xxx::texRect8x8OpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1650,7 +1702,7 @@ void cxd85xxx::texRect8x8OpaqRawTex(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1659,11 +1711,11 @@ void cxd85xxx::texRect8x8OpaqRawTex(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1687,7 +1739,7 @@ void cxd85xxx::texRect8x8SemiTranspRawTex(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1696,11 +1748,11 @@ void cxd85xxx::texRect8x8SemiTranspRawTex(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1719,7 +1771,7 @@ void cxd85xxx::texRect16x16OpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1728,11 +1780,11 @@ void cxd85xxx::texRect16x16OpaqTexBlend(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1751,7 +1803,7 @@ void cxd85xxx::texRect16x16OpaqRawTex(const uint32_t& commandColor) {
 	param.texCoord2TexPage.elem.x = param.texCoord1Palette.elem.x + (size_x_y << 16 >> 16);
 	param.texCoord2TexPage.elem.y = param.texCoord1Palette.elem.y;
 	param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
-	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.tex_dis) ?
+	param.texCoord2TexPage.elem.attribute = (gpuStat.elem.texDis) ?
 		param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 	param.texCoord3.elem.x = param.texCoord1Palette.elem.x;
 	param.texCoord3.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
@@ -1760,11 +1812,11 @@ void cxd85xxx::texRect16x16OpaqRawTex(const uint32_t& commandColor) {
 	param.texCoord4.elem.y = param.texCoord1Palette.elem.y + (size_x_y >> 16);
 	param.command_color1 = command;
 
-	if (gpuStat.elem.tex_page_colors == 2)
+	if (gpuStat.elem.texPageColors == 2)
 		drawTexRect15Bit(param);
-	else if (gpuStat.elem.tex_page_colors == 1)
+	else if (gpuStat.elem.texPageColors == 1)
 		drawTexRect8Bit(param);
-	else  if (gpuStat.elem.tex_page_colors == 0)
+	else  if (gpuStat.elem.texPageColors == 0)
 		drawTexRect4Bit(param);
 	else
 		throw std::runtime_error("texture page color mode RESERVED!");
@@ -1782,36 +1834,36 @@ void cxd85xxx::texRect16x16SemiTranspRawTex(const uint32_t& commandColor) {
 
 void cxd85xxx::drawModeSetting(const uint32_t& commandColor) {
 	gpuStat.data &= 0xffff7800;
-	gpuStat.data |= commandColor << 21 >> 21;
-	gpuStat.elem.tex_dis = (commandColor & 0x00000800 ? 1 : 0);
+	gpuStat.data |= commandColor & 0x000087ff;
+	gpuStat.elem.texDis = commandColor & 0x00008000 ? 1 : 0;
 }
 
 void cxd85xxx::texWindowSetting(const uint32_t& commandColor) {
-	tex_win_mask.x = commandColor << 27 >> 27;
-	tex_win_mask.y = commandColor << 22 >> 27;
-	tex_win_offset.x = commandColor << 17 >> 27;
-	tex_win_offset.y = commandColor << 12 >> 27;
+	texWinMask.x = commandColor << 27 >> 27;
+	texWinMask.y = commandColor << 22 >> 27;
+	texWinOffset.x = commandColor << 17 >> 27;
+	texWinOffset.y = commandColor << 12 >> 27;
 }
 
 void cxd85xxx::setDrawAreaTopLeft(const uint32_t& commandColor) {
 	drawAreaTopLeft.x = commandColor << 22 >> 22;
 	drawAreaTopLeft.y = commandColor << 13 >> 23;
-	gp1_top_left = commandColor << 8 >> 8;
+	gp1TopLeft = commandColor << 8 >> 8;
 }
 
 void cxd85xxx::setDrawAreaBottomRight(const uint32_t& commandColor) {
 	drawAreaBottomRight.x = commandColor << 22 >> 22;
 	drawAreaBottomRight.y = commandColor << 13 >> 23;
-	gp1_bottom_right = commandColor << 8 >> 8;
+	gp1BottomRight = commandColor << 8 >> 8;
 }
 
 void cxd85xxx::setDrawOffset(const uint32_t& commandColor) {
-	drawOffset.x = commandColor << 21 >> 21;
-	drawOffset.y = commandColor << 11 >> 21;
-	gp1_draw_offset = commandColor << 8 >> 8;
+	drawOffset.x = (commandColor & 0x7ff) << 5;
+	drawOffset.y = ((commandColor >> 11) & 0x7ff) << 5;
+	gp1DrawOffset = commandColor << 8 >> 8;
 }
 
 void cxd85xxx::maskBitSetting(const uint32_t& commandColor) {
-	gpuStat.elem.set_mask_bit_while_drawing = commandColor & 0x1;
-	gpuStat.elem.draw_pixels = (commandColor & 0x2 ? 1 : 0);
+	gpuStat.elem.setMaskBitWhileDrawing = commandColor & 0x1;
+	gpuStat.elem.drawPixels = (commandColor & 0x2 ? 1 : 0);
 }

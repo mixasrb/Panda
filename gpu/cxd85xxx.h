@@ -36,31 +36,31 @@ public:
 	union gpuStat_t {
 		uint32_t data;
 		struct {
-			uint32_t tex_page_x_base : 4;
-			uint32_t tex_page_y_base : 1;
-			uint32_t semi_transparency : 2;
-			uint32_t tex_page_colors : 2;
-			uint32_t dither_24_15 : 1;
-			uint32_t drawing_to_display_area : 1;
-			uint32_t set_mask_bit_while_drawing : 1;
-			uint32_t draw_pixels : 1;
-			uint32_t interlace_field : 1;
+			uint32_t texPageXBase : 4;
+			uint32_t texPageYBase : 1;
+			uint32_t semiTransparency : 2;
+			uint32_t texPageColors : 2;
+			uint32_t dither24To15 : 1;
+			uint32_t drawingToDisplayArea : 1;
+			uint32_t setMaskBitWhileDrawing : 1;
+			uint32_t drawPixels : 1;
+			uint32_t interlaceField : 1;
 			uint32_t reverseflag : 1;
-			uint32_t tex_dis : 1;
-			uint32_t horizontal_res_2 : 1;
-			uint32_t horizontal_res_1 : 2;
-			uint32_t vertical_res : 1;
-			uint32_t video_mode : 1;
-			uint32_t display_area_color_depth : 1;
-			uint32_t vertical_interlace : 1;
-			uint32_t display_enable : 1;
+			uint32_t texDis : 1;
+			uint32_t horizontalRes2 : 1;
+			uint32_t horizontalRes1 : 2;
+			uint32_t verticalRes : 1;
+			uint32_t videoMode : 1;
+			uint32_t displayAreaColorDepth : 1;
+			uint32_t verticalInterlace : 1;
+			uint32_t displayEnable : 1;
 			uint32_t irq1 : 1;
-			uint32_t data_request : 1;
-			uint32_t ready_cmd : 1;
-			uint32_t ready_vram_cpu : 1;
-			uint32_t ready_dma : 1;
-			uint32_t dma_dir : 2;
-			uint32_t drawing_even_odd_lines : 1;
+			uint32_t dataRequest : 1;
+			uint32_t readyCommand : 1;
+			uint32_t readyVramCpu : 1;
+			uint32_t readyDma : 1;
+			uint32_t dmaDir : 2;
+			uint32_t drawingEvenOddLines : 1;
 		}elem;
 	}gpuStat;
 
@@ -168,8 +168,8 @@ public:
 		uint8_t y;
 	}texWinOffset_t, texWinMask_t, Coord;
 
-	texWinMask_t tex_win_mask;
-	texWinOffset_t tex_win_offset;
+	texWinMask_t texWinMask;
+	texWinOffset_t texWinOffset;
 	Coord display_start;
 
 	typedef struct {
@@ -374,9 +374,9 @@ public:
 
 	bool b_gp1Result = false;
 	uint32_t gp1Result = 0;
-	uint32_t gp1_top_left = 0;
-	uint32_t gp1_bottom_right = 0;
-	uint32_t gp1_draw_offset = 0;
+	uint32_t gp1TopLeft = 0;
+	uint32_t gp1BottomRight = 0;
+	uint32_t gp1DrawOffset = 0;
 
 	//debug
 	debugUtilities* p_debugger;

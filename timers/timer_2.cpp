@@ -3,36 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void Timer2::clock(uint8_t source) {
-	//if (mode == 0) {
-	//	if (currentValue.data == 0xffff) {
-	//		counterMode.elem.reachedTarget = 1;//
-	//		currentValue.data = 0;
-	//	}
-	//	else
-	//		currentValue.data++;
-	//}
-	//else if (mode == 0x248) {
-	//	if (currentValue.data == targetValue.elem.counterTargetValue) {
-	//		counterMode.elem.reachedTarget = 1;//
-	//		currentValue.data = 0;
-	//	}
-	//	if (clocks == 8) {
-	//		currentValue.data += 1;
-	//		clocks = 0;
-	//	}
-	//	clocks++;
-	//}
-	//else if (mode == 0x258) {
-	//	if (currentValue.data == targetValue.elem.counterTargetValue) {
-	//		counterMode.elem.reachedTarget = 1;
-	//		currentValue.data = 0;
-	//		//Timer2 interrupt is naturally edge trigered
-	//		pBus->pCp0->interruptHandler(_TIMER_2);
-	//		counterMode.elem.irq = 0;
-	//	}
-	//}
-
+void timer2::clock(uint8_t source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {
@@ -60,7 +31,7 @@ void Timer2::clock(uint8_t source) {
 			(currentValue.elem.currentCounterValue == 32))
 			counterMode.elem.irq = 1;
 
-		if (counterMode.elem.clockSource == 3) {
+		if (counterMode.elem.clockSource & 0x2) {
 			if (clocks == 8) {
 				clocks = 0;
 				currentValue.elem.currentCounterValue++;
@@ -74,7 +45,7 @@ void Timer2::clock(uint8_t source) {
 	}
 }
 
-void Timer2::ReadTimer32(const uint32_t& addr, uint16_t* data) {
+void timer2::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	switch (addr << 28 >> 28)
 	{
 	case 0:
@@ -91,7 +62,7 @@ void Timer2::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	}
 }
 
-void Timer2::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
+void timer2::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		currentValue.data = data;

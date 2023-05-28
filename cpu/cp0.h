@@ -32,6 +32,8 @@ public:
 
 	void checkForInterrupts();
 
+	bool isolateDataCache = false;
+
 	//debug
 	debugUtilities* pDebugger;
 };

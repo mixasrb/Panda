@@ -11,7 +11,8 @@ extern bool g_emulationPaused;
 (addr >= 0x9f000000 && addr <= 0x9f800000) || \
 (addr >= 0xbf900000 && addr <= 0xbf800000))
 
-#define SCRATCHPAD (addr >= 0x1f800000 && addr < 0x1f800400)
+#define SCRATCHPAD (addr >= 0x1f800000 && addr < 0x1f800400) || \
+(addr >= 0x9f800000 && addr < 0x9f800400)
 
 #define MEMORY_CONTROL_1 (addr >= 0x1f801000 && addr <= 0x1f801020)
 
@@ -44,23 +45,22 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 	clocks = 6;
 
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			//if ((addr & 0x1fffffff) > 0x200000) {
-			//	//throw std::runtime_error("unhandled ram addr read32\n");
-			//	std::cout << "[BUS] unhandled ram addr read32 0x" << std::hex << addr << std::endl;
-			//	//isEmulationPaused = true;
-			//}
-			//else {
-			data = (uint32_t)ram[addr & 0x1fffff];
-			data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
-			data |= (uint32_t)ram[(addr & 0x1fffff) + 2] << 16;
-			data |= (uint32_t)ram[(addr & 0x1fffff) + 3] << 24;
-			//}
-			clocks = 5;
+		if (pCpu->cp0.isolateDataCache) {
+			data = (uint32_t)scratchpad[addr & 0x3ff];
+			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
+			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 2] << 16;
+			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 3] << 24;
+			clocks = 1;
+			return;
 		}
-		else
-			std::cout << "[BUS] unhandled cache read32 0x" << std::hex << addr << std::endl;
+
+		//if ((addr & 0x1fffffff) > 0x200000)
+
+		data = (uint32_t)ram[addr & 0x1fffff];
+		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
+		data |= (uint32_t)ram[(addr & 0x1fffff) + 2] << 16;
+		data |= (uint32_t)ram[(addr & 0x1fffff) + 3] << 24;
+		clocks = 5;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
@@ -134,7 +134,7 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		clocks = 3;
 	}
 	else if (CD_DRIVE) {
-		//std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read32 0x" << std::hex << addr << "\n";
+		std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read32 0x" << std::hex << addr << "\n";
 		g_emulationPaused = true;
 	}
 	else
@@ -147,19 +147,19 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			/*if ((addr & 0x1fffffff) > 0x200000)
-				std::cout << "[BUS] unhandled ram addr write32 0x" << std::hex << addr << " data 0x" << data << std::endl;
-			else {*/
-			ram[addr & 0x1fffff] = (uint8_t)data;
-			ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
-			ram[(addr & 0x1fffff) + 2] = (uint8_t)(data >> 16);
-			ram[(addr & 0x1fffff) + 3] = (uint8_t)(data >> 24);
-			//}
+		if (pCpu->cp0.isolateDataCache) {
+			scratchpad[addr & 0x3ff] = (uint8_t)data;
+			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
+			scratchpad[(addr & 0x3ff) + 2] = (uint8_t)(data >> 16);
+			scratchpad[(addr & 0x3ff) + 3] = (uint8_t)(data >> 24);
+			return;
 		}
-		else if (data)
-			std::cout << "[BUS] unhandled cache write32 0x" << std::hex << addr << " data 0x" << data << std::endl;
+		//if ((addr & 0x1fffffff) > 0x200000)
+
+		ram[addr & 0x1fffff] = (uint8_t)data;
+		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
+		ram[(addr & 0x1fffff) + 2] = (uint8_t)(data >> 16);
+		ram[(addr & 0x1fffff) + 3] = (uint8_t)(data >> 24);
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
@@ -198,7 +198,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 			break;
 		}
 	}
-	else if (addr == 0xfffe0130) {
+	else if (CACHE_CONTROL) {
 		cacheControl = data;
 		std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	}
@@ -220,18 +220,18 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 	data = 0;
 	clocks = 6;
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			/*if ((addr & 0x1fffffff) > 0x200000)
-				std::cout << "[BUS] unhandled ram addr read16 0x" << std::hex << addr << std::endl;
-			else {*/
-			data = (uint32_t)ram[addr & 0x1fffff];
-			data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
-			//}
-			clocks = 5;
+		if (pCpu->cp0.isolateDataCache) {
+			data = (uint32_t)scratchpad[addr & 0x3ff];
+			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
+			clocks = 1;
+			return;
 		}
-		else
-			std::cout << "[BUS] unhandled cache read16 0x" << std::hex << addr << std::endl;
+
+		//if ((addr & 0x1fffffff) > 0x200000)
+
+		data = (uint32_t)ram[addr & 0x1fffff];
+		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
+		clocks = 5;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
@@ -314,17 +314,16 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 		isEmulationPaused = true;*/
 
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			/*if ((addr & 0x1fffffff) > 0x200000)
-				std::cout << "[BUS] unhandled ram addr write16 0x" << std::hex << addr << " data 0x" << data << std::endl;
-			else {*/
-			ram[addr & 0x1fffff] = (uint8_t)data;
-			ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
-			//}
+		if (pCpu->cp0.isolateDataCache) {
+			scratchpad[addr & 0x3ff] = (uint8_t)data;
+			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
+			return;
 		}
-		else if (data)
-			std::cout << "[BUS] unhandled cache write16 0x" << std::hex << addr << " data 0x" << data << std::endl;//???
+
+		//if ((addr & 0x1fffffff) > 0x200000)
+
+		ram[addr & 0x1fffff] = (uint8_t)data;
+		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
@@ -392,18 +391,15 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 	clocks = 6;
 
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			/*if ((addr & 0x1fffffff) > 0x200000) {
-				std::cout << "unhandled ram addr read8 0x" << std::hex << addr << std::endl;
-				isEmulationPaused = true;
-			}*/
-			//else
-			data = ram[addr & 0x1fffff];
-			clocks = 5;
+		if (pCpu->cp0.isolateDataCache) {
+			data = scratchpad[addr & 0x3ff];
+			clocks = 1;
+			return;
 		}
-		else
-			std::cout << "[BUS] unhandled cache read8 0x" << std::hex << addr << std::endl;
+		//if ((addr & 0x1fffffff) > 0x200000) {
+
+		data = ram[addr & 0x1fffff];
+		clocks = 5;
 	}
 	//Expansion1
 	else if (EXPANSION1) {
@@ -412,7 +408,7 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
-		data = (uint32_t)scratchpad[addr & 0x3ff];
+		data = scratchpad[addr & 0x3ff];
 		clocks = 1;
 	}
 	//BIOS ROM
@@ -442,15 +438,13 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 
 void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (RAM) {
-		const bool accessICache = ((pCpu->cp0.get(_ISC) & 0x10000) != 0x10000) && (cacheControl != 0x800);
-		if (accessICache) {
-			/*if ((addr & 0x1fffffff) > 0x200000)
-				std::cout << "unhandled ram addr write8 0x" << std::hex << addr << " data 0x" << data << std::endl;*/
-				//else
-			ram[addr & 0x1fffff] = data;
+		if (pCpu->cp0.isolateDataCache) {
+			scratchpad[addr & 0x3ff] = data;
+			return;
 		}
-		else if (data)
-			std::cout << "[BUS] unhandled cache write8 0x" << std::hex << addr << " data0x" << (uint16_t)data << std::endl;
+		//if ((addr & 0x1fffffff) > 0x200000)
+
+		ram[addr & 0x1fffff] = data;
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
