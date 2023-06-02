@@ -3,13 +3,14 @@
 #include "../bus/bus_interface.h"
 
 extern bool g_emulationPaused;
+extern bool g_buttonPressed;
 
 joyMemCard::joyMemCard() {
 	memCard1.assign(NUMBER_OF_BLOCKS * NUMBER_OF_FRAMES_PRE_BLOCK * SIZE_OF_FRAME, 0);
 	memCard1[0x00] = 'M';
 	memCard1[0x01] = 'C';
 	memCard1[0x7f] = 0x0e;
-	joy_rx_data.elem.first_entry = 0xff;
+	joyRxData.elem.firstEntry = 0xff;
 }
 
 void joyMemCard::clock() {
@@ -21,7 +22,6 @@ void joyMemCard::clock() {
 		if (ackClocks == 0)
 			joyStat.elem.ackInputLevel = HIGH;
 	}
-
 
 	voltageLevel_t oldAckInputLevel = joyStat.elem.ackInputLevel;
 
@@ -45,7 +45,8 @@ void joyMemCard::clock() {
 	if ((oldAckInputLevel == HIGH) && (joyStat.elem.ackInputLevel == LOW)) {
 		if (joyCtrl.elem.ack_interrupt_enable) {
 			joyStat.elem.irq = 1;
-			//std::cout << "[JOY/MEMCARD] IRQ7" << std::endl;
+			if (g_buttonPressed)
+				std::cout << "[JOY/MEMCARD] IRQ7" << std::endl;
 			pBus->pCpu->cp0.interruptHandler(_IRQ_7);
 		}
 	}
@@ -54,9 +55,10 @@ void joyMemCard::clock() {
 void joyMemCard::cpuRead8(const uint32_t& addr, uint8_t& data) {
 	switch (addr) {
 	case 0x1f801040:
-		data = joy_rx_data.elem.first_entry;
+		data = joyRxData.elem.firstEntry;
 		joyStat.elem.rx_fifo_not_empty = 0;
-		//std::cout << "[JOY/MEMCARD] received data < 0x" << (uint16_t)data << std::endl;
+		if (g_buttonPressed)
+			std::cout << "[JOY/MEMCARD] received data < 0x" << (uint16_t)data << std::endl;
 		break;
 	default:
 		std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled read8 addr 0x" << addr << std::endl;
@@ -68,21 +70,22 @@ void joyMemCard::cpuRead8(const uint32_t& addr, uint8_t& data) {
 void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 	switch (addr) {
 	case 0x1f801040:
-		joy_tx_data.elem.data_to_be_sent = data;
+		joyTxData.elem.dataToBeSent = data;
 
 		bSendingData = true;
-		sendingClocks = 0x880/2;
-		receivingClocks = 0x880/2;
+		sendingClocks = 0x880 / 2;
+		receivingClocks = 0x880 / 2;
 		ackClocks = 0x20;
 
-		//std::cout << "[JOY/MEMCARD] sent tx data >>>>>> 0x" << (uint16_t)data << std::endl;
+		if (g_buttonPressed)
+			std::cout << "[JOY/MEMCARD] sent tx data >>>>>> 0x" << (uint16_t)data << std::endl;
 
 		if (sequvenceIndex == 0) {
-			joy_rx_data.elem.first_entry = 0xff;
+			joyRxData.elem.firstEntry = 0xff;
 			sequvenceIndex++;
-			if (joy_tx_data.elem.data_to_be_sent == 0x1)
+			if (joyTxData.elem.dataToBeSent == 0x1)
 				device = PAD;
-			else if (joy_tx_data.elem.data_to_be_sent == 0x81) {
+			else if (joyTxData.elem.dataToBeSent == 0x81) {
 				bSendingData = false;
 				device = MEM_CARD;
 				sequvenceIndex = 0;
@@ -94,86 +97,428 @@ void joyMemCard::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 			break;
 		}
 		else if (device == PAD) {
-			if (sequvenceIndex == 1) {
-				joy_rx_data.elem.first_entry = 0x41;
-				sequvenceIndex++;
-			}
-			else if (sequvenceIndex == 2) {
-				joy_rx_data.elem.first_entry = 0x5a;
-				sequvenceIndex++;
-			}
-			else if (sequvenceIndex == 3) {
-				if (joy.slotNumber == JOY1) {
-					joy_rx_data.elem.first_entry = swloPad1;
-					swloPad1 = 0xff;
+			if (sequvenceIndex == 1)
+				mode = (mode_t)(uint8_t)joyTxData.elem.dataToBeSent;
+
+			if (!bConfigurationMode) {
+				if (mode == readButtons) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0x41;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swloPad1;
+						else
+							joyRxData.elem.firstEntry = swloPad2;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swhiPad1;
+						else
+							joyRxData.elem.firstEntry = swhiPad2;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == enterExitConfig) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0x41;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						if (joyTxData.elem.dataToBeSent == 0x01)
+							bChangeMode = true;
+
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swloPad1;
+						else
+							joyRxData.elem.firstEntry = swloPad2;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swhiPad1;
+						else
+							joyRxData.elem.firstEntry = swhiPad2;
+						sequvenceIndex = 0;
+
+						if (bChangeMode) {
+							bChangeMode = false;
+							bConfigurationMode = !bConfigurationMode;
+						}
+					}
 				}
 				else {
-					joy_rx_data.elem.first_entry = swloPad2;
-					swloPad2 = 0xff;
+					std::cout << "[JOY/MEMCARD] EMULATION PAUSED! configuration mode "
+						<< mode << " " << bConfigurationMode << std::endl;
+					g_emulationPaused = true;
 				}
-				sequvenceIndex++;
+				return;
 			}
-			else if (sequvenceIndex == 4) {
-				if (joy.slotNumber == JOY1) {
-					joy_rx_data.elem.first_entry = swhiPad1;
-					swhiPad1 = 0xff;
+			else if (bConfigurationMode) {
+				if (mode == readButtons) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0x41;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swloPad1;
+						else
+							joyRxData.elem.firstEntry = swloPad2;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						if (joy.slotNumber == JOY1)
+							joyRxData.elem.firstEntry = swhiPad1;
+						else
+							joyRxData.elem.firstEntry = swhiPad2;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == enterExitConfig) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						if (joyTxData.elem.dataToBeSent == 0x00)
+							bChangeMode = true;
+
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+
+						if (bChangeMode) {
+							bChangeMode = false;
+							bConfigurationMode = !bConfigurationMode;
+						}
+					}
+				}
+				else if (mode == setLedState) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						led = joyTxData.elem.dataToBeSent;
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						key = joyTxData.elem.dataToBeSent;
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						//Err
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == getLedState) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						joyRxData.elem.firstEntry = 0x01;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = 0x02;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = led;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = 0x02;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = 0x01;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == getVariableResponseA) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						joyRxData.elem.firstEntry = 0x00;
+						if (joyTxData.elem.dataToBeSent == 0x00) {
+							cc = 0x01; dd = 0x02; ee = 0x00; ff = 0x04;
+						}
+						else if (joyTxData.elem.dataToBeSent == 0x01) {
+							cc = 0x01; dd = 0x01; ee = 0x01; ff = 0x14;
+						}
+						else {
+							cc = 0x00; dd = 0x00; ee = 0x00; ff = 0x00;
+						}
+
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = cc;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = dd;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = ee;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = ff;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == getWhateverValues) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = 0x02;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = 0x01;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == getVariableResponseB) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						joyRxData.elem.firstEntry = 0x00;
+						if (joyTxData.elem.dataToBeSent == 0x00)
+							dd = 0x04;
+						else if (joyTxData.elem.dataToBeSent == 0x01)
+							dd = 0x07;
+						else
+							dd = 0x00;
+
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = dd;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+					}
+				}
+				else if (mode == getSetRumbleProtocol) {
+					if (sequvenceIndex == 1) {
+						joyRxData.elem.firstEntry = 0xf3;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 2) {
+						joyRxData.elem.firstEntry = 0x5a;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 3) {
+						joyRxData.elem.firstEntry = aa;
+						aa = joyTxData.elem.dataToBeSent;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 4) {
+						joyRxData.elem.firstEntry = bb;
+						bb = joyTxData.elem.dataToBeSent;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 5) {
+						joyRxData.elem.firstEntry = cc;
+						cc = joyTxData.elem.dataToBeSent;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 6) {
+						joyRxData.elem.firstEntry = dd;
+						dd = joyTxData.elem.dataToBeSent;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 7) {
+						joyRxData.elem.firstEntry = ee;
+						ee = joyTxData.elem.dataToBeSent;
+						sequvenceIndex++;
+					}
+					else if (sequvenceIndex == 8) {
+						joyRxData.elem.firstEntry = ff;
+						ff = joyTxData.elem.dataToBeSent;
+						joyRxData.elem.firstEntry = 0x00;
+						sequvenceIndex = 0;
+					}
 				}
 				else {
-					joy_rx_data.elem.first_entry = swhiPad2;
-					swhiPad2 = 0xff;
+					std::cout << "[JOY/MEMCARD] EMULATION PAUSED! configuration mode "
+						<< mode << " " << bConfigurationMode << std::endl;
+					g_emulationPaused = true;
 				}
-				sequvenceIndex = 0;
 			}
+
 		}
 		else if (device == MEM_CARD) {
 			if (sequvenceIndex == 1) {
-				joy_rx_data.elem.first_entry = 0x08;
+				joyRxData.elem.firstEntry = 0x08;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 2) {
-				joy_rx_data.elem.first_entry = 0x5a;
+				joyRxData.elem.firstEntry = 0x5a;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 3) {
-				joy_rx_data.elem.first_entry = 0x5d;
+				joyRxData.elem.firstEntry = 0x5d;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 4) {
-				joy_rx_data.elem.first_entry = 0x00;
-				msb = joy_tx_data.elem.data_to_be_sent;
+				joyRxData.elem.firstEntry = 0x00;
+				msb = joyTxData.elem.dataToBeSent;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 5) {
-				joy_rx_data.elem.first_entry = 0x00;
-				lsb = joy_tx_data.elem.data_to_be_sent;
+				joyRxData.elem.firstEntry = 0x00;
+				lsb = joyTxData.elem.dataToBeSent;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 6) {
-				joy_rx_data.elem.first_entry = 0x5c;
+				joyRxData.elem.firstEntry = 0x5c;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 7) {
-				joy_rx_data.elem.first_entry = 0x5d;
+				joyRxData.elem.firstEntry = 0x5d;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 8) {
-				joy_rx_data.elem.first_entry = msb;
+				joyRxData.elem.firstEntry = msb;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 9) {
-				joy_rx_data.elem.first_entry = lsb;
+				joyRxData.elem.firstEntry = lsb;
 				sequvenceIndex++;
 			}
 			else if ((sequvenceIndex > 9) && (sequvenceIndex <= 9 + 128)) {
-				joy_rx_data.elem.first_entry = memCard1[sequvenceIndex - 10];
+				joyRxData.elem.firstEntry = memCard1[sequvenceIndex - 10];
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 9 + 128 + 1) {
-				joy_rx_data.elem.first_entry = msb ^ lsb ^ 0x0e;
+				joyRxData.elem.firstEntry = msb ^ lsb ^ 0x0e;
 				sequvenceIndex++;
 			}
 			else if (sequvenceIndex == 9 + 128 + 2) {
-				joy_rx_data.elem.first_entry = 0x47;
+				joyRxData.elem.firstEntry = 0x47;
 				sequvenceIndex = 0;
 			}
 		}
@@ -293,8 +638,8 @@ void joyMemCard::cpuWrite32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void joyMemCard::reset() {
-	joy_tx_data.data = 0;
-	joy_rx_data.data = 0xff;
+	joyTxData.data = 0;
+	joyRxData.data = 0xff;
 	joyStat.data = 0;
 	joyMode.data = 0;
 	joyCtrl.data = 0;

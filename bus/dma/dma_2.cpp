@@ -2,7 +2,6 @@
 #include "../bus_interface.h"
 #include "dma_controller.h"
 
-extern bool isCpuStopped;
 extern bool g_emulationPaused;
 
 void dma2::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
@@ -23,6 +22,9 @@ void dma2::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
+		std::cout << "~[DMA2] (GPU) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		if (data == 0)
+			g_emulationPaused = true;
 		break;
 	case 4:
 		blockControl.data = data;
@@ -40,7 +42,8 @@ void dma2::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 		}
 
 		if (channelControl.reg.startBusy) {
-			isCpuStopped = true;
+			std::cout << "~[DMA2] (GPU) started" << std::endl;
+			pDMAController->isCpuStopped = true;
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
@@ -91,7 +94,8 @@ void dma2::triggerIRQ() {
 
 void dma2::endDMATransfer() {
 	channelControl.reg.startBusy = 0;
-	isCpuStopped = false;
+	pDMAController->isCpuStopped = false;
+	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
 
 	triggerIRQ();
 }

@@ -28,7 +28,6 @@ public:
 	void videoClock();
 	uint32_t cpuFrameClocks = 0;
 	uint32_t cpuScanlineClocks = 0;
-	uint32_t scanline = 0;
 
 	void readGpu32(const uint32_t& addr, uint32_t& data);
 	void writeGpu32(const uint32_t& addr, const uint32_t& data);
@@ -192,8 +191,6 @@ public:
 	uint16_t y1;
 	uint16_t y2;
 
-	std::vector<uint32_t> fifo;
-
 	union psxColor16_t {
 		psxColor16_t() {
 			data = 0;
@@ -343,7 +340,7 @@ public:
 	uint32_t source_coord;
 	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
 	void copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
-	bool b_trans_command = false;
+	bool bTransferCommand = false;
 
 	uint8_t* vram = new uint8_t[size_x * size_y];
 
@@ -371,12 +368,13 @@ public:
 	olc::Sprite vramView = olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
-
-	bool b_gp1Result = false;
 	uint32_t gp1Result = 0;
 	uint32_t gp1TopLeft = 0;
 	uint32_t gp1BottomRight = 0;
 	uint32_t gp1DrawOffset = 0;
+
+	uint8_t fifoCount = 0;
+	uint32_t fifoClocks = 0;
 
 	//debug
 	debugUtilities* p_debugger;

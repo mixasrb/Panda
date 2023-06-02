@@ -28,20 +28,20 @@ public:
 	union JoyTxData {
 		uint32_t data;
 		struct {
-			uint32_t data_to_be_sent : 8;
+			uint32_t dataToBeSent : 8;
 			uint32_t : 24;
 		}elem;
-	}joy_tx_data;
+	}joyTxData;
 
 	union JoyRxData {
 		uint32_t data;
 		struct {
-			uint32_t first_entry : 8;
+			uint32_t firstEntry : 8;
 			uint32_t second_entry : 8;
 			uint32_t third_entry : 8;
 			uint32_t fourth_entry : 8;
 		}elem;
-	}joy_rx_data;
+	}joyRxData;
 
 
 	enum voltageLevel_t : uint32_t {
@@ -123,6 +123,35 @@ public:
 		PAD = 0,
 		MEM_CARD = 1
 	}device;
+
+	enum mode_t : uint8_t{
+		unused1 = 0x40,
+		unused2 = 0x41,
+		readButtons = 0x42,
+		enterExitConfig = 0x43,
+		setLedState = 0x44,
+		getLedState = 0x45,
+		getVariableResponseA = 0x46,
+		getWhateverValues = 0x47,
+		unknown = 0x48,
+		unused3 = 0x49,
+		unused4 = 0x4a,
+		unused5 = 0x4b,
+		getVariableResponseB = 0x4c,
+		getSetRumbleProtocol = 0x4d,
+		unused6 = 0x4e,
+		unused7 = 0x4f,
+	}mode;
+	bool bConfigurationMode = false;
+	bool bChangeMode = false;
+	uint8_t led = 0x00;
+	uint8_t key;
+	uint8_t aa = 0x00;
+	uint8_t bb = 0x00;
+	uint8_t cc;
+	uint8_t dd;
+	uint8_t ee;
+	uint8_t ff;
 
 	uint8_t sequvenceIndex = 0;
 

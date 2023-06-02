@@ -2,7 +2,6 @@
 #include "../bus_interface.h"
 #include "dma_controller.h"
 
-extern bool isCpuStopped;
 extern bool g_emulationPaused;
 
 void dma0::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
@@ -41,7 +40,7 @@ void dma0::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 		}
 
 		if (channelControl.reg.startBusy) {
-			isCpuStopped = true;
+			pDMAController->isCpuStopped = true;
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
@@ -92,7 +91,7 @@ void dma0::triggerIRQ() {
 
 void dma0::endDMATransfer() {
 	channelControl.reg.startBusy = 0;
-	isCpuStopped = false;
+	pDMAController->isCpuStopped = false;
 
 	triggerIRQ();
 }

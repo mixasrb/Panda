@@ -267,9 +267,9 @@ cxd85xxx::cxd85xxx() {
 }
 
 void cxd85xxx::videoClock() {
-	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-	const uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCK / 60;
-	const uint32_t CPU_CLOCKS_PER_SCANLINE = 2172;
+	constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
+	constexpr uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
+	constexpr uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / 263;
 
 	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME) {
 		cpuFrameClocks = 0;
@@ -280,11 +280,27 @@ void cxd85xxx::videoClock() {
 		if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
 			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
-		scanline = 0;
-
 		//Vblank synchronization timer 1
 		pBus->timer1.clock(_VBLANK_CLOCK);
 
+		//HAHHAHA BYPASS SPU_DMA
+		/*if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4 && pBus->dma.interruptRegister.reg.IRQ_master_enable) {
+			pBus->dma.interruptRegister.reg.IRQ_master_flag = 1;
+			pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
+			pBus->pCpu->cp0.interruptHandler(_IRQ_DMA);
+		}*/
+	}
+
+	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
+		cpuScanlineClocks = 0;
+		if (!gpuStat.elem.verticalRes)
+			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+
+		//Hblank clocking timer 1
+		pBus->timer1.clock(_HBLANK_CLOCK);
+	}
+
+	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME / 2) {
 		//HAHHAHA BYPASS SPU_DMA
 		if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4 && pBus->dma.interruptRegister.reg.IRQ_master_enable) {
 			pBus->dma.interruptRegister.reg.IRQ_master_flag = 1;
@@ -293,56 +309,54 @@ void cxd85xxx::videoClock() {
 		}
 	}
 
-	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
-		cpuScanlineClocks = 0;
-		if (!gpuStat.elem.verticalRes) {
-			scanline = 0;
-			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
-		}
-		scanline++;
-
-		//Hblank clocking timer 1
-		pBus->timer1.clock(_HBLANK_CLOCK);
-
-	}
-
 	cpuFrameClocks++;
 	cpuScanlineClocks++;
+
+	/*if (fifoCount >= 16) {
+		fifoClocks++;
+		pBus->dma.dma2.channelControl.reg.startBusy = 0;
+		pBus->dma.isCpuStopped = false;
+		if (fifoClocks >= 0x8) {
+			fifoClocks = 0;
+			fifoCount = 0;
+			pBus->dma.dma2.channelControl.reg.startBusy = 1;
+			pBus->dma.isCpuStopped = true;
+		}
+	}*/
 }
 
 void cxd85xxx::readGpu32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
-	switch (addr) {
-	case 0x1f801810:
-		if (b_trans_command) {
+	if (addr == 0x1f801810) {
+		if (bTransferCommand) {
 			data = collectList[0];
 			collectList.erase(collectList.begin());
 			if (collectList.empty())
-				b_trans_command = false;
+				bTransferCommand = false;
+			return;
 		}
-		if (b_gp1Result) {
-			b_gp1Result = false;
-			data = gp1Result;
-		}
-		break;
-	case 0x1f801814:
+
+		data = gp1Result;
+		return;
+	}
+
+	if (addr == 0x1f801814) {
 		data = gpuStat.data;
-		break;
+		return;
 	}
 }
 
 void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
-	switch (addr) {
-	case 0x1f801810:
-		b_trans_command = false;
-		fifo.push_back(data);
+	if (addr == 0x1f801810) {
+		/*if (pBus->dma.dma2.channelControl.reg.startBusy)
+			fifoCount++;*/
 
 		if (collect) {
-			collectList.push_back(fifo.back());
+			collectList.push_back(data);
 			collect--;
 		}
 		else {
-			command = fifo.back();
+			command = data;
 			collectList.clear();//!!!!
 			if (!collectList.empty()) {
 				//std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << collectList.size() << std::endl;
@@ -358,15 +372,17 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			//std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << command << " " << gp0Lookup[command >> 24].name << std::endl;
 			(this->*gp0Lookup[command >> 24].command)(command);
 		}
+		return;
+	}
 
-		fifo.pop_back();
-		break;
-
-	case 0x1f801814:
+	if (addr == 0x1f801814) {
 		gp1 = data;
 		switch (gp1 >> 24) {
 		case 0x0:
 			gpuStat.data = 0x1c802000;
+			break;
+		case 0x1:
+			std::cout << "~[GPU] unhandled properly GPU1 command: Reset Command Buffer" << std::endl;
 			break;
 		case 0x2:
 			gpuStat.elem.irq1 = 0;
@@ -405,21 +421,15 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			switch (gp1 & 0x7) {
 			case 3:
 				gp1Result = gp1TopLeft;
-				b_gp1Result = true;
 				break;
 			case 4:
 				gp1Result = gp1BottomRight;
-				b_gp1Result = true;
 				break;
 			case 5:
 				gp1Result = gp1DrawOffset;
-				b_gp1Result = true;
 				break;
 			case 7:
-				gp1Result = 0xff;
-				std::cout << "~[GPU] unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
-				//g_emulationPaused = true;
-				b_gp1Result = true;
+				std::cout << "~[GPU] Old 160pin GPU" << std::endl;
 				break;
 			default:
 				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
@@ -428,11 +438,11 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			}
 			break;
 		default:
-			//std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << data << std::endl;
-			//isEmulationPaused = true;
+			std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << data << std::endl;
+			g_emulationPaused = true;
 			break;
 		}
-		break;
+		return;
 	}
 }
 
@@ -569,8 +579,7 @@ void cxd85xxx::rasterization(param_t* pParam, const rasterizationMode_t& colorMo
 									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
 									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
 									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
-									//writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
-									writeVram(calculatedPoint, 0x2334334);
+									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
 								}
 					};
 
@@ -601,8 +610,7 @@ void cxd85xxx::rasterization(param_t* pParam, const rasterizationMode_t& colorMo
 									calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
 									calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
 									calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
-									//writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
-									writeVram(calculatedPoint, 0x2334334);
+									writeVram(calculatedPoint, format24to16Color(calculatedColor.data));
 								}
 					};
 
@@ -846,7 +854,7 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 
 	if (!buffer.empty()) {
 		std::cout << "[GPU] EMULATION PAUSED! 0xa0... command buffer not empty 0x" << std::hex << buffer.size() << std::endl;
-		g_emulationPaused = true;
+		//g_emulationPaused = true;
 	}
 }
 
@@ -992,7 +1000,7 @@ void cxd85xxx::copyRectVramCpu(const uint32_t& commandColor) {
 	source_coord = collectList.back();
 	collectList.pop_back();
 	copyRectVramCpu(source_coord, width_height);
-	b_trans_command = true;
+	bTransferCommand = true;
 }
 
 void cxd85xxx::interruptRequest(const uint32_t& commandColor) {
@@ -1449,7 +1457,9 @@ void cxd85xxx::monoRectVarSemiTransp(const uint32_t& commandColor) {
 	param.vert3 = param.vert1 + vertex_t(0, (size_x_y >> 16));
 	param.vert2 = param.vert1 + vertex_t((size_x_y << 16 >> 16), 0);
 	param.command_color1 = command;
-	drawMonochromeRect(param);
+	//drawMonochromeRect(param);
+	/*std::cout << "~[GPU] unhandled GPU0 command 0x" << commandColor << " " <<
+		gp0Lookup[(commandColor >> 24)].name << "\n";*/
 }
 
 void cxd85xxx::monoRect1x1Opaq(const uint32_t& commandColor) {

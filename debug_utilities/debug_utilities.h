@@ -9,4 +9,3 @@ public:
 	void dump(const char* path, void* p_memory, const size_t size);
 	void log(const std::string& s);
 };
-

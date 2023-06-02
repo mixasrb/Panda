@@ -24,17 +24,30 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_
 
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash.bin");
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot (Europe) (EDC).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bam4.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harmful Park (English v1.1).bin");//Stop
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rapid Reload (Europe).bin");// setfilter //GetlocP
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Adventures of Lomax, The (USA)/Adventures of Lomax, The (USA) (Track 01).bin"); //GetTN , addr 0x1f8005e0 ??
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Chippoke Ralph no Daibouken - The Adventure of Little Ralph (Japan).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec??
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec?
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash bash.bin"); //GetTN ?!
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Slug X.bin"); // DMA 2 linked-list loop 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 3/Street Fighter Alpha 3 (Track 1).bin"); //GetTN-, invalid setlock asect value 0x8c
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mega man x4.bin"); // setfilter // getlocp
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/CT Special Forces - Back to Hell (Europe) (En,Fr,De,Es,It,Nl).bin");// setfilter
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot (Europe) (EDC).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tekken3/Tekken 3 (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tekken3/Tekken 3 (Track 1).bin"); //mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin");//mdec
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");//mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin"); //mdec
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin");//mdec??
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");//GetTN, Mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
@@ -42,6 +55,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin");
 //bypass mdec amm 1 ass 2 assec 15 => amm 2 ass 44 asect 15 ???
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin");
+
 
 class Demo : public olc::PixelGameEngine {
 public:
@@ -92,6 +106,9 @@ public:
 			};
 
 			if (!g_emulationPaused) {
+				PSX.joyMemCard.swloPad1 = 0xff;
+				PSX.joyMemCard.swhiPad1 = 0xff;
+
 				if (GetKey(olc::Key::F).bHeld)
 					PSX.joyMemCard.swloPad1 ^= PSX_SELECT;
 				if (GetKey(olc::Key::H).bHeld)
@@ -114,6 +131,9 @@ public:
 					PSX.joyMemCard.swhiPad1 ^= PSX_CROSS;
 				if (GetKey(olc::Key::J).bHeld)
 					PSX.joyMemCard.swhiPad1 ^= PSX_SQUARE;
+
+				PSX.joyMemCard.swloPad2 = 0xff;
+				PSX.joyMemCard.swhiPad2 = 0xff;
 
 				if (GetKey(olc::Key::NP1).bHeld)
 					PSX.joyMemCard.swloPad2 ^= PSX_SELECT;
@@ -148,23 +168,29 @@ public:
 			if (!g_emulationPaused)
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
 					PSX.clock();
-
 					if (g_emulationPaused) break;
 				}
 
 
 			//debugger
 
-			if (GetKey(olc::Key::Q).bPressed) {
+			if (GetKey(olc::Key::Q).bHeld) {
 				//HAHHAHA BYPASS
-				if (PSX.bus.dma.interruptRegister.reg.IRQ_enable_dma1 && PSX.bus.dma.interruptRegister.reg.IRQ_master_enable) {
+				/*if (PSX.bus.dma.interruptRegister.reg.IRQ_enable_dma1 && PSX.bus.dma.interruptRegister.reg.IRQ_master_enable) {
 					PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
 					PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
 					PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);
-				}
+				}*/
 				/*PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
 				PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
 				PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);*/
+
+				//Metal Slug DMA 2 linked list loop bypass
+				//PSX.bus.dma.dma2.channelControl.reg.startBusy = ~PSX.bus.dma.dma2.channelControl.reg.startBusy;
+				//PSX.bus.dma.isCpuStopped = !PSX.bus.dma.isCpuStopped;
+				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
+					PSX.cpuSOC.clock();
+				}
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
@@ -258,10 +284,13 @@ public:
 				DrawSprite(0, 0, PSX.gpu.getVramSprite());
 
 			if (g_emulationPaused)
-				DrawString(800, 500 + 16, "EMULATION PAUSED!", olc::RED);
+				DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
 
 			if (g_GteInstructionsLogged)
-				DrawString(600, 500 + 16, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+				DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+			std::stringstream ss;
+			ss << "cpu clocks: " << PSX.gpu.cpuFrameClocks;
+			DrawString(0, 512 + 4, ss.str(), olc::WHITE);
 
 		}
 		catch (const std::exception& e) {
@@ -275,7 +304,7 @@ public:
 
 int main() {
 	Demo app;
-	if (app.Construct(1024, 512 + 160, 1, 1, false, true))
+	if (app.Construct(1024, 512 + 160, 1, 1, false, false))
 		app.Start();
 	return EXIT_SUCCESS;
 }

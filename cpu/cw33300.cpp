@@ -368,7 +368,7 @@ void cw33300::clock() {
 			//debug
 			setBiosCallFlag();
 			//fetch
-			read32(pc, opcodes[0], instructionFetchClocks0);
+			read32(pc, opcodes[0], instructionFetchClocks);
 
 			opcode_pc_0 = pc;
 			opcode_pc = opcode_pc_1;
@@ -386,7 +386,7 @@ void cw33300::clock() {
 			memoryClocks = 0;
 			gteClocks = 0;
 			decodeExecute(opcodes[1]);
-			clocks = instructionFetchClocks0 + memoryClocks + gteClocks;
+			clocks = instructionFetchClocks + memoryClocks + gteClocks;
 
 			//debug
 			printBiosCall();
@@ -422,7 +422,7 @@ void cw33300::clock() {
 			memoryClocks = 0;
 			gteClocks = 0;
 			decodeExecute(opcodes[0]);
-			clocks = instructionFetchClocks0 + memoryClocks + gteClocks;
+			clocks = instructionFetchClocks + memoryClocks + gteClocks;
 
 			//debug
 			printBiosCall();
@@ -954,121 +954,127 @@ void cw33300::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 void cw33300::setBiosCallFlag() {
 	if (pc == 0xa0) {
 		biosCallFlag = 'a';
-		//isEmulationPaused = true;
+		return;
 	}
 	if (pc == 0xb0) {
 		biosCallFlag = 'b';
-		//isEmulationPaused = true;
+		return;
 	}
 	if (pc == 0xc0) {
 		biosCallFlag = 'c';
-		//isEmulationPaused = true;
+		return;
 	}
 }
 
 void cw33300::printBiosCall() {
 	uint32_t call = get(9);
 
-	if (biosCallFlag.has_value())
-		switch (biosCallFlag.value()) {
-		case 'a':
-			biosCallFlag.reset();
-			if (call > 0xb5)
-				call = 0xb5;
-			std::cout << pBus->biosChip.A[call].info << std::endl;
+	if (biosCallFlag.has_value()) {
+		//switch (biosCallFlag.value()) {
+		//case 'a':
+		//	if (call > 0xb5)
+		//		call = 0xb5;
+		//	std::cout << "[KERNEL] " << pBus->biosChip.A[call].info << std::endl;
 
-			if (call == 0x3c) {
-				std::stringstream ss;
-				ss << (char)get(4);
-				p_debugger->log(ss.str());
-			}
+		//	if (call == 0x2a) {
+		//		std::cout << "~[KERNEL] dst 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] src 0x" << std::hex << get(5) << std::endl;
+		//		std::cout << "~[KERNEL] len 0x" << std::hex << get(6) << std::endl;
+		//	}
 
-			break;
-		case 'b':
-			biosCallFlag.reset();
-			if (call >= 0x5e && call <= 0xff)
-				call = 0x5e;
-			if (call > 0xff)
-				call = 0x5f;
-			if ((call != 0x0b) && (call != 0x17)/* && (call != 0x3d)*/)
-				std::cout << pBus->biosChip.B[call].info << std::endl;
+		//	if (call == 0x3c) {
+		//		std::stringstream ss;
+		//		ss << (char)get(4);
+		//		p_debugger->log(ss.str());
+		//	}
 
-			if (call == 0x02) {
-				std::cout << "t 0x" << std::hex << get(4) << std::endl;
-				std::cout << "reload 0x" << std::hex << get(5) << std::endl;
-				std::cout << "flags 0x" << std::hex << get(6) << std::endl;
-			}
+		//	break;
+		//case 'b':
+		//	if (call >= 0x5e && call <= 0xff)
+		//		call = 0x5e;
+		//	if (call > 0xff)
+		//		call = 0x5f;
+		//	//if ((call != 0x0b) /*&& (call != 0x17)*//* && (call != 0x3d)*/)
+		//		std::cout << "[KERNEL] " << pBus->biosChip.B[call].info << std::endl;
 
-			if (call == 0x08) {
-				std::cout << "class 0x" << std::hex << get(4) << std::endl;
-				std::cout << "spec 0x" << std::hex << get(5) << std::endl;
-				std::cout << "mode 0x" << std::hex << get(6) << std::endl;
-				std::cout << "func 0x" << std::hex << get(7) << std::endl;
-			}
+		//	if (call == 0x02) {
+		//		std::cout << "~[KERNEL] t 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] reload 0x" << std::hex << get(5) << std::endl;
+		//		std::cout << "~[KERNEL] flags 0x" << std::hex << get(6) << std::endl;
+		//	}
 
-			if ((call == 0x07) || (call == 0x20)) {
-				std::cout << "event 0x" << std::hex << get(4) << std::endl;
-				std::cout << "specs 0x" << std::hex << get(5) << std::endl;
-			}
+		//	if (call == 0x08) {
+		//		std::cout << "~[KERNEL] class 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] spec 0x" << std::hex << get(5) << std::endl;
+		//		std::cout << "~[KERNEL] mode 0x" << std::hex << get(6) << std::endl;
+		//		std::cout << "~[KERNEL] func 0x" << std::hex << get(7) << std::endl;
+		//	}
 
-			if (/*(v == 0x0b) || */(call == 0x0c) || (call == 0x09)) {
-				uint8_t cycles;
-				uint32_t ptr;
-				uint32_t data;
-				read32(0x120, ptr, cycles);
-				ptr += 7 * 4 * (get(4) & 0xffff);
-				read32(ptr, data, cycles);
-				std::cout << "event 0x" << std::hex << get(4) << std::endl;
-				std::cout << "class 0x" << std::hex << data << std::endl;
-				read32(ptr + 0x4, data, cycles);
-				std::cout << "flag 0x" << std::hex << data << std::endl;
-				read32(ptr + 0x8, data, cycles);
-				std::cout << "specs 0x" << std::hex << data << std::endl;
-				read32(ptr + 0xc, data, cycles);
-				std::cout << "mode 0x" << std::hex << data << std::endl;
-			}
+		//	if ((call == 0x07) || (call == 0x20)) {
+		//		std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] specs 0x" << std::hex << get(5) << std::endl;
+		//	}
 
-			/*if (call == 0x0b) {
-				uint8_t cycles;
-				uint32_t ptr;
-				uint32_t data;
-				read32(0x120, ptr, cycles);
-				ptr += 7 * 4 * (get(4) & 0xffff);
-				read32(ptr, data, cycles);
-				if (data != 0xf0000009) {
-					std::cout << "event 0x" << std::hex << get(4) << std::endl;
-					std::cout << "class 0x" << std::hex << data << std::endl;
-					read32(ptr + 0x4, data, cycles);
-					std::cout << "flag 0x" << std::hex << data << std::endl;
-					read32(ptr + 0x8, data, cycles);
-					std::cout << "specs 0x" << std::hex << data << std::endl;
-					read32(ptr + 0xc, data, cycles);
-					std::cout << "mode 0x" << std::hex << data << std::endl;
-				}
-			}*/
+		//	if (/*(v == 0x0b) || */(call == 0x0c) || (call == 0x09)) {
+		//		uint8_t cycles;
+		//		uint32_t ptr;
+		//		uint32_t data;
+		//		read32(0x120, ptr, cycles);
+		//		ptr += 7 * 4 * (get(4) & 0xffff);
+		//		read32(ptr, data, cycles);
+		//		std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] class 0x" << std::hex << data << std::endl;
+		//		read32(ptr + 0x4, data, cycles);
+		//		std::cout << "~[KERNEL] flag 0x" << std::hex << data << std::endl;
+		//		read32(ptr + 0x8, data, cycles);
+		//		std::cout << "~[KERNEL] specs 0x" << std::hex << data << std::endl;
+		//		read32(ptr + 0xc, data, cycles);
+		//		std::cout << "~[KERNEL] mode 0x" << std::hex << data << std::endl;
+		//	}
 
-			if (call == 0x3d) {
-				std::stringstream ss;
-				ss << (char)get(4);
-				p_debugger->log(ss.str());
-			}
+		//	if (call == 0x0b) {
+		//		uint8_t cycles;
+		//		uint32_t ptr;
+		//		uint32_t data;
+		//		read32(0x120, ptr, cycles);
+		//		ptr += 7 * 4 * (get(4) & 0xffff);
+		//		read32(ptr, data, cycles);
+		//		if (data != 0xf0000009) {
+		//			std::cout << "event 0x" << std::hex << get(4) << std::endl;
+		//			std::cout << "class 0x" << std::hex << data << std::endl;
+		//			read32(ptr + 0x4, data, cycles);
+		//			std::cout << "flag 0x" << std::hex << data << std::endl;
+		//			read32(ptr + 0x8, data, cycles);
+		//			std::cout << "specs 0x" << std::hex << data << std::endl;
+		//			read32(ptr + 0xc, data, cycles);
+		//			std::cout << "mode 0x" << std::hex << data << std::endl;
+		//		}
+		//	}
 
-			if (call == 0x4f) {
-				std::cout << "port 0x" << std::hex << get(4) << std::endl;
-				std::cout << "sector 0x" << std::hex << get(5) << std::endl;
-				std::cout << "dst 0x" << std::hex << get(6) << std::endl;
-				//isEmulationPaused = true;
-			}
+		//	if (call == 0x3d) {
+		//		std::stringstream ss;
+		//		ss << (char)get(4);
+		//		p_debugger->log(ss.str());
+		//	}
 
-			break;
-		case 'c':
-			biosCallFlag.reset();
-			if (call > 0x20)
-				call = 0x20;
-			std::cout << pBus->biosChip.C[call].info << std::endl;
+		//	if (call == 0x4f) {
+		//		std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+		//		std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << std::endl;
+		//		std::cout << "~[KERNEL] dst 0x" << std::hex << get(6) << std::endl;
+		//		//isEmulationPaused = true;
+		//	}
 
-			break;
-		}
+		//	break;
+		//case 'c':
+		//	if (call > 0x20)
+		//		call = 0x20;
+		//	std::cout << "[KERNEL] " << pBus->biosChip.C[call].info << std::endl;
+
+		//	break;
+		//}
+
+		biosCallFlag.reset();
+	}
 }
 
 std::string cw33300::getInstructionStr(const uint32_t& opcode, const uint32_t& pc, const bool& b) {

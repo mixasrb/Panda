@@ -8,24 +8,32 @@ extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
 hc05_pux::hc05_pux() {
-	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter,GetlocL
+	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter,GetlocL,GetlocP
 	commandLookup.resize(20);
 	commandLookup = {
 		{"Sync?    ",&hc05_pux::xxxxx},{"Getstat"    ,&hc05_pux::Getstat},{"Setloc   ",&hc05_pux::Setloc},{"Play     ",&hc05_pux::Play},
 		{"Forward  ",&hc05_pux::xxxxx},{"Backward     ",&hc05_pux::xxxxx},{"ReadN     ",&hc05_pux::ReadN},{"MotorOn ",&hc05_pux::xxxxx},
 		{"Stop      ",&hc05_pux::Stop},{"Pause        ",&hc05_pux::Pause},{"Init       ",&hc05_pux::Init},{"Mute    ",&hc05_pux::xxxxx},
 		{"Demute  ",&hc05_pux::Demute},{"Setfilter",&hc05_pux::Setfilter},{"Setmode ",&hc05_pux::Setmode},{"Getparam",&hc05_pux::xxxxx},
-		{"GetlocL",&hc05_pux::GetlocL},{"GetlocP    ",&hc05_pux::xxxxx},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::GetTN},
+		{"GetlocL",&hc05_pux::GetlocL},{"GetlocP    ",&hc05_pux::GetlocL},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::GetTN},
 		{"GetTD    ",&hc05_pux::GetTD},{"SeekL        ",&hc05_pux::SeekL},{"SeekP     ",&hc05_pux::xxxxx},{"SetClock",&hc05_pux::xxxxx},
 		{"GetClock ",&hc05_pux::xxxxx},{"Test          ",&hc05_pux::Test},{"GetID     ",&hc05_pux::GetID},{"ReadS   ",&hc05_pux::ReadS},
 		{"Reset    ",&hc05_pux::xxxxx},{"GetQ         ",&hc05_pux::xxxxx},{"ReadTOC   ",&hc05_pux::xxxxx},{"VideoCD ",&hc05_pux::xxxxx},
+		/*{"Sync?    ",&hc05_pux::xxxxx},{"Getstat"    ,&hc05_pux::Getstat},{"Setloc   ",&hc05_pux::Setloc},{"Play     ",&hc05_pux::xxxxx},
+		{"Forward  ",&hc05_pux::xxxxx},{"Backward     ",&hc05_pux::xxxxx},{"ReadN     ",&hc05_pux::ReadN},{"MotorOn ",&hc05_pux::xxxxx},
+		{"Stop      ",&hc05_pux::xxxxx},{"Pause        ",&hc05_pux::Pause},{"Init       ",&hc05_pux::Init},{"Mute    ",&hc05_pux::xxxxx},
+		{"Demute  ",&hc05_pux::Demute},{"Setfilter",&hc05_pux::xxxxx},{"Setmode ",&hc05_pux::Setmode},{"Getparam",&hc05_pux::xxxxx},
+		{"GetlocL",&hc05_pux::xxxxx},{"GetlocP    ",&hc05_pux::xxxxx},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::xxxxx},
+		{"GetTD    ",&hc05_pux::xxxxx},{"SeekL        ",&hc05_pux::SeekL},{"SeekP     ",&hc05_pux::xxxxx},{"SetClock",&hc05_pux::xxxxx},
+		{"GetClock ",&hc05_pux::xxxxx},{"Test          ",&hc05_pux::Test},{"GetID     ",&hc05_pux::GetID},{"ReadS   ",&hc05_pux::ReadS},
+		{"Reset    ",&hc05_pux::xxxxx},{"GetQ         ",&hc05_pux::xxxxx},{"ReadTOC   ",&hc05_pux::xxxxx},{"VideoCD ",&hc05_pux::xxxxx},*/
 	};
+
 	driveStatus = static_cast<driveStatus_t>(g_driveStatus);
 
 	std::ifstream file(g_cdPath, std::ios::binary | std::ios::ate);
-	if (!file.is_open()) {
+	if (!file.is_open())
 		throw std::runtime_error("Failed to open rom!\n");
-	}
 
 	size_t fileSize = file.tellg();
 	file.seekg(0);
@@ -115,7 +123,7 @@ void hc05_pux::clock() {
 		if (irq_flag_read.reg.int_10)
 			std::cout << "~[CD_DRIVE] sent INT10" << std::endl;
 
-		//if (requestReg.reg.smen)
+		//if (requestReg.reg.smen) //???
 		pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
 	}
 
@@ -250,12 +258,11 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 
 			requestReg.data = data;
 			if (data & 0x80) {
-				//bufferCounter = sectorSize;
 				std::cout << "~[CD_DRIVE] load data fifo\n";
 			}
 			else {
-				//	bufferCounter = 0;
-					//std::cout << "~[CD_DRIVE] reset data fifo, bufferCounter " << std::hex << "0x" << bufferCounter << std::endl;
+				indexStatus.reg.drqsts = 0;
+				std::cout << "~[CD_DRIVE] reset data fifo\n";
 			}
 
 			break;
@@ -332,7 +339,6 @@ void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		ass = 0;
 		amm++;
 	}
-	////bufferCounter = 0;
 
 	bufferCounter = sectorSize;
 }
@@ -505,7 +511,8 @@ uint8_t hc05_pux::GetlocL(const uint8_t& command) {
 }
 
 uint8_t hc05_pux::GetTN(const uint8_t& command) {
-	std::vector<uint8_t> firstResponse = { stat, 0x1, 0x3 };
+	std::vector<uint8_t> firstResponse = { stat, 0x1, 0x23 };
+	//std::vector<uint8_t> firstResponse = { stat, 1, 1 };
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 	return 0;
 }

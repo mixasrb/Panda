@@ -50,7 +50,7 @@ public:
 
 	bool isPipelineFull = false;
 	uint32_t opcode;
-	uint8_t instructionFetchClocks0 = 0;
+	uint8_t instructionFetchClocks = 0;
 	uint8_t instructionFetchClocks1 = 0;
 	uint8_t clocks = 0;
 	uint8_t cycle = 0;

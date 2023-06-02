@@ -25,7 +25,7 @@ public:
 
 	busInterface* pbus;
 
-	dmaController* p_dma;
+	dmaController* pDMAController;
 
 	memoryAddress_t memoryAddress;
 	blockControl_t blockControl;

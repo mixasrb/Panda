@@ -13,13 +13,13 @@ public:
 
 	uint32_t cop0r[64];
 
-	uint32_t get(uint8_t reg);
-	void set(uint8_t reg, uint32_t value);
+	uint32_t get(const uint8_t& reg);
+	void set(const uint8_t& reg, const uint32_t& value);
 
-	void MFC0(uint8_t rt, uint8_t rd);
-	void CFC0(uint8_t rt, uint8_t rd);
-	void MTC0(uint8_t rt, uint8_t rd);
-	void CTC0(uint8_t rt, uint8_t rd);
+	void MFC0(const uint8_t& rt, const uint8_t& rd);
+	void CFC0(const uint8_t& rt, const uint8_t& rd);
+	void MTC0(const uint8_t& rt, const uint8_t& rd);
+	void CTC0(const uint8_t& rt, const uint8_t& rd);
 	void BC0F(uint16_t imm);
 	void COP0(uint32_t imm);
 

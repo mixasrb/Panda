@@ -2,7 +2,6 @@
 #include "../bus_interface.h"
 #include "dma_controller.h"
 
-extern bool isCpuStopped;
 extern bool g_emulationPaused;
 
 void dma3::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
@@ -23,12 +22,13 @@ void dma3::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		std::cout << "~[DMA3] madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		std::cout << "~[DMA3] (CD DRIVE) madr: 0x" << std::hex << memoryAddress.data << std::endl;
 		if (data == 0)
 			g_emulationPaused = true;
 		break;
 	case 4:
 		blockControl.data = data;
+		std::cout << "~[DMA3] (CD DRIVE) number of words: 0x" << std::hex << blockControl.reg.bc_bs << std::endl;
 		break;
 	case 8:
 		channelControl.data = data;
@@ -41,12 +41,13 @@ void dma3::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
+			std::cout << "~[DMA3] (CD DRIVE) started"<< std::endl;
 			bStart = true;
 			float fcloks = blockControl.reg.bc_bs * CLOCKS_PER_WORD_DMA_3;
 			clocks = round(fcloks) == fcloks ? fcloks : round(fcloks) + 1;
 			channelControl.reg.startTrigger = 0;
 			memAddrTemp = memoryAddress.reg.memAddr;
-			isCpuStopped = true;
+			pDMAController->isCpuStopped = true;
 		}
 
 		break;
@@ -85,24 +86,25 @@ void dma3::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void dma3::triggerIRQ() {
-	if (p_dma->interruptRegister.reg.IRQ_enable_dma3)
-		p_dma->interruptRegister.reg.IRQ_flag_dma3 = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_enable_dma3)
+		pDMAController->interruptRegister.reg.IRQ_flag_dma3 = 1;
 	else
-		p_dma->interruptRegister.reg.IRQ_flag_dma3 = 0;
+		pDMAController->interruptRegister.reg.IRQ_flag_dma3 = 0;
 
-	if (p_dma->interruptRegister.reg.IRQ_master_enable &&
-		p_dma->interruptRegister.reg.IRQ_enable_dma3 &&
-		p_dma->interruptRegister.reg.IRQ_flag_dma3)
-		p_dma->interruptRegister.reg.IRQ_master_flag = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
+		pDMAController->interruptRegister.reg.IRQ_enable_dma3 &&
+		pDMAController->interruptRegister.reg.IRQ_flag_dma3)
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	else
-		p_dma->interruptRegister.reg.IRQ_master_flag = 0;
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
 void dma3::Clock() {
 	if (clocks == 0) {
+		std::cout << "~[DMA6] (CD DRIVE) finished" << std::endl;
 		channelControl.reg.startBusy = 0;
 		bStart = false;
-		isCpuStopped = false;
+		pDMAController->isCpuStopped = false;
 
 		triggerIRQ();
 	}

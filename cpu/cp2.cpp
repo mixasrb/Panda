@@ -339,7 +339,7 @@ int32_t cp2::devide() {
 	}
 
 	if (getH < getSZ3 * 2) {
-		int32_t z = 32;
+		uint32_t z = 32;
 		uint32_t msb = 1 << 31;
 		for (uint32_t i = 0; i <= 31; i++) {
 			if ((getSZ3 & 0x80000000) && ((getSZ3 & msb) == 0)) {
@@ -350,11 +350,15 @@ int32_t cp2::devide() {
 		}
 
 		n = getH << z;
-		int32_t d = getSZ3 << z;
-		int32_t u = unrTable[(d - 0x7fc0) >> 7] + 0x101;
+		uint32_t d = getSZ3 << z;
+		uint32_t u = 0;
+		if (((d - 0x7fc0) >> 7) <= 0x256)
+			u = unrTable[(d - 0x7fc0) >> 7] + 0x101;
+		else
+			u = 0x10;
 		d = ((0x2000080 - (d * u)) >> 8);
 		d = ((0x0000080 + (d * u)) >> 8);
-		n = std::min(0x1ffff, (((n * d) + 0x8000) >> 16));
+		n = std::min(0x1ffff, (int32_t)(((n * d) + 0x8000) >> 16));
 	}
 	else {
 		n = 0x1ffff;
@@ -374,8 +378,6 @@ uint8_t cp2::XXXXX(uint32_t command) {
 	g_emulationPaused = true;
 	return 0;
 }
-
-
 
 uint8_t cp2::RTPS(uint32_t commandData) {
 	commandEncoding_t command;

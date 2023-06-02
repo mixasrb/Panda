@@ -77,6 +77,8 @@ public:
 		}reg;
 	}interruptRegister;
 
+	bool isCpuStopped = false;
+
 	//debug
 	debugUtilities* p_debugger = nullptr;
 };

@@ -4,11 +4,11 @@
 
 extern bool g_emulationPaused;
 
-uint32_t cp0::get(uint8_t reg) {
+uint32_t cp0::get(const uint8_t& reg) {
 	return cop0r[reg];
 }
 
-void cp0::set(uint8_t reg, uint32_t value) {
+void cp0::set(const uint8_t& reg, const uint32_t& value) {
 	if (reg == 13) {
 		CAUSE &= 0xffffcff;
 		CAUSE |= (value & !0xffffcff);
@@ -16,7 +16,7 @@ void cp0::set(uint8_t reg, uint32_t value) {
 	else
 		cop0r[reg] = value;
 
-	if(reg == 12)
+	if (reg == 12)
 		isolateDataCache = (SR & 0x10000) == 0x10000;
 
 	if (SR & 0x400000) {
@@ -25,21 +25,21 @@ void cp0::set(uint8_t reg, uint32_t value) {
 	}
 }
 
-void cp0::MFC0(uint8_t rt, uint8_t rd) {
+void cp0::MFC0(const uint8_t& rt, const uint8_t& rd) {
 	pCpu->set(rt, get(rd));
 }
 
-void cp0::CFC0(uint8_t rt, uint8_t rd) {
+void cp0::CFC0(const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp0::MTC0(uint8_t rt, uint8_t rd) {
+void cp0::MTC0(const uint8_t& rt, const uint8_t& rd) {
 	set(rd, pCpu->get(rt));
 }
 
-void cp0::CTC0(uint8_t rt, uint8_t rd) {
+void cp0::CTC0(const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
@@ -87,7 +87,6 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 		EPC = pCpu->pc - 8;
 	}
 
-
 	if (code == _INT)
 		if (pCpu->isCurrentOpcodeBranch) {
 			EPC = pCpu->opcode_pc;
@@ -112,7 +111,6 @@ void cp0::checkForInterrupts() {
 
 	const bool executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
 
-	if (executeInterrupt) {
+	if (executeInterrupt)
 		exceptionHandler(_INT);
-	}
 }

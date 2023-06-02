@@ -39,12 +39,17 @@ extern bool g_emulationPaused;
 
 #define CACHE_CONTROL (addr == 0xfffe0130)
 
-
 void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 6;
 
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read32 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
 		if (pCpu->cp0.isolateDataCache) {
 			data = (uint32_t)scratchpad[addr & 0x3ff];
 			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
@@ -145,8 +150,13 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 }
 
 void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
-
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write32 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
 		if (pCpu->cp0.isolateDataCache) {
 			scratchpad[addr & 0x3ff] = (uint8_t)data;
 			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
@@ -154,12 +164,12 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 			scratchpad[(addr & 0x3ff) + 3] = (uint8_t)(data >> 24);
 			return;
 		}
-		//if ((addr & 0x1fffffff) > 0x200000)
 
 		ram[addr & 0x1fffff] = (uint8_t)data;
 		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
 		ram[(addr & 0x1fffff) + 2] = (uint8_t)(data >> 16);
 		ram[(addr & 0x1fffff) + 3] = (uint8_t)(data >> 24);
+
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
@@ -174,7 +184,10 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	else if (MEMORY_CONTROL_1)
 		std::cout << "[BUS] unhandled memory control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	else if (MEMORY_CONTROL_2) {
-		std::cout << "[BUS] unhandled ram_size reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+		if (data != 0xb88) {
+			std::cout << "[BUS] unhandled ram_size reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
 		ramSize = data;
 	}
 	else if (INTERRUPT_STAT)
@@ -219,15 +232,20 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 6;
+
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read16 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
 		if (pCpu->cp0.isolateDataCache) {
 			data = (uint32_t)scratchpad[addr & 0x3ff];
 			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
 			clocks = 1;
 			return;
 		}
-
-		//if ((addr & 0x1fffffff) > 0x200000)
 
 		data = (uint32_t)ram[addr & 0x1fffff];
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
@@ -310,17 +328,18 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 }
 
 void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	/*if (data == 0xffdc)
-		isEmulationPaused = true;*/
-
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write16 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
 		if (pCpu->cp0.isolateDataCache) {
 			scratchpad[addr & 0x3ff] = (uint8_t)data;
 			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
 			return;
 		}
-
-		//if ((addr & 0x1fffffff) > 0x200000)
 
 		ram[addr & 0x1fffff] = (uint8_t)data;
 		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
@@ -391,12 +410,17 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 	clocks = 6;
 
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
 		if (pCpu->cp0.isolateDataCache) {
 			data = scratchpad[addr & 0x3ff];
 			clocks = 1;
 			return;
 		}
-		//if ((addr & 0x1fffffff) > 0x200000) {
 
 		data = ram[addr & 0x1fffff];
 		clocks = 5;
@@ -438,6 +462,13 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 
 void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (RAM) {
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write8 0x"
+				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
+
+
 		if (pCpu->cp0.isolateDataCache) {
 			scratchpad[addr & 0x3ff] = data;
 			return;

@@ -20,7 +20,7 @@ void dmaController::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cyc
 			ppDMA[(addr - 0x1f801080) >> 4]->ReadDMA32(addr, data, cycles);
 		else {
 			std::cout << "[dma] emulation paused! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
-			//g_emulationPaused = true;
+			g_emulationPaused = true;
 		}
 	}
 	else if (addr == 0x1f8010f0)
@@ -82,10 +82,10 @@ void dmaController::ConnectBus(busInterface* p) {
 	dma2.pDMAController = this;
 
 	dma3.p_bus = pbus;
-	dma3.p_dma = this;
+	dma3.pDMAController = this;
 
 	dma6.pbus = pbus;
-	dma6.p_dma = this;
+	dma6.pDMAController = this;
 }
 
 void dmaController::clock() {
@@ -95,7 +95,7 @@ void dmaController::clock() {
 	if (interruptRegister.reg.force_IRQ)
 		interruptRegister.reg.IRQ_master_flag = 1;
 
-	if (controlRegister.reg.gpu_master_enable && dma0.channelControl.reg.startBusy)
+	if (controlRegister.reg.gpu_master_enable && dma0.channelControl.reg.startBusy)//??
 		dma0.Clock();
 	if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy)
 		dma2.Clock();

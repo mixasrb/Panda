@@ -1,7 +1,5 @@
 #pragma once
 
-#define _ISC 0xc
-
 //exeption codes
 #define _INT 0x00
 #define _MOD 0x01

@@ -1,7 +1,6 @@
 #include "console.h"
 #include "defines/defines.h"
 
-bool isCpuStopped = false;
 extern bool g_emulationPaused;
 
 Console::Console() {
@@ -15,7 +14,7 @@ void Console::reset() {
 }
 
 void Console::clock() {
-	if (!isCpuStopped)
+	if (!bus.dma.isCpuStopped)
 		cpuSOC.clock();
 
 	bus.dma.clock();
@@ -52,8 +51,7 @@ void Console::connectComponents() {
 	bus.pJoyMemCard = &joyMemCard;
 }
 
-void Console::connectDebugger()
-{
+void Console::connectDebugger() {
 	bus.pDebugger = &debugger;
 	bus.dma.p_debugger = &debugger;
 	cpuSOC.p_debugger = &debugger;

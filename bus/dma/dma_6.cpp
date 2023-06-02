@@ -1,7 +1,6 @@
 #include "dma_6.h"
 #include "../bus_interface.h"
 
-extern bool isCpuStopped;
 extern bool g_emulationPaused;
 
 void dma6::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
@@ -22,9 +21,13 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
+		std::cout << "~[DMA6] (OTC) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		if (data == 0)
+			g_emulationPaused = true;
 		break;
 	case 4:
 		blockControl.data = data;
+		std::cout << "~[DMA6] (OTC) BC/BS : 0x" << std::hex << blockControl.reg.bc_bs << std::endl;
 		break;
 	case 8:
 		channelControl.data = data;
@@ -37,12 +40,13 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
+			std::cout << "~[DMA6] (OTC) started" << std::endl;
 			bStart = true;
 			float clks = blockControl.reg.bc_bs * CLOCKS_PER_WORD_DMA_6;
 			clocks = round(clks) == clks ? clks : round(clks) + 1;
 			channelControl.reg.startTrigger = 0;
 			memAddrTemp = memoryAddress.reg.memAddr;
-			isCpuStopped = true;
+			pDMAController->isCpuStopped = true;
 		}
 		break;
 	}
@@ -72,24 +76,24 @@ void dma6::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void dma6::triggerIRQ() {
-	if (p_dma->interruptRegister.reg.IRQ_enable_dma6)
-		p_dma->interruptRegister.reg.IRQ_flag_dma6 = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_enable_dma6)
+		pDMAController->interruptRegister.reg.IRQ_flag_dma6 = 1;
 	else
-		p_dma->interruptRegister.reg.IRQ_flag_dma6 = 0;
+		pDMAController->interruptRegister.reg.IRQ_flag_dma6 = 0;
 
-	if (p_dma->interruptRegister.reg.IRQ_master_enable &&
-		p_dma->interruptRegister.reg.IRQ_enable_dma6 &&
-		p_dma->interruptRegister.reg.IRQ_flag_dma6)
-		p_dma->interruptRegister.reg.IRQ_master_flag = 1;
+	if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
+		pDMAController->interruptRegister.reg.IRQ_enable_dma6 &&
+		pDMAController->interruptRegister.reg.IRQ_flag_dma6)
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	else
-		p_dma->interruptRegister.reg.IRQ_master_flag = 0;
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
 void dma6::Clock() {
 	if (clocks == 0) {
 		channelControl.reg.startBusy = 0;
 		bStart = false;
-		isCpuStopped = false;
+		pDMAController->isCpuStopped = false;
 
 		triggerIRQ();
 	}
@@ -98,6 +102,7 @@ void dma6::Clock() {
 	if (clocks < blockControl.reg.bc_bs) {
 		uint8_t cycles;
 		if (clocks == 0) {
+			std::cout << "~[DMA6] (OTC) finished" << std::endl;
 			DMAWrite32(memAddrTemp, 0x00ffffff, cycles);
 			return;
 		}
