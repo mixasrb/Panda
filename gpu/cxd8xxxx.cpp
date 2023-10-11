@@ -2,6 +2,7 @@
 #include "../bus/bus_interface.h"
 
 #include "math.h"
+#include "limits"
 
 extern bool g_emulationPaused;
 extern bool g_GpuCommandsLogged;
@@ -96,7 +97,7 @@ cxd85xxx::cxd85xxx() {
 		{"Undocumented/Nonsense",1},
 		{"Undocumented/Nonsense",3},
 		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
+		{"Undocumented/Nonsense",3},
 		{"Undocumented/Nonsense",1},
 		//0x50
 		{"Shaded line, opaque",4},
@@ -111,9 +112,9 @@ cxd85xxx::cxd85xxx() {
 		{"Undocumented/Nonsense",1},
 		{"Shaded Poly-line, semi-transparent",4},
 		{"Undocumented/Nonsense",1},
+		{"Undocumented/Nonsense",4},
 		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
+		{"Undocumented/Nonsense",4},
 		{"Undocumented/Nonsense",1},
 		//0x60
 		{"Monochrome Rectangle (variable size) (opaque)",3},
@@ -275,9 +276,9 @@ void cxd85xxx::readGpu32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
 	if (addr == 0x1f801810) {
 		if (bTransferCommand) {
-			data = collectBuffer[0];
-			collectBuffer.erase(collectBuffer.begin());
-			if (collectBuffer.empty())
+			data = fifo[0];
+			fifo.erase(fifo.begin());
+			if (fifo.empty())
 				bTransferCommand = false;
 			return;
 		}
@@ -292,9 +293,9 @@ void cxd85xxx::readGpu32(const uint32_t& addr, uint32_t& data) {
 
 void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		//	std::cout << "0x" << data << std::endl;
+		//std::cout << "0x" << data << std::endl;
 		if (collectCount) {
-			collectBuffer.push_back(data);
+			fifo.push_back(data);
 			collectCount--;
 			if ((collectCount == 0) && (bCollectPolylineParam))
 				if ((data & 0xf000f000) == 0x50005000)
@@ -304,9 +305,9 @@ void cxd85xxx::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		}
 		else {
 			gp0Command = data;
-			collectBuffer.clear();//!!!!
-			if (!collectBuffer.empty()) {
-				std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << collectBuffer.size() << std::endl;
+			fifo.clear();//!!!!
+			if (!fifo.empty()) {
+				std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << fifo.size() << std::endl;
 				g_emulationPaused = true;
 			}
 
@@ -429,9 +430,14 @@ void cxd85xxx::videoClock() {
 
 		//Hblank clocking timer 1
 		pBus->timer1.clock(_HBLANK_CLOCK);
+
 	}
 
-	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME / 2) {
+	if (cpuFrameClocks % 10 == 0) {
+		pBus->timer0.clock(_DOT_CLOCK);
+	}
+
+	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME / 5) {
 		//HAHHAHA BYPASS SPU_DMA
 		if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4 && pBus->dma.interruptRegister.reg.IRQ_master_enable) {
 			pBus->dma.interruptRegister.reg.IRQ_master_flag = 1;
@@ -443,7 +449,7 @@ void cxd85xxx::videoClock() {
 	cpuFrameClocks++;
 	cpuScanlineClocks++;
 
-	//DMA ACCESING FIX!? //beta
+	//DMA ACCESING FIX!? //not working ok in all games
 	/*if (fifoCount >= 16) {
 		fifoClocks++;
 		pBus->dma.dma2.channelControl.reg.startBusy = 0;
@@ -586,9 +592,9 @@ olc::Sprite* cxd85xxx::getVramSprite() {
 uint16_t cxd85xxx::format24to16Color(const uint32_t& input) {
 	psxColor24_t color24 = (psxColor24_t)(input & 0x00ffffff);
 	psxColor16_t color16 = 0;
-	color16.component.red = (color24.component.red > (0x1f * 8)) ? 0x1f : color24.component.red >> 3;
-	color16.component.green = (color24.component.green > (0x1f * 8)) ? 0x1f : color24.component.green >> 3;
-	color16.component.blue = (color24.component.blue > (0x1f * 8)) ? 0x1f : color24.component.blue >> 3;
+	color16.component.red = color24.component.red >> 3;
+	color16.component.green = color24.component.green >> 3;
+	color16.component.blue = color24.component.blue >> 3;
 	return color16.data;
 }
 
@@ -634,6 +640,11 @@ void cxd85xxx::calculateTransparency(vertex_t p, psxColor16_t& frontPixelColor) 
 }
 
 static void swap(int& a, int& b) {
+	int c = b;
+	b = a; a = c;
+}
+
+static void swap(uint32_t& a, uint32_t& b) {
 	int c = b;
 	b = a; a = c;
 }
@@ -977,131 +988,404 @@ void cxd85xxx::drawPolygon(param_t* pParam) {
 
 }
 
-void cxd85xxx::drawTexPolygon(param_t* pParam) {
+//void cxd85xxx::drawTexPolygon(param_t* pParam) {
+//	gpuStat.data = (gpuStat.data & 0xfffffe00) | (pParam->texCoord2TexPage.elem.attribute & 0x7ff);
+//	gpuStat.elem.texDis = (pParam->texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+//
+//	struct {
+//		bool bit15;
+//		uint8_t devider;
+//		uint8_t firstAnder;
+//		uint8_t shifter;
+//		uint8_t secondAnder;
+//	}texBittnesVar;
+//
+//	switch (gpuStat.elem.texPageColors) {
+//	case 0: //4bit
+//		texBittnesVar.bit15 = false;
+//		texBittnesVar.devider = 4;
+//		texBittnesVar.firstAnder = 0x3;
+//		texBittnesVar.shifter = 2;
+//		texBittnesVar.secondAnder = 0xf;
+//		break;
+//	case 1: //8bit
+//		texBittnesVar.bit15 = false;
+//		texBittnesVar.devider = 2;
+//		texBittnesVar.firstAnder = 0x1;
+//		texBittnesVar.shifter = 3;
+//		texBittnesVar.secondAnder = 0xff;
+//		break;
+//	case 2: //16bit
+//		texBittnesVar.bit15 = true;
+//		texBittnesVar.devider = 1;
+//		break;
+//	case 3: //Reserved
+//		throw std::runtime_error("texture page color mode RESERVED!");
+//		break;
+//	}
+//
+//	clut_t clut = pParam->texCoord1Palette.elem.attribute;
+//
+//	const uint8_t vertexCount = pParam->verticesNumber;
+//
+//	vertex_t vert1 = pParam->vert1;
+//	psxColor24_t color1 = pParam->commandColor1;
+//	int x1 = pParam->vert1.x;
+//	int y1 = pParam->vert1.y;
+//	float u1 = pParam->texCoord1Palette.elem.x / 255.0f;
+//	float v1 = pParam->texCoord1Palette.elem.y / 255.0f;
+//
+//	vertex_t vert2 = pParam->vert2;
+//	psxColor24_t color2 = pParam->color2;
+//	int x2 = pParam->vert2.x;
+//	int y2 = pParam->vert2.y;
+//	float u2 = pParam->texCoord2TexPage.elem.x / 255.0f;
+//	float v2 = pParam->texCoord2TexPage.elem.y / 255.0f;
+//
+//	vertex_t vert3 = pParam->vert3;
+//	psxColor24_t color3 = pParam->color3;
+//	int x3 = pParam->vert3.x;
+//	int y3 = pParam->vert3.y;
+//	float u3 = pParam->texCoord3.elem.x / 255.0f;
+//	float v3 = pParam->texCoord3.elem.y / 255.0f;
+//
+//	psxColor24_t blendingColor;
+//	psxColor16_t frontPixelColor;
+//
+//
+//	/*int16_t arrayX[4] = { pParam->texCoord1Palette.elem.x, pParam->texCoord2TexPage.elem.x, pParam->texCoord3.elem.x, pParam->texCoord4.elem.x };
+//	int16_t arrayY[4] = { pParam->texCoord1Palette.elem.y, pParam->texCoord2TexPage.elem.y, pParam->texCoord3.elem.y, pParam->texCoord4.elem.y };
+//	int16_t xTexMin = utils::min(arrayX, 3);
+//	int16_t yTexMin = utils::min(arrayY, 3);
+//	int16_t xTexMax = utils::max(arrayX, 3);
+//	int16_t yTexMax = utils::max(arrayY, 3);
+//
+//	if (vertexCount == 4) {
+//		xTexMin = utils::min(arrayX, 4);
+//		yTexMin = utils::min(arrayY, 4);
+//		xTexMax = utils::max(arrayX, 4);
+//		yTexMax = utils::max(arrayY, 4);
+//	}*/
+//
+//	uint16_t** texture = new uint16_t * [256];
+//	for (int i = 0; i < 256; i++) {
+//		texture[i] = new uint16_t[256];
+//	}
+//
+//
+//	for (int v = 0; v < 256; v++) {
+//		for (int u = 0; u < 256 / texBittnesVar.devider; u++) {
+//			uint16_t data;
+//			vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + u, (gpuStat.elem.texPageYBase << 8) + v);
+//			readVram(tex_p, data, true);
+//
+//			if(texBittnesVar.bit15){
+//				texture[u * texBittnesVar.devider + i][v] = data;
+// }
+// else{
+//			for (int i = 0; i < texBittnesVar.devider; i++) {
+//				vertex_t pClut;
+//				pClut.x = (clut.elem.xCoord << 4) +
+//					((data >> (i << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+//				pClut.y = clut.elem.yCoord;
+//				readVram(pClut, frontPixelColor.data, true);
+//
+//				texture[u * texBittnesVar.devider + i][v] = frontPixelColor.data;
+//				vertex_t p(u * texBittnesVar.devider + i, v);
+//				//writeVram(p, frontPixelColor.data, true);
+//			}
+// }
+//		}
+//	}
+//
+//	auto drawTexTriangle = [&]() {
+//
+//		if (y2 < y1)
+//		{
+//			swap(y1, y2);
+//			swap(x1, x2);
+//			swap(u1, u2);
+//			swap(v1, v2);
+//		}
+//
+//		if (y3 < y1)
+//		{
+//			swap(y1, y3);
+//			swap(x1, x3);
+//			swap(u1, u3);
+//			swap(v1, v3);
+//		}
+//
+//		if (y3 < y2)
+//		{
+//			swap(y2, y3);
+//			swap(x2, x3);
+//			swap(u2, u3);
+//			swap(v2, v3);
+//		}
+//
+//		int dy1 = y2 - y1;
+//		int dx1 = x2 - x1;
+//		float dv1 = v2 - v1;
+//		float du1 = u2 - u1;
+//
+//		int dy2 = y3 - y1;
+//		int dx2 = x3 - x1;
+//		float dv2 = v3 - v1;
+//		float du2 = u3 - u1;
+//
+//		float tex_u, tex_v;
+//
+//		float dax_step = 0, dbx_step = 0,
+//			du1_step = 0, dv1_step = 0,
+//			du2_step = 0, dv2_step = 0;
+//
+//		if (dy1) dax_step = dx1 / (float)abs(dy1);
+//		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+//
+//		if (dy1) du1_step = du1 / (float)abs(dy1);
+//		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+//
+//		if (dy2) du2_step = du2 / (float)abs(dy2);
+//		if (dy2) dv2_step = dv2 / (float)abs(dy2);
+//
+//		if (dy1)
+//		{
+//			for (int i = y1; i <= y2; i++)
+//			{
+//				int ax = x1 + (float)(i - y1) * dax_step;
+//				int bx = x1 + (float)(i - y1) * dbx_step;
+//
+//				float tex_su = u1 + (float)(i - y1) * du1_step;
+//				float tex_sv = v1 + (float)(i - y1) * dv1_step;
+//
+//				float tex_eu = u1 + (float)(i - y1) * du2_step;
+//				float tex_ev = v1 + (float)(i - y1) * dv2_step;
+//
+//				if (ax > bx)
+//				{
+//					swap(ax, bx);
+//					swap(tex_su, tex_eu);
+//					swap(tex_sv, tex_ev);
+//				}
+//
+//				tex_u = tex_su;
+//				tex_v = tex_sv;
+//
+//				float tstep = 1.0f / ((float)(bx - ax));
+//				float t = 0.0f;
+//
+//				for (int j = ax; j < bx; j++)
+//				{
+//					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+//					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+//
+//					frontPixelColor.data = texture[(int)(tex_u * 255.0f)][(int)(tex_v * 255.0f)];
+//
+//					vertex_t p(j, i);
+//					if (frontPixelColor.data) {
+//						if (pParam->shadingType == GOURAUD_SHADING) {
+//							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+//							float e12 = edgeFunc(vert1, vert2, p);
+//							float e23 = edgeFunc(vert2, vert3, p);
+//							float e13 = edgeFunc(vert1, vert3, p);
+//							float lamda1 = abs(e23 / 2.f / P123);
+//							float lamda2 = abs(e13 / 2.f / P123);
+//							float lamda3 = abs(e12 / 2.f / P123);
+//							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+//							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+//							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+//						}
+//
+//						if (pParam->shadingType == FLAT_SHADING)
+//							blendingColor = pParam->commandColor1;
+//
+//						if (pParam->modulationType == TEXTURE_BLENDING) {
+//							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+//							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+//							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+//							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+//							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+//							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+//						}
+//
+//						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+//							calculateTransparency(p, frontPixelColor);
+//
+//
+//						writeVram(p, frontPixelColor.data);
+//					}
+//
+//					t += tstep;
+//				}
+//
+//			}
+//		}
+//
+//		dy1 = y3 - y2;
+//		dx1 = x3 - x2;
+//		dv1 = v3 - v2;
+//		du1 = u3 - u2;
+//
+//		if (dy1) dax_step = dx1 / (float)abs(dy1);
+//		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+//
+//		du1_step = 0, dv1_step = 0;
+//		if (dy1) du1_step = du1 / (float)abs(dy1);
+//		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+//
+//		if (dy1)
+//		{
+//			for (int i = y2; i <= y3; i++)
+//			{
+//				int ax = x2 + (float)(i - y2) * dax_step;
+//				int bx = x1 + (float)(i - y1) * dbx_step;
+//
+//				float tex_su = u2 + (float)(i - y2) * du1_step;
+//				float tex_sv = v2 + (float)(i - y2) * dv1_step;
+//
+//				float tex_eu = u1 + (float)(i - y1) * du2_step;
+//				float tex_ev = v1 + (float)(i - y1) * dv2_step;
+//
+//				if (ax > bx)
+//				{
+//					swap(ax, bx);
+//					swap(tex_su, tex_eu);
+//					swap(tex_sv, tex_ev);
+//				}
+//
+//				tex_u = tex_su;
+//				tex_v = tex_sv;
+//
+//				float tstep = 1.0f / ((float)(bx - ax));
+//				float t = 0.0f;
+//
+//				for (int j = ax; j < bx; j++)
+//				{
+//					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+//					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+//
+//					frontPixelColor.data = texture[(int)(tex_u * 255.0f)][(int)(tex_v * 255.0f)];
+//
+//					vertex_t p(j, i);
+//					if (frontPixelColor.data) {
+//						if (pParam->shadingType == GOURAUD_SHADING) {
+//							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+//							float e12 = edgeFunc(vert1, vert2, p);
+//							float e23 = edgeFunc(vert2, vert3, p);
+//							float e13 = edgeFunc(vert1, vert3, p);
+//							float lamda1 = abs(e23 / 2.f / P123);
+//							float lamda2 = abs(e13 / 2.f / P123);
+//							float lamda3 = abs(e12 / 2.f / P123);
+//							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+//							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+//							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+//						}
+//
+//						if (pParam->shadingType == FLAT_SHADING)
+//							blendingColor = pParam->commandColor1;
+//
+//						if (pParam->modulationType == TEXTURE_BLENDING) {
+//							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+//							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+//							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+//							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+//							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+//							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+//						}
+//
+//						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+//							calculateTransparency(p, frontPixelColor);
+//
+//
+//						writeVram(p, frontPixelColor.data);
+//
+//					}
+//
+//					t += tstep;
+//				}
+//			}
+//		}
+//		};
+//
+//	drawTexTriangle();
+//	if (vertexCount == 4) {
+//		vert1 = pParam->vert2;
+//		color1 = pParam->color2;
+//		x1 = pParam->vert2.x;
+//		y1 = pParam->vert2.y;
+//		u1 = pParam->texCoord2TexPage.elem.x / 255.0f;
+//		v1 = pParam->texCoord2TexPage.elem.y / 255.0f;
+//
+//		vert2 = pParam->vert3;
+//		color2 = pParam->color3;
+//		x2 = pParam->vert3.x;
+//		y2 = pParam->vert3.y;
+//		u2 = pParam->texCoord3.elem.x / 255.0f;
+//		v2 = pParam->texCoord3.elem.y / 255.0f;
+//
+//		vert3 = pParam->vert4;
+//		color3 = pParam->color4;
+//		x3 = pParam->vert4.x;
+//		y3 = pParam->vert4.y;
+//		u3 = pParam->texCoord4.elem.x / 255.0f;
+//		v3 = pParam->texCoord4.elem.y / 255.0f;
+//		drawTexTriangle();
+//	}
+//
+//	for (int i = 0; i < 256; i++)
+//		delete[] texture[i];
+//	delete[] texture;
+//}
+
+void cxd85xxx::drawTexPolygon15Bit(param_t* pParam) {
 	gpuStat.data = (gpuStat.data & 0xfffffe00) | (pParam->texCoord2TexPage.elem.attribute & 0x7ff);
 	gpuStat.elem.texDis = (pParam->texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
 
-	struct {
-		bool bit15;
-		uint8_t devider;
-		uint8_t firstAnder;
-		uint8_t shifter;
-		uint8_t secondAnder;
-	}texBittnesVar;
-
-	switch (gpuStat.elem.texPageColors) {
-	case 0: //4bit
-		texBittnesVar.bit15 = false;
-		texBittnesVar.devider = 4;
-		texBittnesVar.firstAnder = 0x3;
-		texBittnesVar.shifter = 2;
-		texBittnesVar.secondAnder = 0xf;
-		break;
-	case 1: //8bit
-		texBittnesVar.bit15 = false;
-		texBittnesVar.devider = 2;
-		texBittnesVar.firstAnder = 0x1;
-		texBittnesVar.shifter = 3;
-		texBittnesVar.secondAnder = 0xff;
-		break;
-	case 2: //16bit
-		texBittnesVar.bit15 = true;
-		texBittnesVar.devider = 1;
-		break;
-	case 3: //Reserved
-		throw std::runtime_error("texture page color mode RESERVED!");
-		break;
-	}
-
-	clut_t clut = pParam->texCoord1Palette.elem.attribute;
-
 	const uint8_t vertexCount = pParam->verticesNumber;
+	const shadingType_t shadingType = pParam->shadingType;
+	const transpanencyType_t transparencyType = pParam->transpanencyType;
 
 	vertex_t vert1 = pParam->vert1;
 	psxColor24_t color1 = pParam->commandColor1;
 	int x1 = pParam->vert1.x;
 	int y1 = pParam->vert1.y;
-	float u1 = pParam->texCoord1Palette.elem.x / 255.0f;
-	float v1 = pParam->texCoord1Palette.elem.y / 255.0f;
+	int u1 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord1Palette.elem.x;
+	int v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord1Palette.elem.y;
 
 	vertex_t vert2 = pParam->vert2;
 	psxColor24_t color2 = pParam->color2;
 	int x2 = pParam->vert2.x;
 	int y2 = pParam->vert2.y;
-	float u2 = pParam->texCoord2TexPage.elem.x / 255.0f;
-	float v2 = pParam->texCoord2TexPage.elem.y / 255.0f;
+	int u2 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord2TexPage.elem.x;
+	int v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
 
 	vertex_t vert3 = pParam->vert3;
 	psxColor24_t color3 = pParam->color3;
 	int x3 = pParam->vert3.x;
 	int y3 = pParam->vert3.y;
-	float u3 = pParam->texCoord3.elem.x / 255.0f;
-	float v3 = pParam->texCoord3.elem.y / 255.0f;
+	int u3 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord3.elem.x;
+	int v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
 
-	psxColor24_t blendingColor;
+	psxColor24_t blendingColor = pParam->commandColor1;
 	psxColor16_t frontPixelColor;
 
-
-	/*int16_t arrayX[4] = { pParam->texCoord1Palette.elem.x, pParam->texCoord2TexPage.elem.x, pParam->texCoord3.elem.x, pParam->texCoord4.elem.x };
-	int16_t arrayY[4] = { pParam->texCoord1Palette.elem.y, pParam->texCoord2TexPage.elem.y, pParam->texCoord3.elem.y, pParam->texCoord4.elem.y };
-	int16_t xTexMin = utils::min(arrayX, 3);
-	int16_t yTexMin = utils::min(arrayY, 3);
-	int16_t xTexMax = utils::max(arrayX, 3);
-	int16_t yTexMax = utils::max(arrayY, 3);
-
-	if (vertexCount == 4) {
-		xTexMin = utils::min(arrayX, 4);
-		yTexMin = utils::min(arrayY, 4);
-		xTexMax = utils::max(arrayX, 4);
-		yTexMax = utils::max(arrayY, 4);
-	}*/
-
-	uint16_t** texture = new uint16_t * [256];
-	for (int i = 0; i < 256; i++) {
-		texture[i] = new uint16_t[256];
-	}
-
-
-	for (int v = 0; v < 256; v++) {
-		for (int u = 0; u < 256 / texBittnesVar.devider; u++) {
-			uint16_t data;
-			vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + u, (gpuStat.elem.texPageYBase << 8) + v);
-			readVram(tex_p, data, true);
-
-			for (int i = 0; i < texBittnesVar.devider; i++) {
-				vertex_t pClut;
-				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> (i << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
-				pClut.y = clut.elem.yCoord;
-				readVram(pClut, frontPixelColor.data, true);
-
-				texture[u * texBittnesVar.devider + i][v] = frontPixelColor.data;
-				vertex_t p(u * texBittnesVar.devider + i, v);
-				//writeVram(p, frontPixelColor.data, true);
-			}
-		}
-	}
-
 	auto drawTexTriangle = [&]() {
-
-		if (y2 < y1)
-		{
+		if (y2 < y1) {
 			swap(y1, y2);
 			swap(x1, x2);
 			swap(u1, u2);
 			swap(v1, v2);
 		}
 
-		if (y3 < y1)
-		{
+		if (y3 < y1) {
 			swap(y1, y3);
 			swap(x1, x3);
 			swap(u1, u3);
 			swap(v1, v3);
 		}
 
-		if (y3 < y2)
-		{
+		if (y3 < y2) {
 			swap(y2, y3);
 			swap(x2, x3);
 			swap(u2, u3);
@@ -1110,8 +1394,540 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 
 		int dy1 = y2 - y1;
 		int dx1 = x2 - x1;
-		float dv1 = v2 - v1;
-		float du1 = u2 - u1;
+		int dv1 = v2 - v1;
+		int du1 = u2 - u1;
+
+		int dy2 = y3 - y1;
+		int dx2 = x3 - x1;
+		int dv2 = v3 - v1;
+		int du2 = u3 - u1;
+
+		int tex_u, tex_v, tex_w;
+
+		float dax_step = 0, dbx_step = 0,
+			du1_step = 0, dv1_step = 0,
+			du2_step = 0, dv2_step = 0;
+
+		if (dy1) dax_step = dx1 / (float)abs(dy1);
+		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+		if (dy1) du1_step = du1 / (float)abs(dy1);
+		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+		if (dy2) du2_step = du2 / (float)abs(dy2);
+		if (dy2) dv2_step = dv2 / (float)abs(dy2);
+
+		if (dy1) {
+			for (int i = y1; i <= y2; i++) {
+				int ax = x1 + (float)(i - y1) * dax_step;
+				int bx = x1 + (float)(i - y1) * dbx_step;
+
+				int tex_su = u1 + (float)(i - y1) * du1_step;
+				int tex_sv = v1 + (float)(i - y1) * dv1_step;
+
+				int tex_eu = u1 + (float)(i - y1) * du2_step;
+				int tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+				if (ax > bx) {
+					swap(ax, bx);
+					swap(tex_su, tex_eu);
+					swap(tex_sv, tex_ev);
+				}
+
+				tex_u = tex_su;
+				tex_v = tex_sv;
+
+				float tstep = 1.0f / ((float)(bx - ax));
+				float t = 0.0f;
+
+				for (int j = ax; j < bx; j++) {
+					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+					uint16_t data;
+					vertex_t tex_p(tex_u, tex_v);
+					readVram(tex_p, frontPixelColor.data, true);
+					vertex_t p(j, i);
+					if (frontPixelColor.data) {
+						if (pParam->shadingType == GOURAUD_SHADING) {
+							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+							float e12 = edgeFunc(vert1, vert2, p);
+							float e23 = edgeFunc(vert2, vert3, p);
+							float e13 = edgeFunc(vert1, vert3, p);
+							float lamda1 = abs(e23 / 2.f / P123);
+							float lamda2 = abs(e13 / 2.f / P123);
+							float lamda3 = abs(e12 / 2.f / P123);
+							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+						}
+
+						if (pParam->shadingType == FLAT_SHADING)
+							blendingColor = pParam->commandColor1;
+
+						if (pParam->modulationType == TEXTURE_BLENDING) {
+							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+						}
+
+						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+							calculateTransparency(p, frontPixelColor);
+
+
+						writeVram(p, frontPixelColor.data);
+					}
+
+					t += tstep;
+				}
+
+
+			}
+		}
+
+		dy1 = y3 - y2;
+		dx1 = x3 - x2;
+		dv1 = v3 - v2;
+		du1 = u3 - u2;
+
+		if (dy1) dax_step = dx1 / (float)abs(dy1);
+		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+		du1_step = 0, dv1_step = 0;
+		if (dy1) du1_step = du1 / (float)abs(dy1);
+		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+		if (dy1) {
+			for (int i = y2; i <= y3; i++) {
+				int ax = x2 + (float)(i - y2) * dax_step;
+				int bx = x1 + (float)(i - y1) * dbx_step;
+
+				int tex_su = u2 + (float)(i - y2) * du1_step;
+				int tex_sv = v2 + (float)(i - y2) * dv1_step;
+
+				int tex_eu = u1 + (float)(i - y1) * du2_step;
+				int tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+				if (ax > bx) {
+					swap(ax, bx);
+					swap(tex_su, tex_eu);
+					swap(tex_sv, tex_ev);
+				}
+
+				tex_u = tex_su;
+				tex_v = tex_sv;
+
+				float tstep = 1.0f / ((float)(bx - ax));
+				float t = 0.0f;
+
+				for (int j = ax; j < bx; j++) {
+					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+					uint16_t data;
+					vertex_t tex_p(tex_u, tex_v);
+					readVram(tex_p, frontPixelColor.data, true);
+					vertex_t p(j, i);
+					if (frontPixelColor.data) {
+						if (pParam->shadingType == GOURAUD_SHADING) {
+							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+							float e12 = edgeFunc(vert1, vert2, p);
+							float e23 = edgeFunc(vert2, vert3, p);
+							float e13 = edgeFunc(vert1, vert3, p);
+							float lamda1 = abs(e23 / 2.f / P123);
+							float lamda2 = abs(e13 / 2.f / P123);
+							float lamda3 = abs(e12 / 2.f / P123);
+							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+						}
+
+						if (pParam->shadingType == FLAT_SHADING)
+							blendingColor = pParam->commandColor1;
+
+						if (pParam->modulationType == TEXTURE_BLENDING) {
+							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+						}
+
+						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+							calculateTransparency(p, frontPixelColor);
+
+
+						writeVram(p, frontPixelColor.data);
+					}
+
+					t += tstep;
+				}
+			}
+		}
+		};
+
+	drawTexTriangle();
+	if (vertexCount == 4) {
+		vert1 = pParam->vert2;
+		color1 = pParam->color2;
+		x1 = pParam->vert2.x;
+		y1 = pParam->vert2.y;
+		u1 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord2TexPage.elem.x;
+		v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
+
+		vert2 = pParam->vert3;
+		color2 = pParam->color3;
+		x2 = pParam->vert3.x;
+		y2 = pParam->vert3.y;
+		u2 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord3.elem.x;
+		v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
+
+		vert3 = pParam->vert4;
+		color3 = pParam->color4;
+		x3 = pParam->vert4.x;
+		y3 = pParam->vert4.y;
+		u3 = (gpuStat.elem.texPageXBase << 6) + pParam->texCoord4.elem.x;
+		v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord4.elem.y;
+		drawTexTriangle();
+	}
+}
+
+void cxd85xxx::drawTexPolygon8Bit(param_t* pParam) {
+	gpuStat.data = (gpuStat.data & 0xfffffe00) | (pParam->texCoord2TexPage.elem.attribute & 0x7ff);
+	gpuStat.elem.texDis = (pParam->texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+
+	clut_t clut = pParam->texCoord1Palette.elem.attribute;
+	const uint8_t vertexCount = pParam->verticesNumber;
+	const shadingType_t shadingType = pParam->shadingType;
+	const transpanencyType_t transparencyType = pParam->transpanencyType;
+
+	vertex_t vert1 = pParam->vert1;
+	psxColor24_t color1 = pParam->commandColor1;
+	int x1 = pParam->vert1.x;
+	int y1 = pParam->vert1.y;
+	int u1 = pParam->texCoord1Palette.elem.x;
+	int v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord1Palette.elem.y;
+
+	vertex_t vert2 = pParam->vert2;
+	psxColor24_t color2 = pParam->color2;
+	int x2 = pParam->vert2.x;
+	int y2 = pParam->vert2.y;
+	int u2 = pParam->texCoord2TexPage.elem.x;
+	int v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
+
+	vertex_t vert3 = pParam->vert3;
+	psxColor24_t color3 = pParam->color3;
+	int x3 = pParam->vert3.x;
+	int y3 = pParam->vert3.y;
+	int u3 = pParam->texCoord3.elem.x;
+	int v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
+
+	psxColor24_t blendingColor = pParam->commandColor1;
+	psxColor16_t frontPixelColor;
+
+	auto drawTexTriangle = [&]() {
+		if (y2 < y1) {
+			swap(y1, y2);
+			swap(x1, x2);
+			swap(u1, u2);
+			swap(v1, v2);
+		}
+
+		if (y3 < y1) {
+			swap(y1, y3);
+			swap(x1, x3);
+			swap(u1, u3);
+			swap(v1, v3);
+		}
+
+		if (y3 < y2) {
+			swap(y2, y3);
+			swap(x2, x3);
+			swap(u2, u3);
+			swap(v2, v3);
+		}
+
+		int dy1 = y2 - y1;
+		int dx1 = x2 - x1;
+		int dv1 = v2 - v1;
+		int du1 = u2 - u1;
+
+		int dy2 = y3 - y1;
+		int dx2 = x3 - x1;
+		int dv2 = v3 - v1;
+		int du2 = u3 - u1;
+
+		int tex_u, tex_v, tex_w;
+
+		float dax_step = 0, dbx_step = 0,
+			du1_step = 0, dv1_step = 0,
+			du2_step = 0, dv2_step = 0;
+
+		if (dy1) dax_step = dx1 / (float)abs(dy1);
+		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+		if (dy1) du1_step = du1 / (float)abs(dy1);
+		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+		if (dy2) du2_step = du2 / (float)abs(dy2);
+		if (dy2) dv2_step = dv2 / (float)abs(dy2);
+
+		if (dy1) {
+			for (int i = y1; i <= y2; i++) {
+				int ax = x1 + (float)(i - y1) * dax_step;
+				int bx = x1 + (float)(i - y1) * dbx_step;
+
+				int tex_su = u1 + (float)(i - y1) * du1_step;
+				int tex_sv = v1 + (float)(i - y1) * dv1_step;
+
+				int tex_eu = u1 + (float)(i - y1) * du2_step;
+				int tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+				if (ax > bx) {
+					swap(ax, bx);
+					swap(tex_su, tex_eu);
+					swap(tex_sv, tex_ev);
+				}
+
+				tex_u = tex_su;
+				tex_v = tex_sv;
+
+				float tstep = 1.0f / ((float)(bx - ax));
+				float t = 0.0f;
+
+				bool flag = false;
+				for (int j = ax; j < bx; j++) {
+					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+					uint16_t data;
+					vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 2, tex_v);
+					readVram(tex_p, data, true);
+					vertex_t pClut;
+					pClut.x = (clut.elem.xCoord << 4) + ((data >> ((tex_u & 0x1) << 3)) & 0xff);
+					pClut.y = clut.elem.yCoord;
+					readVram(pClut, frontPixelColor.data, true);
+					vertex_t p(j, i);
+
+					if (frontPixelColor.data) {
+						if (pParam->shadingType == GOURAUD_SHADING) {
+							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+							float e12 = edgeFunc(vert1, vert2, p);
+							float e23 = edgeFunc(vert2, vert3, p);
+							float e13 = edgeFunc(vert1, vert3, p);
+							float lamda1 = abs(e23 / 2.f / P123);
+							float lamda2 = abs(e13 / 2.f / P123);
+							float lamda3 = abs(e12 / 2.f / P123);
+							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+						}
+
+						if (pParam->shadingType == FLAT_SHADING)
+							blendingColor = pParam->commandColor1;
+
+						if (pParam->modulationType == TEXTURE_BLENDING) {
+							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+						}
+
+						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+							calculateTransparency(p, frontPixelColor);
+
+
+						writeVram(p, frontPixelColor.data);
+					}
+
+					t += tstep;
+					flag = !flag;
+				}
+
+
+			}
+		}
+
+		dy1 = y3 - y2;
+		dx1 = x3 - x2;
+		dv1 = v3 - v2;
+		du1 = u3 - u2;
+
+		if (dy1) dax_step = dx1 / (float)abs(dy1);
+		if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+		du1_step = 0, dv1_step = 0;
+		if (dy1) du1_step = du1 / (float)abs(dy1);
+		if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+		if (dy1) {
+			for (int i = y2; i <= y3; i++) {
+				int ax = x2 + (float)(i - y2) * dax_step;
+				int bx = x1 + (float)(i - y1) * dbx_step;
+
+				int tex_su = u2 + (float)(i - y2) * du1_step;
+				int tex_sv = v2 + (float)(i - y2) * dv1_step;
+
+				int tex_eu = u1 + (float)(i - y1) * du2_step;
+				int tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+				if (ax > bx) {
+					swap(ax, bx);
+					swap(tex_su, tex_eu);
+					swap(tex_sv, tex_ev);
+				}
+
+				tex_u = tex_su;
+				tex_v = tex_sv;
+
+				float tstep = 1.0f / ((float)(bx - ax));
+				float t = 0.0f;
+
+				bool flag = false;
+				for (int j = ax; j < bx; j++) {
+					tex_u = (1.0f - t) * tex_su + t * tex_eu;
+					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+					uint16_t data;
+					vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 2, tex_v);
+					readVram(tex_p, data, true);
+					vertex_t pClut;
+					pClut.x = clut.elem.xCoord * 16 + (flag ? data & 0xff : (data >> 8) & 0xff);
+					pClut.y = clut.elem.yCoord;
+					readVram(pClut, frontPixelColor.data, true);
+					vertex_t p(j, i);
+					if (frontPixelColor.data) {
+						if (pParam->shadingType == GOURAUD_SHADING) {
+							float P123 = edgeFunc(vert1, vert2, vert3) / 2.f;
+							float e12 = edgeFunc(vert1, vert2, p);
+							float e23 = edgeFunc(vert2, vert3, p);
+							float e13 = edgeFunc(vert1, vert3, p);
+							float lamda1 = abs(e23 / 2.f / P123);
+							float lamda2 = abs(e13 / 2.f / P123);
+							float lamda3 = abs(e12 / 2.f / P123);
+							blendingColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2 + (float)color3.component.red * lamda3;
+							blendingColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2 + (float)color3.component.green * lamda3;
+							blendingColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2 + (float)color3.component.blue * lamda3;
+						}
+
+						if (pParam->shadingType == FLAT_SHADING)
+							blendingColor = pParam->commandColor1;
+
+						if (pParam->modulationType == TEXTURE_BLENDING) {
+							float red = ((float)blendingColor.component.red / 128.) * ((float)frontPixelColor.component.red * 8.);
+							float green = ((float)blendingColor.component.green / 128.) * ((float)frontPixelColor.component.green * 8.);
+							float blue = ((float)blendingColor.component.blue / 128.) * ((float)frontPixelColor.component.blue * 8.);
+							frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
+							frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
+							frontPixelColor.component.blue = ((uint16_t)blue / 8) > 0x1f ? 0x1f : (uint16_t)blue / 8;
+						}
+
+						if ((pParam->transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+							calculateTransparency(p, frontPixelColor);
+
+
+						writeVram(p, frontPixelColor.data);
+					}
+
+					t += tstep;
+					flag = !flag;
+				}
+			}
+		}
+		};
+
+	drawTexTriangle();
+	if (vertexCount == 4) {
+		vert1 = pParam->vert2;
+		color1 = pParam->color2;
+		x1 = pParam->vert2.x;
+		y1 = pParam->vert2.y;
+		u1 = pParam->texCoord2TexPage.elem.x;
+		v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
+
+		vert2 = pParam->vert3;
+		color2 = pParam->color3;
+		x2 = pParam->vert3.x;
+		y2 = pParam->vert3.y;
+		u2 = pParam->texCoord3.elem.x;
+		v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
+
+		vert3 = pParam->vert4;
+		color3 = pParam->color4;
+		x3 = pParam->vert4.x;
+		y3 = pParam->vert4.y;
+		u3 = pParam->texCoord4.elem.x;
+		v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord4.elem.y;
+		drawTexTriangle();
+	}
+}
+
+void cxd85xxx::drawTexPolygon4Bit(param_t* pParam) {
+	gpuStat.data = (gpuStat.data & 0xfffffe00) | (pParam->texCoord2TexPage.elem.attribute & 0x7ff);
+	gpuStat.elem.texDis = (pParam->texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+
+	clut_t clut = pParam->texCoord1Palette.elem.attribute;
+
+	const uint8_t vertexCount = pParam->verticesNumber;
+	const shadingType_t shadingType = pParam->shadingType;
+	const transpanencyType_t transparencyType = pParam->transpanencyType;
+
+	vertex_t vert1 = pParam->vert1;
+	psxColor24_t color1 = pParam->commandColor1;
+	int x1 = pParam->vert1.x;
+	int y1 = pParam->vert1.y;
+	int u1 = pParam->texCoord1Palette.elem.x;
+	int v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord1Palette.elem.y;
+
+	vertex_t vert2 = pParam->vert2;
+	psxColor24_t color2 = pParam->color2;
+	int x2 = pParam->vert2.x;
+	int y2 = pParam->vert2.y;
+	int u2 = pParam->texCoord2TexPage.elem.x;
+	int v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
+
+	vertex_t vert3 = pParam->vert3;
+	psxColor24_t color3 = pParam->color3;
+	int x3 = pParam->vert3.x;
+	int y3 = pParam->vert3.y;
+	int u3 = pParam->texCoord3.elem.x;
+	int v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
+
+	psxColor24_t blendingColor = pParam->commandColor1;
+	psxColor16_t frontPixelColor;
+
+	auto drawTexTriangle = [&]() {
+		if (y2 < y1) {
+			swap(y1, y2);
+			swap(x1, x2);
+			swap(u1, u2);
+			swap(v1, v2);
+		}
+
+		if (y3 < y1) {
+			swap(y1, y3);
+			swap(x1, x3);
+			swap(u1, u3);
+			swap(v1, v3);
+		}
+
+		if (y3 < y2) {
+			swap(y2, y3);
+			swap(x2, x3);
+			swap(u2, u3);
+			swap(v2, v3);
+		}
+
+		int dy1 = y2 - y1;
+		int dx1 = x2 - x1;
+		int dv1 = v2 - v1;
+		int du1 = u2 - u1;
 
 		int dy2 = y3 - y1;
 		int dx2 = x3 - x1;
@@ -1133,10 +1949,8 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 		if (dy2) du2_step = du2 / (float)abs(dy2);
 		if (dy2) dv2_step = dv2 / (float)abs(dy2);
 
-		if (dy1)
-		{
-			for (int i = y1; i <= y2; i++)
-			{
+		if (dy1) {
+			for (int i = y1; i <= y2; i++) {
 				int ax = x1 + (float)(i - y1) * dax_step;
 				int bx = x1 + (float)(i - y1) * dbx_step;
 
@@ -1146,8 +1960,7 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 				float tex_eu = u1 + (float)(i - y1) * du2_step;
 				float tex_ev = v1 + (float)(i - y1) * dv2_step;
 
-				if (ax > bx)
-				{
+				if (ax > bx) {
 					swap(ax, bx);
 					swap(tex_su, tex_eu);
 					swap(tex_sv, tex_ev);
@@ -1159,12 +1972,17 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 				float tstep = 1.0f / ((float)(bx - ax));
 				float t = 0.0f;
 
-				for (int j = ax; j < bx; j++)
-				{
+				for (int j = ax; j < bx; j++) {
 					tex_u = (1.0f - t) * tex_su + t * tex_eu;
 					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
 
-					frontPixelColor.data = texture[(int)(tex_u * 255.0f)][(int)(tex_v * 255.0f)];
+					uint16_t data;
+					vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 4, tex_v);
+					readVram(tex_p, data, true);
+					vertex_t pClut;
+					pClut.x = (clut.elem.xCoord << 4) + ((data >> (((uint16_t)tex_u & 0x3) << 2)) & 0xf);
+					pClut.y = clut.elem.yCoord;
+					readVram(pClut, frontPixelColor.data, true);
 
 					vertex_t p(j, i);
 					if (frontPixelColor.data) {
@@ -1202,6 +2020,7 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 
 					t += tstep;
 				}
+
 
 			}
 		}
@@ -1225,14 +2044,13 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 				int ax = x2 + (float)(i - y2) * dax_step;
 				int bx = x1 + (float)(i - y1) * dbx_step;
 
-				float tex_su = u2 + (float)(i - y2) * du1_step;
-				float tex_sv = v2 + (float)(i - y2) * dv1_step;
+				int tex_su = u2 + (float)(i - y2) * du1_step;
+				int tex_sv = v2 + (float)(i - y2) * dv1_step;
 
-				float tex_eu = u1 + (float)(i - y1) * du2_step;
-				float tex_ev = v1 + (float)(i - y1) * dv2_step;
+				int tex_eu = u1 + (float)(i - y1) * du2_step;
+				int tex_ev = v1 + (float)(i - y1) * dv2_step;
 
-				if (ax > bx)
-				{
+				if (ax > bx) {
 					swap(ax, bx);
 					swap(tex_su, tex_eu);
 					swap(tex_sv, tex_ev);
@@ -1244,13 +2062,17 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 				float tstep = 1.0f / ((float)(bx - ax));
 				float t = 0.0f;
 
-				for (int j = ax; j < bx; j++)
-				{
+				for (int j = ax; j < bx; j++) {
 					tex_u = (1.0f - t) * tex_su + t * tex_eu;
 					tex_v = (1.0f - t) * tex_sv + t * tex_ev;
 
-					frontPixelColor.data = texture[(int)(tex_u * 255.0f)][(int)(tex_v * 255.0f)];
-
+					uint16_t data;
+					vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 4, tex_v);
+					readVram(tex_p, data, true);
+					vertex_t pClut;
+					pClut.x = (clut.elem.xCoord << 4) + ((data >> (((uint16_t)tex_u & 0x3) << 2)) & 0xf);
+					pClut.y = clut.elem.yCoord;
+					readVram(pClut, frontPixelColor.data, true);
 					vertex_t p(j, i);
 					if (frontPixelColor.data) {
 						if (pParam->shadingType == GOURAUD_SHADING) {
@@ -1283,7 +2105,6 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 
 
 						writeVram(p, frontPixelColor.data);
-
 					}
 
 					t += tstep;
@@ -1298,28 +2119,24 @@ void cxd85xxx::drawTexPolygon(param_t* pParam) {
 		color1 = pParam->color2;
 		x1 = pParam->vert2.x;
 		y1 = pParam->vert2.y;
-		u1 = pParam->texCoord2TexPage.elem.x / 255.0f;
-		v1 = pParam->texCoord2TexPage.elem.y / 255.0f;
+		u1 = pParam->texCoord2TexPage.elem.x;
+		v1 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord2TexPage.elem.y;
 
 		vert2 = pParam->vert3;
 		color2 = pParam->color3;
 		x2 = pParam->vert3.x;
 		y2 = pParam->vert3.y;
-		u2 = pParam->texCoord3.elem.x / 255.0f;
-		v2 = pParam->texCoord3.elem.y / 255.0f;
+		u2 = pParam->texCoord3.elem.x;
+		v2 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord3.elem.y;
 
 		vert3 = pParam->vert4;
 		color3 = pParam->color4;
 		x3 = pParam->vert4.x;
 		y3 = pParam->vert4.y;
-		u3 = pParam->texCoord4.elem.x / 255.0f;
-		v3 = pParam->texCoord4.elem.y / 255.0f;
+		u3 = pParam->texCoord4.elem.x;
+		v3 = (gpuStat.elem.texPageYBase << 8) + pParam->texCoord4.elem.y;
 		drawTexTriangle();
 	}
-
-	for (int i = 0; i < 256; i++)
-		delete[] texture[i];
-	delete[] texture;
 }
 
 void cxd85xxx::drawMonochromeRect(param_t param) {
@@ -1338,67 +2155,99 @@ void cxd85xxx::drawMonochromeRect(param_t param) {
 
 void cxd85xxx::drawLine(param_t param) {
 
+	psxColor24_t color1 = param.commandColor1;
+	int x1 = param.vert1.x;
+	int y1 = param.vert1.y;
+
+	psxColor24_t color2 = param.color2;
+	int x2 = param.vert2.x;
+	int y2 = param.vert2.y;
+
+	psxColor16_t frontPixelColor;
 
 
+	if (y2 < y1) {
+		swap(y1, y2);
+		swap(x1, x2);
+		//swap(color1.data, color2.data);
+	}
 
+	int dy1 = y2 - y1;
+	int dx1 = x2 - x1;
 
+	float k = 0;
 
+	if (dy1) k = dx1 / (float)abs(dy1);
+	else k = std::numeric_limits<float>::max();
 
+	if ((k >= 1.0f) || (k <= -1.0f)) {
+		int ax = x1;
+		int bx = x2;
 
+		if (bx < ax)
+			swap(ax, bx);
 
-	int16_t arrayX[2] = { param.vert1.x, param.vert2.x };
-	int16_t arrayY[2] = { param.vert1.y, param.vert2.y };
-	int16_t xMin = utils::min(arrayX, 2);
-	int16_t yMin = utils::min(arrayY, 2);
-	int16_t xMax = utils::max(arrayX, 2);
-	int16_t yMax = utils::max(arrayY, 2);
+		for (int i = ax; i <= bx; i++) {
+			vertex_t p(i, round(y1 + (float)(i - x1) * 1.0f / k));
 
-	vertex_t p;
+			if (param.shadingType == GOURAUD_SHADING) {
+				float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2) + pow((param.vert1.y - param.vert2.y), 2));
+				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2) + pow((param.vert1.y - p.y), 2));
+				float lamda1 = 1 - lamdaPointAbs / lamdaAbs;
+				float lamda2 = 1 - lamda1;
 
-	if (param.shadingType == FLAT_SHADING)
-		for (int16_t x = xMin; x <= xMax; x++) {
-			p.x = x;
-			for (int16_t y = yMin; y <= yMax; y++) {
-				p.y = y;
-				if (abs(edgeFunc(param.vert1, param.vert2, p)) <= 40.) {
-					psxColor16_t frontPixelColor = format24to16Color(param.commandColor1);
+				psxColor24_t calculatedColor;
 
-					if (param.transpanencyType == SEMI_TRANSPARENT)
-						calculateTransparency(p, frontPixelColor);
-					writeVram(p, frontPixelColor.data);
-				}
+				calculatedColor.component.red = (((float)color1.component.red * lamda1 + (float)color2.component.red * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.red * lamda1 + (float)color2.component.red * lamda2;
+				calculatedColor.component.green = (((float)color1.component.green * lamda1 + (float)color2.component.green * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.green * lamda1 + (float)color2.component.green * lamda2;
+				calculatedColor.component.blue = (((float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
+
+				frontPixelColor = format24to16Color(calculatedColor.data);
 			}
+
+			if (param.shadingType == FLAT_SHADING)
+				frontPixelColor = format24to16Color(param.commandColor1);
+
+			if (param.transpanencyType == SEMI_TRANSPARENT)
+				calculateTransparency(p, frontPixelColor);
+
+			writeVram(p, frontPixelColor.data);
 		}
+	}
+	else if ((k < 1.0f) && (k > -1.0f)) {
+		for (int i = y1; i <= y2; i++) {
+			vertex_t p(round(x1 + (float)(i - y1) * k), i);
 
-	if (param.shadingType == GOURAUD_SHADING)
-		for (int16_t x = xMin; x <= xMax; x++) {
-			p.x = x;
-			for (int16_t y = yMin; y <= yMax; y++) {
-				p.y = y;
-				if (abs(edgeFunc(param.vert1, param.vert2, p)) <= 40.) {
+			if (param.shadingType == GOURAUD_SHADING) {
+				float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2) + pow((param.vert1.y - param.vert2.y), 2));
+				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2) + pow((param.vert1.y - p.y), 2));
+				float lamda1 = 1 - lamdaPointAbs / lamdaAbs;
+				float lamda2 = 1 - lamda1;
 
-					float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2) + pow((param.vert1.y - param.vert2.y), 2));
-					float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2) + pow((param.vert1.y - p.y), 2));
-					float lamda1 = 1 - lamdaAbs / lamdaPointAbs;
-					float lamda2 = 1 - lamda1;
+				psxColor24_t calculatedColor;
 
-					psxColor24_t calculatedColor;
+				calculatedColor.component.red = (((float)color1.component.red * lamda1 + (float)color2.component.red * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.red * lamda1 + (float)color2.component.red * lamda2;
+				calculatedColor.component.green = (((float)color1.component.green * lamda1 + (float)color2.component.green * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.green * lamda1 + (float)color2.component.green * lamda2;
+				calculatedColor.component.blue = (((float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
+					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
 
-					psxColor24_t color1 = param.commandColor1;
-					psxColor24_t color2 = param.color2;
-
-					calculatedColor.component.red = (float)color1.component.red * lamda1 + (float)color2.component.red * lamda2;
-					calculatedColor.component.green = (float)color1.component.green * lamda1 + (float)color2.component.green * lamda2;
-					calculatedColor.component.blue = (float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
-
-					psxColor16_t frontPixelColor = format24to16Color(calculatedColor.data);
-
-					if (param.transpanencyType == SEMI_TRANSPARENT)
-						calculateTransparency(p, frontPixelColor);
-					writeVram(p, frontPixelColor.data);
-				}
+				frontPixelColor = format24to16Color(calculatedColor.data);
 			}
+
+			if (param.shadingType == FLAT_SHADING)
+				frontPixelColor = format24to16Color(param.commandColor1);
+
+			if (param.transpanencyType == SEMI_TRANSPARENT)
+				calculateTransparency(p, frontPixelColor);
+
+			writeVram(p, frontPixelColor.data);
 		}
+	}
 }
 
 void cxd85xxx::drawTexRect15Bit(param_t param) {
@@ -1482,7 +2331,7 @@ void cxd85xxx::drawTexRect15Bit(param_t param) {
 			}
 		}
 	}
-	}
+}
 
 void cxd85xxx::drawTexRect8Bit(param_t param) {
 	clut_t clut = param.texCoord1Palette.elem.attribute;
@@ -1570,7 +2419,7 @@ void cxd85xxx::drawTexRect8Bit(param_t param) {
 			}
 		}
 	}
-	}
+}
 
 void cxd85xxx::drawTexRect4Bit(param_t param) {
 	clut_t clut = param.texCoord1Palette.elem.attribute;
@@ -1663,7 +2512,7 @@ void cxd85xxx::drawTexRect4Bit(param_t param) {
 			}
 		}
 	}
-	}
+}
 
 void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height) {
 	const uint32_t x1 = (dest_coord << 16 >> 16) & 0x3ff;
@@ -1671,11 +2520,11 @@ void cxd85xxx::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_h
 	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
 	uint32_t y2 = y1 + (width_height >> 16);
 
-	std::vector<uint16_t> buffer(collectBuffer.size() << 1);
+	std::vector<uint16_t> buffer(fifo.size() << 1);
 	for (uint32_t i = 0; i < (buffer.size() >> 1); i++) {
-		buffer[i * 2] = collectBuffer[0];
-		buffer[i * 2 + 1] = collectBuffer[0] >> 16;
-		collectBuffer.erase(collectBuffer.begin());
+		buffer[i * 2] = fifo[0];
+		buffer[i * 2 + 1] = fifo[0] >> 16;
+		fifo.erase(fifo.begin());
 	}
 
 	uint32_t x;
@@ -1706,7 +2555,7 @@ void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width
 	const uint16_t y2 = y1 + (width_height >> 16);
 
 	uint16_t data;
-	std::vector<uint16_t> buffer(collectBuffer.size() * 2);
+	std::vector<uint16_t> buffer(fifo.size() * 2);
 
 	uint16_t x;
 	uint16_t y = y1;
@@ -1729,7 +2578,7 @@ void cxd85xxx::copyRectVramCpu(const uint32_t source_coord, const uint32_t width
 	for (int i = 0; i < buffer.size(); i += 2) {
 		temp = buffer[i];
 		temp |= (uint32_t)buffer[i + 1] << 16;
-		collectBuffer.push_back(temp);
+		fifo.push_back(temp);
 	}
 }
 
@@ -1794,10 +2643,10 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 	switch (commandColor >> 29) {
 	case 0b000: //Misc commands
 		if ((gp0Command >> 24) == 0x02) {
-			uint32_t size_x_y = collectBuffer.back();
-			collectBuffer.pop_back();
-			param.vert1 = (vertex_t)collectBuffer.back();
-			collectBuffer.pop_back();
+			uint32_t size_x_y = fifo.back();
+			fifo.pop_back();
+			param.vert1 = (vertex_t)fifo.back();
+			fifo.pop_back();
 			param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 			param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 			param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1827,52 +2676,52 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.vert4 = (0, 0);
 		if (param.verticesNumber == 4) {
 			if (param.bTextured) {
-				param.texCoord4 = collectBuffer.back();
-				collectBuffer.pop_back();
+				param.texCoord4 = fifo.back();
+				fifo.pop_back();
 			}
 
-			param.vert4 = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.vert4 = fifo.back();
+			fifo.pop_back();
 
 			if (param.shadingType == GOURAUD_SHADING) {
-				param.color4 = collectBuffer.back();
-				collectBuffer.pop_back();
+				param.color4 = fifo.back();
+				fifo.pop_back();
 			}
 		}
 
 		if (param.bTextured) {
-			param.texCoord3 = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.texCoord3 = fifo.back();
+			fifo.pop_back();
 		}
 
-		param.vert3 = collectBuffer.back();
-		collectBuffer.pop_back();
+		param.vert3 = fifo.back();
+		fifo.pop_back();
 
 		if (param.shadingType == GOURAUD_SHADING) {
-			param.color3 = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.color3 = fifo.back();
+			fifo.pop_back();
 		}
 
 		if (param.bTextured) {
-			param.texCoord2TexPage = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.texCoord2TexPage = fifo.back();
+			fifo.pop_back();
 		}
 
-		param.vert2 = collectBuffer.back();
-		collectBuffer.pop_back();
+		param.vert2 = fifo.back();
+		fifo.pop_back();
 
 		if (param.shadingType == GOURAUD_SHADING) {
-			param.color2 = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.color2 = fifo.back();
+			fifo.pop_back();
 		}
 
 		if (param.bTextured) {
-			param.texCoord1Palette = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.texCoord1Palette = fifo.back();
+			fifo.pop_back();
 		}
 
-		param.vert1 = collectBuffer.back();
-		collectBuffer.pop_back();
+		param.vert1 = fifo.back();
+		fifo.pop_back();
 
 		param.commandColor1 = commandColor;
 
@@ -1888,12 +2737,37 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				param.color4 = param.commandColor1 & 0x00ffffff;
 		}
 
-		/*if (param.bTextured)
-			drawTexPolygon(&param);
-		else*/
-		drawPolygon(&param);
+		if ((param.bTextured)/* && (param.verticesNumber == 4)*/) {
+			/*if (param.vert1.x > param.vert2.x)
+				param.bFlipHorizontally = true;
+			if (param.vert1.y > param.vert4.y)
+				param.bFlipVertically = true;*/
+
+			switch (gpuStat.elem.texPageColors) {
+			case 0:
+				drawTexPolygon4Bit(&param);
+				break;
+			case 1:
+				drawTexPolygon8Bit(&param);
+				break;
+			case 2:
+				drawTexPolygon15Bit(&param);
+				break;
+			case 3:
+				throw std::runtime_error("texture page color mode RESERVED!");
+				break;
+			}
+		}
+		else
+			drawPolygon(&param);
+
+		/*	if (param.bTextured)
+				drawTexPolygon(&param);
+			else
+				drawPolygon(&param);*/
 
 		break;
+
 	case 0b010: //Line primitive
 		param.primitiveType = LINE;
 
@@ -1901,31 +2775,40 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.bPolyline = (commandColor & 0x08000000) ? true : false;
 		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 
-		if (param.bPolyline) {
-			std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x" << std::hex << commandColor << " " <<
-				gp0Lookup[(commandColor >> 24)].name << "\n";
-			//g_emulationPaused = true;
-			for (int i = 0; i < collectBuffer.size(); i++) {
-				std::cout << "0x" << std::hex << collectBuffer[i] << "\n";
+		if (param.bPolyline)
+			fifo.pop_back(); // pop 0x50005000
+
+		param.commandColor1 = commandColor;
+
+		if (param.shadingType == FLAT_SHADING) {
+			for (int i = 0; i < fifo.size() - 1; i++) {
+				param.vert1 = fifo[i];
+				param.vert2 = fifo[i + 1];
+
+				drawLine(param);
 			}
 		}
 
-		param.vert2 = collectBuffer.back();
-		collectBuffer.pop_back();
 		if (param.shadingType == GOURAUD_SHADING) {
-			param.color2 = collectBuffer.back();
-			collectBuffer.pop_back();
-		}
-		param.vert1 = collectBuffer.back();
-		collectBuffer.pop_back();
-		param.commandColor1 = commandColor;
+			for (int i = 0; i < fifo.size() - 2; i += 2) {
+				param.vert1 = fifo[i];
+				param.color2 = fifo[i + 1];
+				param.vert2 = fifo[i + 2];
 
-		if (!param.bPolyline)
-			drawLine(param);
-		else
-			collectBuffer.clear();
+				if (fifo[0] == fifo[i + 2]) //!!?????
+					param.color2 = commandColor & 0x00ffffff;
+
+				drawLine(param);
+
+				param.commandColor1 = (param.commandColor1 & 0xff000000) | param.color2.data;
+
+			}
+		}
+
+		fifo.clear();
 
 		break;
+
 	case 0b011: { //Rectangle primitive
 		param.primitiveType = RECT;
 
@@ -1936,8 +2819,8 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 
 		switch (param.rectSize) {
 		case 0b00:
-			param.size_y_x = collectBuffer.back();
-			collectBuffer.pop_back();
+			param.size_y_x = fifo.back();
+			fifo.pop_back();
 			break;
 		case 0b01:
 			param.size_y_x = 0x00010001;
@@ -1951,8 +2834,8 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		}
 
 		if (param.bTextured) {
-			param.texCoord1Palette = (texcoordType_t)collectBuffer.back();
-			collectBuffer.pop_back();
+			param.texCoord1Palette = (texcoordType_t)fifo.back();
+			fifo.pop_back();
 
 
 			param.texCoord2TexPage.elem.attribute = (uint16_t)gpuStat.data & 0x01ff;
@@ -1960,8 +2843,8 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				param.texCoord2TexPage.elem.attribute & 0xfffff7ff : param.texCoord2TexPage.elem.attribute | 0x800;
 		}
 
-		param.vert1 = (vertex_t)collectBuffer.back();
-		collectBuffer.pop_back();
+		param.vert1 = (vertex_t)fifo.back();
+		fifo.pop_back();
 
 		param.vert2 = param.vert1 + vertex_t(param.size_y_x & 0xffff, 0);
 		param.vert3 = param.vert1 + vertex_t(0, (param.size_y_x >> 16) & 0xffff);
@@ -1990,22 +2873,22 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		break;
 	}
 	case 0b100: { //VRAM-to-VRAM blit
-		uint32_t widthHeight = collectBuffer.back();
-		collectBuffer.pop_back();
-		uint32_t destCoord = collectBuffer.back();
-		collectBuffer.pop_back();
-		uint32_t sourceCoord = collectBuffer.back();
-		collectBuffer.pop_back();
+		uint32_t widthHeight = fifo.back();
+		fifo.pop_back();
+		uint32_t destCoord = fifo.back();
+		fifo.pop_back();
+		uint32_t sourceCoord = fifo.back();
+		fifo.pop_back();
 		copyRectVramVram(sourceCoord, destCoord, widthHeight);
 		break;
 	}
 	case 0b101: //CPU-to-VRAM blit
 		if (bCollectCopyCpuVramParam) {
 			bCollectCopyCpuVramParam = false;
-			widthHeight = collectBuffer.back();
-			collectBuffer.pop_back();
-			destCoord = collectBuffer.back();
-			collectBuffer.pop_back();
+			widthHeight = fifo.back();
+			fifo.pop_back();
+			destCoord = fifo.back();
+			fifo.pop_back();
 			//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height << 16 >> 16) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
 			collectCount = (widthHeight >> 16) * (widthHeight << 16 >> 16) / 2;
 			if ((collectCount * 2) < ((widthHeight >> 16) * (widthHeight << 16 >> 16)))
@@ -2016,10 +2899,10 @@ void cxd85xxx::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		}
 		break;
 	case 0b110: //VRAM-to-CPU blit
-		widthHeight = collectBuffer.back();
-		collectBuffer.pop_back();
-		sourceCoord = collectBuffer.back();
-		collectBuffer.pop_back();
+		widthHeight = fifo.back();
+		fifo.pop_back();
+		sourceCoord = fifo.back();
+		fifo.pop_back();
 		copyRectVramCpu(sourceCoord, widthHeight);
 		bTransferCommand = true;
 		break;

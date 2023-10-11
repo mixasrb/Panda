@@ -269,7 +269,7 @@ void hc05_pux::clock() {
 
 
 
-	if (clocks >= (waitClocksFirstResponse) && bFirstResponse) {
+	if (clocks >= waitClocksFirstResponse && bFirstResponse) {
 		bFirstResponse = false;
 		clocks = 0;
 

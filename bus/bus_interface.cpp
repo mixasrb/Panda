@@ -53,14 +53,14 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 			return;
 		}
 
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
-			/*data = (uint32_t)scratchpad[addr & 0x3ff];
-			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
-			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 2] << 16;
-			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 3] << 24;*/
-			clocks = 1;
-			return;
-		}
+		//if (cacheControl != 0x0001e988) {
+		//	/*data = (uint32_t)scratchpad[addr & 0x3ff];
+		//	data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
+		//	data |= (uint32_t)scratchpad[(addr & 0x3ff) + 2] << 16;
+		//	data |= (uint32_t)scratchpad[(addr & 0x3ff) + 3] << 24;*/
+		//	clocks = 1;
+		//	return;
+		//}
 
 		//if ((addr & 0x1fffffff) > 0x200000)
 
@@ -192,7 +192,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 			return;
 		}
 
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) { //??
+		if (cacheControl != 0x0001e988) {
 			/*scratchpad[addr & 0x3ff] = (uint8_t)data;
 			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
 			scratchpad[(addr & 0x3ff) + 2] = (uint8_t)(data >> 16);
@@ -343,12 +343,12 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 			return;
 		}
 
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
-			/*data = (uint32_t)scratchpad[addr & 0x3ff];
-			data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;*/
-			clocks = 1;
-			return;
-		}
+		//if (cacheControl != 0x0001e988) {
+		//	/*data = (uint32_t)scratchpad[addr & 0x3ff];
+		//	data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;*/
+		//	clocks = 1;
+		//	return;
+		//}
 
 		data = (uint32_t)ram[addr & 0x1fffff];
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
@@ -444,7 +444,7 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 			return;
 		}
 
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
+		if (cacheControl != 0x0001e988) {
 			/*scratchpad[addr & 0x3ff] = (uint8_t)data;
 			scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);*/
 			return;
@@ -526,11 +526,11 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 			return;
 		}
 
-		/*if (pCpu->cp0.isolateDataCache) {
-			data = scratchpad[addr & 0x3ff];
-			clocks = 1;
-			return;
-		}*/
+		//if (cacheControl != 0x0001e988) {
+		//	/*data = scratchpad[addr & 0x3ff];*/
+		//	clocks = 1;
+		//	return;
+		//}
 
 		data = ram[addr & 0x1fffff];
 		clocks = 5;
@@ -584,7 +584,7 @@ void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t&
 		}
 
 
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
+		if (cacheControl != 0x0001e988) {
 			//scratchpad[addr & 0x3ff] = data;
 			return;
 		}

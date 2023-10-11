@@ -503,6 +503,18 @@ uint32_t cp2::gteDevide(uint16_t numerator, uint16_t denominator) {
 	0x00
 	};
 
+	//int shift = cp2::countLeadingZeros16(denominator);
+
+	//int r1 = (denominator << shift) & 0x7fff;
+	//int r2 = unrTable[((r1 + 0x40) >> 7)] + 0x101;
+	//int r3 = ((0x80 - (r2 * (r1 + 0x8000))) >> 8) & 0x1ffff;
+	//uint32_t reciprocal = ((r2 * r3) + 0x80) >> 8;
+
+	//const uint32_t res = ((((uint64_t)reciprocal * (numerator << shift)) + 0x8000) >> 16);
+
+	//// Some divisions like 0xF015/0x780B result in 0x20000, but are saturated to 0x1ffff without setting FLAG
+	//return std::min<uint32_t>(0x1ffff, res);
+
 	const uint32_t z = countLeadingZeros16(denominator);
 	const uint32_t n = (uint32_t)numerator << z;
 	uint32_t d = (uint32_t)denominator << z;
@@ -989,7 +1001,7 @@ void cp2::GPF(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::GPL(uint32_t opcode) {
+void cp2::GPL(uint32_t opcode) { //???
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 

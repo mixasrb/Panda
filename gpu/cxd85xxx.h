@@ -262,7 +262,7 @@ public:
 
 	uint32_t gp0Command;
 	uint32_t collectCount = 0;
-	std::vector<uint32_t> collectBuffer;
+	std::vector<uint32_t> fifo;
 
 	void decodeExecuteGp0Command(const uint32_t& commandColor);
 
@@ -282,7 +282,8 @@ public:
 
 	void drawTexPolygon15Bit(param_t* p_param);
 	void drawTexPolygon8Bit(param_t* p_param);
-	void drawTexPolygon(param_t* p_param);
+	void drawTexPolygon4Bit(param_t* p_param);
+	//void drawTexPolygon(param_t* p_param);
 
 	void drawLine(param_t param);
 
