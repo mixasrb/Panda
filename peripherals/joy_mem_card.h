@@ -9,30 +9,30 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface;
+class busInterface_t;
 
-class joyMemCard {
+class joyMemCard_t {
 public:
-	joyMemCard();
-	~joyMemCard();
+	joyMemCard_t();
+	~joyMemCard_t();
 
-	busInterface* pBus;
+	busInterface_t* pBus;
 
-	void cpuRead8(const uint32_t& addr, uint8_t& data);
-	void cpuWrite8(const uint32_t& addr, const uint8_t& data);
+	void cpuRead32(const uint32_t& addr, uint32_t& data);
+	void cpuWrite32(const uint32_t& addr, const uint32_t& data);
 
 	void cpuRead16(const uint32_t& addr, uint16_t& data);
 	void cpuWrite16(const uint32_t& addr, const uint16_t& data);
 
-	void cpuRead32(const uint32_t& addr, uint32_t& data);
-	void cpuWrite32(const uint32_t& addr, const uint32_t& data);
+	void cpuRead8(const uint32_t& addr, uint8_t& data);
+	void cpuWrite8(const uint32_t& addr, const uint8_t& data);
 
 	void clock();
 
 	void readMemCardFiles();
 	void writeMemCardFiles();
 
-	union JoyTxData {
+	union joyTxData_t {
 		uint32_t data;
 		struct {
 			uint32_t dataToBeSent : 8;
@@ -40,7 +40,7 @@ public:
 		}elem;
 	}joyTxData;
 
-	union JoyRxData {
+	union joyRxData_t {
 		uint32_t data;
 		struct {
 			uint32_t firstEntry : 8;
@@ -56,7 +56,7 @@ public:
 		LOW = 1
 	};
 
-	union JoyStat {
+	union joyStat_t {
 		uint32_t data;
 		struct {
 			uint32_t txReadFlag1 : 1;
@@ -74,7 +74,7 @@ public:
 		}elem;
 	}joyStat;
 
-	union JoyMode {
+	union joyMode_t {
 		uint16_t data;
 		struct {
 			uint16_t baudrateReloadFactor : 2;
@@ -87,7 +87,7 @@ public:
 		}elem;
 	}joyMode;
 
-	union JoyCtrl {
+	union joyCtrl_t {
 		uint16_t data;
 		struct {
 			uint16_t txEnable : 1;
@@ -107,7 +107,7 @@ public:
 		}elem;
 	}joyCtrl;
 
-	union JoyBaud {
+	union joyBaud_t {
 		uint16_t baudrateReloadValue;
 	}joyBaud;
 
@@ -157,6 +157,7 @@ public:
 		GetIDCommand = 'S',
 		writeCommand = 'W',
 	}*/
+
 	uint8_t memCardCommand;
 	uint8_t memCardFlags[2];
 	uint16_t sectorNum;
@@ -187,7 +188,7 @@ public:
 	const uint32_t NUMBER_OF_BLOCKS = 16;
 	const uint32_t NUMBER_OF_FRAMES_PRE_BLOCK = 64; //sectors
 	const uint32_t SIZE_OF_FRAME = 128;
-	//std::vector<uint8_t> memCards[2];
+
 	uint8_t memCards[2][128 * 1024];
 
 	//debug

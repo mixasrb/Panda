@@ -3,15 +3,35 @@
 #include <cstdint>
 #include <vector>
 #include <bit>
+#include <algorithm>
 
 #include "../debug_utilities/debug_utilities.h"
 
-class cw33300;
+class cpu_t;
 
-class cp2 {
+class cp2_t {
 public:
-	cp2();
-	cw33300* pCpu;
+
+	cp2_t();
+	cpu_t* pCpu;
+
+	void MFC2(uint8_t rt, uint8_t rd);
+	void CFC2(uint8_t rt, uint8_t rd);
+	void MTC2(uint8_t rt, uint8_t rd);
+	void CTC2(uint8_t rt, uint8_t rd);
+	void BC2F(uint16_t imm);
+	void BC2T(uint16_t imm);
+	void COP2(uint32_t imm);
+	void LWC2(uint8_t rs, uint8_t rt, int16_t imm);
+	void SWC2(uint8_t rs, uint8_t rt, int16_t imm);
+
+	struct opcode_t {
+		std::string name;
+		void (cp2_t::* opcode)(uint32_t imm);
+		uint8_t clocks;
+	};
+
+	std::vector<opcode_t> opcodeLookup;
 
 	union parts_t {
 		struct {
@@ -49,33 +69,13 @@ public:
 		return std::countl_zero<uint32_t>(value);
 	}
 
-
 	static int64_t gteSR(int64_t a, int sf) { return sf ? a >> 12 : a; }
 	static int64_t gteSL(int64_t a, int sf) { return sf ? a << 12 : a; }
 
 	static uint32_t countLeadingZeros16(uint16_t a) { return std::countl_zero<uint16_t>(a); }
-	uint32_t gteDevide(uint16_t numerator, uint16_t denominator);
-
+	uint32_t gteDivide(uint16_t numerator, uint16_t denominator);
 
 	uint32_t saturate(int32_t value, int32_t min, int32_t max, uint32_t flag);
-
-	void MFC2(uint8_t rt, uint8_t rd);
-	void CFC2(uint8_t rt, uint8_t rd);
-	void MTC2(uint8_t rt, uint8_t rd);
-	void CTC2(uint8_t rt, uint8_t rd);
-	void BC2F(uint16_t imm);
-	void BC2T(uint16_t imm);
-	void COP2(uint32_t imm);
-	void LWC2(uint8_t rs, uint8_t rt, int16_t imm);
-	void SWC2(uint8_t rs, uint8_t rt, int16_t imm);
-
-	struct opcode_t {
-		std::string name;
-		void (cp2::* opcode)(uint32_t imm);
-		uint8_t clocks;
-	};
-
-	std::vector<opcode_t> opcodeLookup;
 
 	class int44 {
 		int64_t m_value;
@@ -115,7 +115,7 @@ public:
 	int64_t F(int64_t a);
 	int32_t Lm_G1(int64_t a);
 	int32_t Lm_G2(int64_t a);
-	int32_t Lm_H(int64_t a);
+	int32_t Lm_H(int64_t value, int sf);
 
 	void XXXXX(uint32_t opcode);
 	void RTPS(uint32_t opcode);

@@ -3,23 +3,23 @@
 
 extern bool g_emulationPaused;
 
-Console::Console() {
+console_t::console_t() {
 	connectComponents();
 	//debug
 	connectDebugger();
 }
 
-void Console::reset() {
+void console_t::reset() {
 	cpuSOC.reset();
 }
 
-void Console::clock() {
+void console_t::clock() {
 	if (!bus.dma.isCpuStopped)
 		cpuSOC.clock();
 
 	bus.dma.clock();
 
-	mdec.clock();
+	//mdec.clock();
 
 	gpu.videoClock();
 
@@ -32,8 +32,8 @@ void Console::clock() {
 	joyMemCard.clock();
 }
 
-void Console::connectComponents() {
-	bus.dma.ConnectBus(&bus);
+void console_t::connectComponents() {
+	bus.dma.connectBus(&bus);
 
 	cpuSOC.pBus = &bus;
 	bus.pCpu= &cpuSOC;
@@ -55,7 +55,7 @@ void Console::connectComponents() {
 	bus.pJoyMemCard = &joyMemCard;
 }
 
-void Console::connectDebugger() {
+void console_t::connectDebugger() {
 	bus.pDebugger = &debugger;
 	bus.dma.p_debugger = &debugger;
 	cpuSOC.p_debugger = &debugger;

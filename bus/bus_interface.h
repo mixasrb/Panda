@@ -22,22 +22,8 @@
 #define RAM_SIZE  4 * 2 * 1024 * 1024 / 4
 #define SCRATCHPAD_SIZE  1024 * 1024
 
-class busInterface {
+class busInterface_t {
 public:
-
-	cw33300* pCpu = nullptr;
-	dmaController dma;
-	mdec* pMdec = nullptr;
-	cxd85xxx* pGpu = nullptr;
-	hc05_pux* pCdDrive = nullptr;
-	timer0 timer0;
-	timer1 timer1;
-	timer2 timer2;
-	joyMemCard* pJoyMemCard = nullptr;
-	biosChip biosChip;
-
-	uint8_t* ram = new uint8_t[RAM_SIZE];
-	uint8_t* scratchpad = new uint8_t[SCRATCHPAD_SIZE];
 
 	void cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug = false);
 	void cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
@@ -47,6 +33,30 @@ public:
 
 	void cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles, bool debug = false);
 	void cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
+
+	//cw33300
+	cpu_t* pCpu = nullptr;
+
+	dmaController_t dma;
+
+	mdec_t* pMdec = nullptr;
+
+	//cxd85xxx
+	gpu_t* pGpu = nullptr;
+
+	//hc05_pux
+	cdDrive* pCdDrive = nullptr;
+
+	timer0_t timer0;
+	timer1_t timer1;
+	timer2_t timer2;
+
+	joyMemCard_t* pJoyMemCard = nullptr;
+
+	biosChip_t biosChip;
+
+	uint8_t* ram = new uint8_t[RAM_SIZE];
+	uint8_t* scratchpad = new uint8_t[SCRATCHPAD_SIZE];
 
 	uint32_t interruptStat = 0;
 	uint32_t interruptMask = 0;
@@ -100,6 +110,41 @@ public:
 	delayType registerDelays[6];
 
 	delayType calculateDelays(const delayRegisterType& delayRegister);
+
+	//spu
+
+	union spuControlRegister_t {
+		uint16_t data;
+		struct {
+			uint16_t cdAudioEnable : 1;
+			uint16_t externalAudioEnable : 1;
+			uint16_t cdAudioReverb : 1;
+			uint16_t externalAudioReverb : 1;
+			uint16_t soundRAMTransferMode : 2;
+			uint16_t irq9Enable : 1;
+			uint16_t reverbMasterEnable : 1;
+			uint16_t noiseFrequencyStep : 2;
+			uint16_t noiseFrequencyShift : 4;
+			uint16_t muteSPU : 1;
+			uint16_t spuEnable : 1;
+		}elem;
+	}spuControlRegister;
+
+	union spuStatusRegister_t {
+		uint16_t data;
+		struct {
+			uint16_t currentSPUMode : 6;
+			uint16_t irq9Flag : 1;
+			uint16_t dataTransferDMAReadWriteRequest : 1;
+			uint16_t dataTransferDMAWriteRequest : 1;
+			uint16_t dataTransferDMAReadRequest : 1;
+			uint16_t dataTransferBusyFlag : 1;
+			uint16_t writingFirstSecondHalfCaptureBuffers : 1;
+			uint16_t unused : 4;
+		}elem;
+	}spuStatusRegister;
+
+	uint16_t soundRAM_IRQAddress;
 
 	//debug
 	debugUtilities* pDebugger = nullptr;

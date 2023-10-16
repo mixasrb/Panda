@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void dma6::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void dma6_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = memoryAddress.data;
@@ -17,7 +17,7 @@ void dma6::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	}
 }
 
-void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void dma6_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
@@ -50,30 +50,30 @@ void dma6::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 	}
 }
 
-void dma6::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void dma6_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA6] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
 	g_emulationPaused = true;
 }
 
-void dma6::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void dma6_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA6] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << std::endl;
 	g_emulationPaused = true;
 }
 
-void dma6::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void dma6_t::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 }
 
-void dma6::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void dma6_t::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	pbus->cpuWrite32(addr, data, cycles);
 }
 
-void dma6::DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void dma6_t::DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 }
 
-void dma6::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void dma6_t::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 }
 
-void dma6::triggerIRQ() {
+void dma6_t::triggerIRQ() {
 	if (pDMAController->interruptRegister.reg.IRQ_enable_dma6)
 		pDMAController->interruptRegister.reg.IRQ_flag_dma6 = 1;
 	else
@@ -87,7 +87,7 @@ void dma6::triggerIRQ() {
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
-void dma6::Clock() {
+void dma6_t::Clock() {
 	if (clocks == 0) {
 		channelControl.reg.startBusy = 0;
 		bStart = false;

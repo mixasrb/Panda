@@ -7,9 +7,9 @@
 #include "../../defines/defines.h"
 #include "../../debug_utilities/debug_utilities.h"
 
-class busInterface;
+class busInterface_t;
 
-class dma {
+class dma_t {
 public:
 
 	virtual void ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) = 0;
@@ -22,9 +22,9 @@ public:
 	virtual void DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) = 0;
 	virtual void DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) = 0;
 
-	virtual void triggerIRQ() = 0;
-
 	virtual void Clock() = 0;
+
+	virtual void triggerIRQ() = 0;
 
 	union memoryAddress_t {
 		uint32_t data;

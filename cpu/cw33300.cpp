@@ -1,6 +1,9 @@
 #include "cw33300.h"
 #include "../bus/bus_interface.h"
 
+#undef DEBUG
+#define DEBUG 1
+
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
 extern bool g_biosCallbacksLogged;
@@ -8,7 +11,7 @@ extern bool g_biosCallbacksLogged;
 extern const char* g_sideloadPath;
 extern bool g_sideload;
 
-cw33300::cw33300() {
+cpu_t::cpu_t() {
 	cp0.pCpu = this;
 	cp2.pCpu = this;
 
@@ -38,84 +41,84 @@ cw33300::cw33300() {
 
 	shift_imm.resize(4);
 	shift_imm = {
-		{&cw33300::SLL}, {&cw33300::XXX}, {&cw33300::SRL}, {&cw33300::SRA}
+		{&cpu_t::SLL}, {&cpu_t::XXX}, {&cpu_t::SRL}, {&cpu_t::SRA}
 	};
 
 	shift_reg.resize(4);
 	shift_reg = {
-		{&cw33300::SLLV}, {&cw33300::XXX2}, {&cw33300::SRLV}, {&cw33300::SRAV}
+		{&cpu_t::SLLV}, {&cpu_t::XXX2}, {&cpu_t::SRLV}, {&cpu_t::SRAV}
 	};
 
 	sys_brk.resize(2);
 	sys_brk = {
-		{&cw33300::SYSCALL}, { &cw33300::BREAK }
+		{&cpu_t::SYSCALL}, { &cpu_t::BREAK }
 	};
 
 	alu_reg.resize(16);
 	alu_reg = {
-		{&cw33300::ADD}, {&cw33300::ADDU}, {&cw33300::SUB}, {&cw33300::SUBU}, {&cw33300::AND}, {&cw33300::OR}, {&cw33300::XOR}, {&cw33300::NOR},
-		{&cw33300::XXX2}, {&cw33300::XXX2}, {&cw33300::SLT}, {&cw33300::SLTU}, {&cw33300::XXX2}, {&cw33300::XXX2}, {&cw33300::XXX2}, {&cw33300::XXX2}
+		{&cpu_t::ADD}, {&cpu_t::ADDU}, {&cpu_t::SUB}, {&cpu_t::SUBU}, {&cpu_t::AND}, {&cpu_t::OR}, {&cpu_t::XOR}, {&cpu_t::NOR},
+		{&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::SLT}, {&cpu_t::SLTU}, {&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::XXX2}
 	};
 
 	mfhi_mflo.resize(2);
 	mfhi_mflo = {
-		{&cw33300::MFHI}, {&cw33300::MFLO}
+		{&cpu_t::MFHI}, {&cpu_t::MFLO}
 	};
 
 	mthi_mtlo.resize(2);
 	mthi_mtlo = {
-		{&cw33300::MTHI}, {&cw33300::MTLO}
+		{&cpu_t::MTHI}, {&cpu_t::MTLO}
 	};
 
 	mul_div.resize(4);
 	mul_div = {
-		{&cw33300::MULT}, {&cw33300::MULTU}, {&cw33300::DIV}, {&cw33300::DIVU}
+		{&cpu_t::MULT}, {&cpu_t::MULTU}, {&cpu_t::DIV}, {&cpu_t::DIVU}
 	};
 
 	b_cond_z.resize(4);
 	b_cond_z = {
-		{&cw33300::BLTZ}, {&cw33300::BGEZ}, {&cw33300::BLTZAL}, {&cw33300::BGEZAL}
+		{&cpu_t::BLTZ}, {&cpu_t::BGEZ}, {&cpu_t::BLTZAL}, {&cpu_t::BGEZAL}
 	};
 
 	j_jal.resize(2);
 	j_jal = {
-		{&cw33300::J}, {&cw33300::JAL}
+		{&cpu_t::J}, {&cpu_t::JAL}
 	};
 
 	beq_bne.resize(2);
 	beq_bne = {
-		{&cw33300::BEQ}, {&cw33300::BNE}
+		{&cpu_t::BEQ}, {&cpu_t::BNE}
 	};
 
 	blez_bgtz.resize(2);
 	blez_bgtz = {
-		{&cw33300::BLEZ}, {&cw33300::BGTZ}
+		{&cpu_t::BLEZ}, {&cpu_t::BGTZ}
 	};
 
 	alu_imm.resize(7);
 	alu_imm = {
-		{&cw33300::ADDI}, {&cw33300::ADDIU}, {&cw33300::SLTI}, {&cw33300::SLTIU}, {&cw33300::ANDI}, {&cw33300::ORI}, {&cw33300::XORI}
+		{&cpu_t::ADDI}, {&cpu_t::ADDIU}, {&cpu_t::SLTI}, {&cpu_t::SLTIU}, {&cpu_t::ANDI}, {&cpu_t::ORI}, {&cpu_t::XORI}
 	};
 
 	load_rt.resize(8);
 	load_rt = {
-		{&cw33300::LB}, {&cw33300::LH}, {&cw33300::LWL}, {&cw33300::LW}, {&cw33300::LBU}, {&cw33300::LHU}, {&cw33300::LWR}, {&cw33300::XXX2}
+		{&cpu_t::LB}, {&cpu_t::LH}, {&cpu_t::LWL}, {&cpu_t::LW}, {&cpu_t::LBU}, {&cpu_t::LHU}, {&cpu_t::LWR}, {&cpu_t::XXX2}
 	};
 
 	store_rt.resize(8);
 	store_rt = {
-		{&cw33300::SB}, {&cw33300::SH}, {&cw33300::SWL}, {&cw33300::SW}, {&cw33300::XXX1}, {&cw33300::XXX1}, {&cw33300::SWR}, {&cw33300::XXX1}
+		{&cpu_t::SB}, {&cpu_t::SH}, {&cpu_t::SWL}, {&cpu_t::SW}, {&cpu_t::XXX1}, {&cpu_t::XXX1}, {&cpu_t::SWR}, {&cpu_t::XXX1}
 	};
 
 	//debug
 	executedOpcodes.resize(32);
 }
 
-void cw33300::read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void cpu_t::read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	pBus->cpuRead32(addr, data, cycles);
 }
 
-void cw33300::write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cycles) {
+void cpu_t::write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cycles) {
 	pBus->cpuWrite32(addr, data, wr_cycles);
 
 	/*if (cycle == 0) {
@@ -132,11 +135,11 @@ void cw33300::write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cy
 	}*/
 }
 
-void cw33300::read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void cpu_t::read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	pBus->cpuRead16(addr, data, cycles);
 }
 
-void cw33300::write16(const uint32_t& addr, const uint16_t& data, uint8_t& wr_cycles) {
+void cpu_t::write16(const uint32_t& addr, const uint16_t& data, uint8_t& wr_cycles) {
 	pBus->cpuWrite16(addr, data, wr_cycles);
 
 	/*if (cycle == 0) {
@@ -153,11 +156,11 @@ void cw33300::write16(const uint32_t& addr, const uint16_t& data, uint8_t& wr_cy
 	}*/
 }
 
-void cw33300::read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
+void cpu_t::read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
 	pBus->cpuRead8(addr, data, cycles);
 }
 
-void cw33300::write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void cpu_t::write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	pBus->cpuWrite8(addr, data, writeClocks);
 
 	/*if (cycle == 0) {
@@ -174,7 +177,7 @@ void cw33300::write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles)
 	}*/
 }
 
-uint32_t cw33300::get(const uint8_t& reg) {
+uint32_t cpu_t::get(const uint8_t& reg) {
 	//if (g_executedCpuInstructionsLogged) {
 	//	std::stringstream ss;
 	//	ss << "r" << (uint16_t)reg << " 0x" << std::hex << r[reg] << '\n';
@@ -184,7 +187,7 @@ uint32_t cw33300::get(const uint8_t& reg) {
 	return r[reg];
 }
 
-void cw33300::set(const uint8_t& reg, const uint32_t& value, const bool loadOpcode) {
+void cpu_t::set(const uint8_t& reg, const uint32_t& value, const bool loadOpcode) {
 	//if (!loadOpcode) {
 	if (reg != 0)
 		r[reg] = value;
@@ -207,7 +210,7 @@ void cw33300::set(const uint8_t& reg, const uint32_t& value, const bool loadOpco
 	}*/
 }
 
-void cw33300::decodeExecuteOpcode(const uint32_t& opcode) {
+void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//debug
 	//if (g_executedCpuInstructionsLogged) {
 	//	//p_debugger->log(getInstructionStr(opcode, pc_old, false) + "\n");
@@ -427,7 +430,7 @@ void cw33300::decodeExecuteOpcode(const uint32_t& opcode) {
 
 }
 
-void cw33300::reset() {
+void cpu_t::reset() {
 	isPipelineFull = false;
 	cycle = 0;
 	pc = 0xbfc00000;
@@ -435,11 +438,13 @@ void cw33300::reset() {
 	cycle1.bWrite = false;
 }
 
-void cw33300::clock() {
+void cpu_t::clock() {
 
 	//SIDELOAD debug
+#if DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
 		sideLoad();
+#endif
 
 	//debug
 	/*if (isInstructionExecuted && (pipelineCycle == 0)) {
@@ -461,7 +466,7 @@ void cw33300::clock() {
 		}
 	}*/
 
-
+	//debug
 	isInstructionExecuted = false;
 
 	if (clocks == 0) {
@@ -472,8 +477,12 @@ void cw33300::clock() {
 		case 0:
 		label0:
 			cycle = 1;
+
+
 			//debug
+#if DEBUG
 			setBiosCallFlag();
+#endif
 
 
 			//fetch
@@ -496,10 +505,12 @@ void cw33300::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[1]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 4;
 
 			//debug
+#if DEBUG
 			printBiosCall();
+#endif
 
 
 			//debug
@@ -515,8 +526,11 @@ void cw33300::clock() {
 			cycle = 0;
 			isPipelineFull = true;
 
+
 			//debug
+#if DEBUG
 			setBiosCallFlag();
+#endif
 
 
 			//fetch
@@ -535,10 +549,12 @@ void cw33300::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[0]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 4;
 
 			//debug
+#if DEBUG
 			printBiosCall();
+#endif
 
 			//debug
 			isInstructionExecuted = true;
@@ -552,41 +568,41 @@ void cw33300::clock() {
 
 //instructions
 
-void cw33300::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void cpu_t::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	set(rd, get(rt) << imm);
 }
 
-void cw33300::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void cpu_t::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << std::endl;
 	g_emulationPaused = true;
 }
 
-void cw33300::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void cpu_t::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	set(rd, get(rt) >> imm);
 }
 
-void cw33300::SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void cpu_t::SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	int32_t temp = get(rt);
 	temp >>= imm;
 	set(rd, temp);
 }
 
-void cw33300::SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rt) << (get(rs) & 0x1f));
 }
 
-void cw33300::SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rt) >> (get(rs) & 0x1f));
 }
 
-void cw33300::SRAV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SRAV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	int32_t temp = get(rt);
 	temp >>= (get(rs) & 0x1f);
 	set(rd, temp);
 }
 
-void cw33300::JR(const uint8_t& rs) {
+void cpu_t::JR(const uint8_t& rs) {
 	if (get(rs) & 0x3) {
 		cp0.exceptionHandler(_ADEL, get(rs));
 	}
@@ -594,7 +610,7 @@ void cw33300::JR(const uint8_t& rs) {
 		pc = get(rs);
 }
 
-void cw33300::JALR(const uint8_t& rs, const uint8_t& rd) {
+void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
 	uint32_t tempAddr = get(rs);
 	set(rd, pc);
 	if (tempAddr & 0x3) {
@@ -604,17 +620,17 @@ void cw33300::JALR(const uint8_t& rs, const uint8_t& rd) {
 		pc = tempAddr;
 }
 
-void cw33300::SYSCALL(const uint32_t& imm) {
+void cpu_t::SYSCALL(const uint32_t& imm) {
 	cp0.exceptionHandler(_SYSCALL);
 }
 
-void cw33300::BREAK(const uint32_t& imm) {
+void cpu_t::BREAK(const uint32_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< "op 0x" << std::hex << opcode << std::endl;
 	//cp0.exceptionHandler(_BP);
 }
 
-void cw33300::MULT(const uint8_t& rs, const uint8_t& rt) {
+void cpu_t::MULT(const uint8_t& rs, const uint8_t& rt) {
 	int64_t operandA = (int32_t)get(rs);
 	int64_t operandB = (int32_t)get(rt);
 	int64_t temp = operandA * operandB;
@@ -622,7 +638,7 @@ void cw33300::MULT(const uint8_t& rs, const uint8_t& rt) {
 	lo = temp << 32 >> 32;
 }
 
-void cw33300::MULTU(const uint8_t& rs, const uint8_t& rt) {
+void cpu_t::MULTU(const uint8_t& rs, const uint8_t& rt) {
 	uint64_t operandA = (uint32_t)get(rs);
 	uint64_t operandB = (uint32_t)get(rt);
 	uint64_t temp = operandA * operandB;
@@ -630,7 +646,7 @@ void cw33300::MULTU(const uint8_t& rs, const uint8_t& rt) {
 	lo = temp << 32 >> 32;
 }
 
-void cw33300::DIV(const uint8_t& rs, const uint8_t& rt) {
+void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
 	int32_t operandA = get(rs);
 	int32_t operandB = get(rt);
 
@@ -659,7 +675,7 @@ void cw33300::DIV(const uint8_t& rs, const uint8_t& rt) {
 		std::cout << "~[CPU] DIV divider = 0, potential problem \n";
 }
 
-void cw33300::DIVU(const uint8_t& rs, const uint8_t& rt) {
+void cpu_t::DIVU(const uint8_t& rs, const uint8_t& rt) {
 	uint32_t operand_a = get(rs);
 	uint32_t operand_b = get(rt);
 
@@ -676,23 +692,23 @@ void cw33300::DIVU(const uint8_t& rs, const uint8_t& rt) {
 		std::cout << "~[CPU] DIVU divider = 0, potential problem \n";
 }
 
-void cw33300::MFHI(const uint8_t& rd) {
+void cpu_t::MFHI(const uint8_t& rd) {
 	set(rd, hi);
 }
 
-void cw33300::MFLO(const uint8_t& rd) {
+void cpu_t::MFLO(const uint8_t& rd) {
 	set(rd, lo);
 }
 
-void cw33300::MTHI(const uint8_t& rs) {
+void cpu_t::MTHI(const uint8_t& rs) {
 	hi = get(rs);
 }
 
-void cw33300::MTLO(const uint8_t& rs) {
+void cpu_t::MTLO(const uint8_t& rs) {
 	lo = get(rs);
 }
 
-void cw33300::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	uint32_t a = get(rs);
 	uint32_t b = get(rt);
 	uint32_t res = a + b;
@@ -704,11 +720,11 @@ void cw33300::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 		set(rd, res);
 }
 
-void cw33300::ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rs) + get(rt));
 }
 
-void cw33300::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	uint32_t a = get(rs);
 	uint32_t b = get(rt);
 	uint32_t res = a - b;
@@ -720,100 +736,100 @@ void cw33300::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 		set(rd, res);
 }
 
-void cw33300::SUBU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SUBU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rs) - get(rt));
 }
 
-void cw33300::AND(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::AND(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rs) & get(rt));
 }
 
-void cw33300::OR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::OR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rs) | get(rt));
 }
 
-void cw33300::XOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::XOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, get(rs) ^ get(rt));
 }
 
-void cw33300::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	set(rd, ~(get(rs) | get(rt)));
 }
 
-void cw33300::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << std::endl;
 	g_emulationPaused = true;
 }
 
-void cw33300::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	int32_t openand_a = get(rs);
 	int32_t openand_b = get(rt);
 	openand_a < openand_b ? set(rd, 1) : set(rd, 0);
 }
 
-void cw33300::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void cpu_t::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	get(rs) < get(rt) ? set(rd, 1) : set(rd, 0);
 }
 
-void cw33300::BLTZ(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BLTZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BGEZ(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BGEZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	set(31, pc - 8 + 8);
 	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	set(31, pc - 8 + 8);
 	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::J(const uint32_t& imm) {
+void cpu_t::J(const uint32_t& imm) {
 	pc = (pc - 8 & 0xf0000000) | (imm << 2);
 }
 
-void cw33300::JAL(const uint32_t& imm) {
+void cpu_t::JAL(const uint32_t& imm) {
 	set(31, pc);
 	pc = (pc - 8 & 0xf0000000) | (imm << 2);
 }
 
-void cw33300::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	if (get(rs) == get(rt))
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	if (get(rs) != get(rt))
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BLEZ(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BLEZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	if (temp <= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::BGTZ(const uint8_t& rs, const uint16_t& imm) {
+void cpu_t::BGTZ(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = get(rs);
 	if (temp > 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cw33300::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	uint32_t a = get(rs);
 	uint16_t b = imm;
 	uint32_t temp = a + (int16_t)b;
@@ -825,43 +841,43 @@ void cw33300::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 		set(rt, temp);
 }
 
-void cw33300::ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	set(rt, get(rs) + (int16_t)imm);
 }
 
-void cw33300::SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	(int32_t)get(rs) < (int32_t)((int16_t)imm) ? set(rt, 1) : set(rt, 0);
 }
 
-void cw33300::SLTIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::SLTIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	get(rs) < (uint32_t)(int32_t)((int16_t)imm) ? set(rt, 1) : set(rt, 0);
 }
 
-void cw33300::ANDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::ANDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	set(rt, get(rs) & imm);
 }
 
-void cw33300::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm)
+void cpu_t::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm)
 {
 	set(rt, (get(rs) | imm));
 }
 
-void cw33300::XORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::XORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	set(rt, (get(rs) ^ imm));
 }
 
-void cw33300::LUI(const uint8_t& rt, const uint16_t& imm) {
+void cpu_t::LUI(const uint8_t& rt, const uint16_t& imm) {
 	set(rt, imm << 16);
 }
 
-void cw33300::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	uint8_t temp;
 	read8(temp_addr, temp, memoryClocks);
 	set(rt, (int32_t)((int8_t)temp), true);
 }
 
-void cw33300::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	if (temp_addr & 0x1) {
 		cp0.exceptionHandler(_ADEL, temp_addr);
@@ -873,7 +889,7 @@ void cw33300::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = get(rs) + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
@@ -898,7 +914,7 @@ void cw33300::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	if (temp_addr & 0x3) {
 		cp0.exceptionHandler(_ADEL, temp_addr);
@@ -910,14 +926,14 @@ void cw33300::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	uint8_t temp;
 	read8(temp_addr, temp, memoryClocks);
 	set(rt, temp, true);
 }
 
-void cw33300::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	if (temp_addr & 0x1) {
 		cp0.exceptionHandler(_ADEL, temp_addr);
@@ -929,7 +945,7 @@ void cw33300::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = get(rs) + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
@@ -954,18 +970,18 @@ void cw33300::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op 0x" << std::hex << opcode << std::endl;
 	g_emulationPaused = true;
 }
 
-void cw33300::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	write8(temp_addr, get(rt) & 0xff, writeClocks);
 }
 
-void cw33300::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	if (temp_addr & 0x1) {
 		cp0.exceptionHandler(_ADES, temp_addr);
@@ -974,7 +990,7 @@ void cw33300::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 		write16(temp_addr, get(rt) & 0xffff, writeClocks);
 }
 
-void cw33300::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = get(rs) + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
@@ -998,7 +1014,7 @@ void cw33300::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cw33300::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	if (temp_addr & 0x3) {
 		cp0.exceptionHandler(_ADES, temp_addr);
@@ -1007,13 +1023,13 @@ void cw33300::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 		write32(temp_addr, get(rt), writeClocks);
 }
 
-void cw33300::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op " << std::hex << opcode << std::endl;
 	g_emulationPaused = true;
 }
 
-void cw33300::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void cpu_t::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = get(rs) + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
@@ -1040,7 +1056,7 @@ void cw33300::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 //debug
 
-void cw33300::setBiosCallFlag() {
+void cpu_t::setBiosCallFlag() {
 	if (pc == 0xa0) {
 		biosCallFlag = 'a';
 		return;
@@ -1055,7 +1071,7 @@ void cw33300::setBiosCallFlag() {
 	}
 }
 
-void cw33300::printBiosCall() {
+void cpu_t::printBiosCall() {
 	uint8_t call = get(9);
 
 	if (biosCallFlag.has_value()) {
@@ -1177,7 +1193,7 @@ void cw33300::printBiosCall() {
 	}
 }
 
-std::string cw33300::getInstructionStr(const uint32_t& opcode, const uint32_t& pc, const bool& b) {
+std::string cpu_t::getInstructionStr(const uint32_t& opcode, const uint32_t& pc, const bool& b) {
 	std::string s;
 	std::stringstream ss;
 	ss << "0x" << std::hex << pc << ": ";
@@ -1216,7 +1232,7 @@ std::string cw33300::getInstructionStr(const uint32_t& opcode, const uint32_t& p
 	return s;
 }
 
-std::string cw33300::getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc) {
+std::string cpu_t::getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc) {
 	uint8_t prim_opcode = opcode >> 26;
 
 	std::stringstream ss;
@@ -1365,7 +1381,7 @@ std::string cw33300::getDecodedInstructionStr(const uint32_t& opcode, const uint
 	return ss.str();
 }
 
-void cw33300::sideLoad() {
+void cpu_t::sideLoad() {
 	g_sideload = false;
 	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
 	if (!file.is_open())

@@ -7,16 +7,17 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface;
+class busInterface_t;
 
-class hc05_pux {
+class cdDrive {
 public:
-	hc05_pux();
 
-	busInterface* pBus;
+	cdDrive();
 
-	void ReadCdDrive8(const uint32_t& addr, uint8_t& data);
-	void WriteCdDrive8(const uint32_t& addr, const uint8_t& data);
+	busInterface_t* pBus;
+
+	void readCdDrive8(const uint32_t& addr, uint8_t& data);
+	void writeCdDrive8(const uint32_t& addr, const uint8_t& data);
 
 	void clock();
 	uint32_t clocks = 0;
@@ -36,7 +37,7 @@ public:
 		MODCHIP_AUDIO_MODE_1 = 10
 	}driveStatus;
 
-	union IndexStatus {
+	union indexStatus_t {
 		uint8_t data;
 		struct {
 			uint8_t index : 2;
@@ -48,13 +49,14 @@ public:
 			uint8_t busysts : 1; //not emulated
 		}reg;
 	};
-	IndexStatus indexStatus = { 0 };
 
-	//it is not fifo it is just a register
-	std::vector<uint8_t> commandFifo;
+	indexStatus_t indexStatus = { 0 };
+
+	//it is not vecor it is just a register??
+	std::vector<uint8_t> commandVector;
 	std::vector<uint8_t> paramFifo;
 
-	union RequestRegister {
+	union requestRegister_t {
 		uint8_t data;
 		struct {
 			uint8_t enableBits : 5;
@@ -63,16 +65,16 @@ public:
 			uint8_t bfrd : 1;
 		}reg;
 	};
-	RequestRegister requestReg = { 0 };
+	requestRegister_t requestReg = { 0 };
 
 	//data fifo
-	uint8_t* buffer = nullptr;
+	uint8_t* pBuffer = nullptr;
 	uint16_t bufferCounter = 0;
 	std::vector<char> bufferVect;
 
 	std::vector<uint8_t> responseFifo;
 
-	union InterruptEnable {
+	union interruptEnable_t {
 		uint8_t data;
 		struct {
 			uint8_t enableBits : 5;
@@ -80,8 +82,9 @@ public:
 		}reg;
 	};
 
-	InterruptEnable interruptEnable = { 0 };
-	union IRQ_Flag_R_t {
+	interruptEnable_t interruptEnable = { 0 };
+
+	union irqFlagRead_t {
 		uint8_t data;
 		struct {
 			uint8_t int_1_7 : 3;
@@ -90,7 +93,7 @@ public:
 			uint8_t : 3;
 		}reg;
 	};
-	IRQ_Flag_R_t irq_flag_read = { 0 };
+	irqFlagRead_t irqFlagRead = { 0 };
 
 	enum responseINT_t :uint8_t {
 		INT0,
@@ -120,13 +123,13 @@ public:
 	uint32_t waitClocksDataResponse = 0;
 	void setDataResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
 
-	std::vector<uint8_t> tempFirstResponseFifo;
-	std::vector<uint8_t> tempSecondResponseFifo;
-	std::vector<uint8_t> tempDataResponseFifo;
+	std::vector<uint8_t> tempFirstResponseVector;
+	std::vector<uint8_t> tempSecondResponseVector;
+	std::vector<uint8_t> tempDataResponseVector;
 
 	struct command_t {
 		std::string name;
-		void(hc05_pux::* command)(const uint8_t& command);
+		void(cdDrive::* command)(const uint8_t& command);
 	};
 
 	std::vector<command_t> commandLookup;
@@ -134,28 +137,28 @@ public:
 	void executeCommand(const uint8_t& command);
 
 	void xxxxx(const uint8_t& command);
-	void Getstat(const uint8_t& command);
-	void Play(const uint8_t& command);
-	void Setloc(const uint8_t& command);
-	void ReadN(const uint8_t& command);
-	void Stop(const uint8_t& command);
-	void Pause(const uint8_t& command);
-	void Init(const uint8_t& command);
-	void Mute(const uint8_t& command);
-	void Demute(const uint8_t& command);
-	void Setfilter(const uint8_t& command);
-	void Setmode(const uint8_t& command);
-	void Getparam(const uint8_t& command);
-	void GetlocL(const uint8_t& command);
-	void GetlocP(const uint8_t& command);
-	void GetTN(const uint8_t& command);
-	void GetTD(const uint8_t& command);
-	void SeekL(const uint8_t& command);
-	void SeekP(const uint8_t& command);
-	void Test(const uint8_t& command);
-	void GetID(const uint8_t& command);
-	void ReadS(const uint8_t& command);
-	void ReadTOC(const uint8_t& command);
+	void getStat(const uint8_t& command);
+	void play(const uint8_t& command);
+	void setLoc(const uint8_t& command);
+	void readN(const uint8_t& command);
+	void stop(const uint8_t& command);
+	void pause(const uint8_t& command);
+	void init(const uint8_t& command);
+	void mute(const uint8_t& command);
+	void demute(const uint8_t& command);
+	void setFilter(const uint8_t& command);
+	void setMode(const uint8_t& command);
+	void getParam(const uint8_t& command);
+	void getLocL(const uint8_t& command);
+	void getLocP(const uint8_t& command);
+	void getTN(const uint8_t& command);
+	void getTD(const uint8_t& command);
+	void seekL(const uint8_t& command);
+	void seekP(const uint8_t& command);
+	void test(const uint8_t& command);
+	void getID(const uint8_t& command);
+	void readS(const uint8_t& command);
+	void readTOC(const uint8_t& command);
 
 	enum stat_t :uint8_t {
 		STAT_PLAY = 0x80,

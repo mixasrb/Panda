@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-dmaController::dmaController() {
+dmaController_t::dmaController_t() {
 	ppDMA[0] = &dma0;
 	ppDMA[1] = &dma1;
 	ppDMA[2] = &dma2;
@@ -14,7 +14,7 @@ dmaController::dmaController() {
 	interruptRegister.data = 0;
 }
 
-void dmaController::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
 			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 6))
@@ -35,7 +35,7 @@ void dmaController::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cyc
 	}
 }
 
-void dmaController::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
 			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 6))
@@ -65,18 +65,18 @@ void dmaController::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8
 	}
 }
 
-void dmaController::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void dmaController_t::readDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled read16" << " addr 0x" << std::hex << addr << std::endl;
 	g_emulationPaused = true;
 }
 
-void dmaController::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void dmaController_t::writeDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled write16" << " addr 0x" << std::hex << addr
 		<< " data 0x" << std::hex << data << std::endl;
 	g_emulationPaused = true;
 }
 
-void dmaController::ReadDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
+void dmaController_t::readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
 	if (addr == 0x1f8010f6)
 		data = (interruptRegister.data & 0x00ff0000) >> 16;
 	else {
@@ -85,7 +85,7 @@ void dmaController::ReadDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycle
 	}
 }
 
-void dmaController::WriteDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void dmaController_t::writeDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (addr == 0x1f8010f6)
 		interruptRegister.data = (interruptRegister.data & 0xff00ffff) | ((uint32_t)data << 16);
 	else {
@@ -95,7 +95,7 @@ void dmaController::WriteDMA8(const uint32_t& addr, const uint8_t& data, uint8_t
 	}
 }
 
-void dmaController::ConnectBus(busInterface* p) {
+void dmaController_t::connectBus(busInterface_t* p) {
 	pbus = p;
 
 	dma1.pBus = pbus;
@@ -114,7 +114,7 @@ void dmaController::ConnectBus(busInterface* p) {
 	dma6.pDMAController = this;
 }
 
-void dmaController::clock() {
+void dmaController_t::clock() {
 
 	bool bOldMasterFlag = interruptRegister.reg.IRQ_master_flag;
 

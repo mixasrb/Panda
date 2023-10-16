@@ -5,11 +5,14 @@
 
 #include "../defines/defines.h"
 
-class busInterface;
+class busInterface_t;
 
-class Timer {
+class timer_t {
 public:
-	busInterface* pBus;
+	busInterface_t* pBus;
+
+	virtual void ReadTimer32(const uint32_t& addr, uint16_t* data) = 0;
+	virtual void WriteTimer32(const uint32_t& addr, const uint16_t& data) = 0;
 
 	virtual void clock(uint8_t source) = 0;
 	uint16_t clocks;
@@ -54,7 +57,4 @@ public:
 			uint16_t counterTargetValue : 16;
 		}elem;
 	}targetValue;
-
-	virtual void ReadTimer32(const uint32_t& addr, uint16_t* data) = 0;
-	virtual void WriteTimer32(const uint32_t& addr, const uint16_t& data) = 0;
 };

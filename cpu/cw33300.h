@@ -13,20 +13,12 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface;
+class busInterface_t;
 
-class cw33300 {
+class cpu_t {
 public:
 
-	cw33300();
-
-	cp0 cp0;
-	cp2 cp2;
-
-	busInterface* pBus;
-
-	void reset();
-	void clock();
+	cpu_t();
 
 	void read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
 	void write32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
@@ -36,6 +28,14 @@ public:
 
 	void read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
 	void write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
+
+	void reset();
+	void clock();
+
+	cp0_t cp0;
+	cp2_t cp2;
+
+	busInterface_t* pBus;
 
 	uint32_t pc;
 	uint32_t pc_old = 0xbfc00000;
@@ -75,7 +75,7 @@ private:
 	std::vector <instruction> secLookup;
 
 	struct ShiftImm {
-		void (cw33300::* instr)(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 	};
 
 	std::vector <ShiftImm> shift_imm;
@@ -86,7 +86,7 @@ private:
 	void SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 
 	struct ShiftReg {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	};
 
 	std::vector <ShiftReg> shift_reg;
@@ -100,7 +100,7 @@ private:
 	void JALR(const uint8_t& rs, const uint8_t& rd);
 
 	struct SysBrk {
-		void (cw33300::* instr)(const uint32_t& imm);
+		void (cpu_t::* instr)(const uint32_t& imm);
 	};
 
 	std::vector <SysBrk> sys_brk;
@@ -108,7 +108,7 @@ private:
 	void BREAK(const uint32_t& imm);
 
 	struct MulDiv {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt);
 	};
 
 	std::vector <MulDiv>mul_div;
@@ -119,7 +119,7 @@ private:
 	void DIVU(const uint8_t& rs, const uint8_t& rt);
 
 	struct MfhiMflo {
-		void (cw33300::* instr)(const uint8_t& rd);
+		void (cpu_t::* instr)(const uint8_t& rd);
 	};
 
 	std::vector <MfhiMflo>mfhi_mflo;
@@ -128,7 +128,7 @@ private:
 	void MFLO(const uint8_t& rd);
 
 	struct MthiMtlo {
-		void (cw33300::* instr)(const uint8_t& rs);
+		void (cpu_t::* instr)(const uint8_t& rs);
 	};
 
 	std::vector <MthiMtlo>mthi_mtlo;
@@ -137,7 +137,7 @@ private:
 	void MTLO(const uint8_t& rs);
 
 	struct AluReg {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	};
 
 	std::vector <AluReg> alu_reg;
@@ -156,7 +156,7 @@ private:
 	void SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 
 	struct BcondZ {
-		void (cw33300::* instr)(const uint8_t& rs, const uint16_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint16_t& imm);
 	};
 
 	std::vector<BcondZ> b_cond_z;
@@ -167,7 +167,7 @@ private:
 	void BGEZAL(const uint8_t& rs, const uint16_t& imm);
 
 	struct JJal {
-		void (cw33300::* instr)(const uint32_t& imm);
+		void (cpu_t::* instr)(const uint32_t& imm);
 	};
 
 	std::vector <JJal> j_jal;
@@ -176,7 +176,7 @@ private:
 	void JAL(const uint32_t& imm);
 
 	struct BeqBne {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);;
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);;
 	};
 
 	std::vector <BeqBne> beq_bne;
@@ -185,7 +185,7 @@ private:
 	void BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 
 	struct BlezBgtz {
-		void (cw33300::* instr)(const uint8_t& rs, const uint16_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint16_t& imm);
 	};
 
 	std::vector <BlezBgtz> blez_bgtz;
@@ -194,7 +194,7 @@ private:
 	void BGTZ(const uint8_t& rs, const uint16_t& imm);
 
 	struct AluImm {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 	};
 
 	std::vector <AluImm> alu_imm;
@@ -210,7 +210,7 @@ private:
 	void LUI(const uint8_t& rt, const uint16_t& imm);
 
 	struct LoadRt {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	};
 
 	std::vector <LoadRt> load_rt;
@@ -225,7 +225,7 @@ private:
 	void XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 
 	struct StoreRt {
-		void (cw33300::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
+		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	};
 
 	std::vector <StoreRt> store_rt;
@@ -266,8 +266,7 @@ public:
 
 
 	std::vector<std::string> executedOpcodes;
+	std::vector<std::string> loggedOpcodes;
 
 	void sideLoad();
-
-	std::vector<std::string> loggedOpcodes;
 };

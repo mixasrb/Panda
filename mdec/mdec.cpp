@@ -2,17 +2,17 @@
 
 extern bool g_emulationPaused;
 
-mdec::mdec() {
+mdec_t::mdec_t() {
 	commandLookup.resize(7);
 	commandLookup = {
-		{&mdec::noFunction,"No function"},
-		{&mdec::decodeMacroblock,"Decode Macroblock(s)"},
-		{&mdec::setQuantTable,"Set Quant Table(s)"},
-		{&mdec::setScaleTable,"Set Scale Table"},
-		{&mdec::invalid,"Invalid"},
-		{&mdec::invalid,"Invalid"},
-		{&mdec::invalid,"Invalid"},
-		{&mdec::invalid,"Invalid"}
+		{&mdec_t::noFunction,"No function"},
+		{&mdec_t::decodeMacroblock,"Decode Macroblock(s)"},
+		{&mdec_t::setQuantTable,"Set Quant Table(s)"},
+		{&mdec_t::setScaleTable,"Set Scale Table"},
+		{&mdec_t::invalid,"Invalid"},
+		{&mdec_t::invalid,"Invalid"},
+		{&mdec_t::invalid,"Invalid"},
+		{&mdec_t::invalid,"Invalid"}
 	};
 
 	zigzag.resize(64);
@@ -33,7 +33,7 @@ mdec::mdec() {
 	}
 }
 
-void mdec::readMdec32(const uint32_t& addr, uint32_t& data) {
+void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 	if (addr == 0x1f801824) {
 		std::cout << "[MDEC] read32 addr 0x" << addr << std::endl;
 		data = statusRegister.data;
@@ -54,7 +54,7 @@ void mdec::readMdec32(const uint32_t& addr, uint32_t& data) {
 	}
 }
 
-void mdec::writeMdec32(const uint32_t& addr, const uint32_t& data) {
+void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801820) {
 		/*	std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
 				<< " data 0x" << data << std::endl;*/
@@ -119,10 +119,10 @@ void mdec::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	}
 }
 
-void mdec::clock() {
+void mdec_t::clock() {
 }
 
-void mdec::decodeMacroblock(uint32_t command) {
+void mdec_t::decodeMacroblock(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = (command & 0x30000000) >> 28;
 	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
@@ -140,7 +140,7 @@ void mdec::decodeMacroblock(uint32_t command) {
 	}*/
 }
 
-void mdec::setQuantTable(uint32_t command) {
+void mdec_t::setQuantTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = (command & 0x30000000) >> 28;
 	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
@@ -159,7 +159,7 @@ void mdec::setQuantTable(uint32_t command) {
 	}*/
 }
 
-void mdec::setScaleTable(uint32_t command) {
+void mdec_t::setScaleTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = (command & 0x30000000) >> 28;
 	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
@@ -171,13 +171,13 @@ void mdec::setScaleTable(uint32_t command) {
 	}*/
 }
 
-void mdec::noFunction(uint32_t command) {
+void mdec_t::noFunction(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = (command & 0x30000000) >> 28;
 	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
 }
 
-void mdec::invalid(uint32_t command) {
+void mdec_t::invalid(uint32_t command) {
 }
 
 static uint16_t singned10bit(uint16_t val) {
@@ -190,7 +190,7 @@ static uint16_t minmax(int16_t val, int16_t min, int16_t max) {
 	return val;
 }
 
-void mdec::rl_decode_block(uint16_t* blk, uint16_t*& src, uint16_t* qt) {
+void mdec_t::rl_decode_block(uint16_t* blk, uint16_t*& src, uint16_t* qt) {
 	uint16_t n = 0;
 	int k = 0;
 	uint16_t q_scale = 0;
@@ -222,7 +222,7 @@ static void swap(uint16_t*& a, uint16_t*& b) {
 	a = t;
 }
 
-void mdec::real_idct_core(uint16_t* blk) {
+void mdec_t::real_idct_core(uint16_t* blk) {
 	uint16_t* src = blk; uint16_t* dst = temb_buffer;
 	for (int pass = 0; pass <= 1; pass++) {
 		for (int x = 0; x <= 7; x++) {
@@ -244,7 +244,7 @@ static float MinMax(float min, float max, float val) {
 	return val;
 }
 
-void mdec::yuv_to_rgb(int xx, int yy) {
+void mdec_t::yuv_to_rgb(int xx, int yy) {
 	for (int x = 0; x <= 7; x++) {
 		for (int y = 0; y <= 7; y++) {
 			float R = *(Crblk + ((x + xx) / 2) + ((y + yy) / 2) * 8);

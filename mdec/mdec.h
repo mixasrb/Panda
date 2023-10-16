@@ -3,19 +3,21 @@
 #include <iostream>
 #include <vector>
 
-class busInterface;
+class busInterface_t;
 
-class mdec {
+class mdec_t {
 public:
-	mdec();
 
-	busInterface* pBus;
+	mdec_t();
+
+	busInterface_t* pBus;
+
+	void readMdec32(const uint32_t& addr, uint32_t& data);
+	void writeMdec32(const uint32_t& addr, const uint32_t& data);
 
 	void clock();
 	uint32_t clocks;
 
-	void readMdec32(const uint32_t& addr, uint32_t& data);
-	void writeMdec32(const uint32_t& addr, const uint32_t& data);
 
 	union mdecStatusRegister_t {
 		uint32_t data;
@@ -65,7 +67,7 @@ public:
 	void invalid(uint32_t command);
 
 	struct command_t {
-		void (mdec::* command)(uint32_t command);
+		void (mdec_t::* command)(uint32_t command);
 		std::string name;
 	};
 
@@ -94,6 +96,4 @@ public:
 	uint16_t* temb_buffer = new (uint16_t)(64);
 	void real_idct_core(uint16_t* blk);
 	void yuv_to_rgb(int xx, int yy);
-
-
 };

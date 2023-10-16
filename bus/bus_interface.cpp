@@ -41,7 +41,7 @@ extern bool g_emulationPaused;
 
 #define CACHE_CONTROL (addr == 0xfffe0130)
 
-void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
+void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 6;
 
@@ -159,7 +159,7 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		clocks = 25;
 	}
 	else if (DMA) {
-		dma.ReadDMA32(addr, data, clocks);
+		dma.readDMA32(addr, data, clocks);
 		clocks = 3;
 	}
 	else if (JOY_MEM_CARD) {
@@ -183,7 +183,7 @@ void busInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		}
 }
 
-void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
+void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write32 0x"
@@ -303,6 +303,15 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 			break;
 		}
 	}
+	else if (addr == 0x1f801da4)
+		soundRAM_IRQAddress = data;
+	else if (addr == 0x1f801daa) {
+		spuControlRegister.data = data & 0xffbf;
+		if (spuControlRegister.elem.cdAudioEnable && (data & 0x0040))
+			spuControlRegister.elem.irq9Enable = 1;
+		if (spuControlRegister.elem.irq9Enable == 0)
+			spuStatusRegister.elem.irq9Flag = 0;
+	}
 	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbe)) {
 		//std::cout << "[BUS] unhandled SPU Control Registers write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
@@ -312,7 +321,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 		return;
 	}
 	else if (DMA)
-		dma.WriteDMA32(addr, data, clocks);
+		dma.writeDMA32(addr, data, clocks);
 	else if (GPU)
 		pGpu->writeGpu32(addr, data);
 	else if (MDEC)
@@ -331,7 +340,7 @@ void busInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	}
 }
 
-void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
+void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 6;
 
@@ -409,6 +418,12 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		clocks = 18;//??
 		return;
 	}
+	else if (addr == 0x1f801da4)
+		data = soundRAM_IRQAddress;
+	else if (addr == 0x1f801daa)
+		data = spuControlRegister.data;
+	else if (addr == 0x1f801dae)
+		data = spuStatusRegister.data;
 	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dfe)) {
 		//std::cout << "[BUS] unhandled SPU Registers read16 0x" << std::hex << addr << "\n";
 		clocks = 18;//??
@@ -435,7 +450,7 @@ void busInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		}
 }
 
-void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write16 0x"
@@ -496,6 +511,15 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 		//std::cout << "[BUS] unhandled SPU Voice Registers write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
 	}
+	else if (addr == 0x1f801da4)
+		soundRAM_IRQAddress = data;
+	else if (addr == 0x1f801daa) {
+		spuControlRegister.data = data & 0xffbf;
+		if (spuControlRegister.elem.cdAudioEnable && (data & 0x0040))
+			spuControlRegister.elem.irq9Enable = 1;
+		if (spuControlRegister.elem.irq9Enable == 0)
+			spuStatusRegister.elem.irq9Flag = 0;
+	}
 	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbe)) {
 		//std::cout << "[BUS] unhandled SPU Control Registers write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
@@ -514,7 +538,7 @@ void busInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 	}
 }
 
-void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
+void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
 	data = 0x00;
 	clocks = 6;
 
@@ -551,7 +575,7 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 		clocks = 8;
 	}
 	else if (DMA) {
-		dma.ReadDMA8(addr, data, clocks);
+		dma.readDMA8(addr, data, clocks);
 		clocks = 3;
 	}
 	else if (POST) {
@@ -559,22 +583,21 @@ void busInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 		clocks = 11;
 	}
 	else if (CD_DRIVE) {
-		pCdDrive->ReadCdDrive8(addr, data);
+		pCdDrive->readCdDrive8(addr, data);
 		clocks = 8;//??
 	}
 	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PASUED! unhandled read8 adress 0x" << addr << "\n";
 		pJoyMemCard->cpuRead8(addr, data);
 		clocks = 3;
 	}
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PASUED! unhandled read8 0x" << addr << "\n";
-			//g_emulationPaused = true;
+			g_emulationPaused = true;
 		}
 }
 
-void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void busInterface_t::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write8 0x"
@@ -597,22 +620,20 @@ void busInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t&
 		scratchpad[addr & 0x3ff] = data;
 	}
 	else if (DMA)
-		dma.WriteDMA8(addr, data, cycles);
+		dma.writeDMA8(addr, data, cycles);
 	else if (POST)
 		post = data;
 	else if (CD_DRIVE)
-		pCdDrive->WriteCdDrive8(addr, data);
-	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PASUED! unhandled write8 adress 0x" << std::hex << addr << " data 0x" << std::hex << (uint32_t)data << "\n";
+		pCdDrive->writeCdDrive8(addr, data);
+	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite8(addr, data);
-	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write8 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
 		g_emulationPaused = true;
 	}
 }
 
-busInterface::delayType busInterface::calculateDelays(const delayRegisterType& delayRegister) {
+busInterface_t::delayType busInterface_t::calculateDelays(const delayRegisterType& delayRegister) {
 	delayType delay;
 
 	uint8_t first = 0;

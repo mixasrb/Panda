@@ -4,17 +4,13 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class cw33300;
-class busInterface;
+class cpu_t;
+class busInterface_t;
 
-class cp0 {
+class cp0_t {
 public:
-	cw33300* pCpu;
 
-	uint32_t cop0r[64];
-
-	uint32_t get(const uint8_t& reg);
-	void set(const uint8_t& reg, const uint32_t& value);
+	cpu_t* pCpu;
 
 	void MFC0(const uint8_t& rt, const uint8_t& rd);
 	void CFC0(const uint8_t& rt, const uint8_t& rd);
@@ -22,6 +18,11 @@ public:
 	void CTC0(const uint8_t& rt, const uint8_t& rd);
 	void BC0F(uint16_t imm);
 	void COP0(uint32_t imm);
+
+	uint32_t cop0r[64];
+
+	uint32_t get(const uint8_t& reg);
+	void set(const uint8_t& reg, const uint32_t& value);
 
 	void RFE();
 

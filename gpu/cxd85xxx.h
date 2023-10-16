@@ -17,14 +17,14 @@
 #define size_x_hw 1024
 #define size_y 512
 
-class busInterface;
+class busInterface_t;
 
-class cxd85xxx {
+class gpu_t {
 public:
 
-	cxd85xxx();
+	gpu_t();
 
-	busInterface* pBus;
+	busInterface_t* pBus;
 
 	void readGpu32(const uint32_t& addr, uint32_t& data);
 	void writeGpu32(const uint32_t& addr, const uint32_t& data);
@@ -92,7 +92,6 @@ public:
 	uint16_t x2;
 	uint16_t y1;
 	uint16_t y2;
-
 
 
 	union psxColor16_t {
@@ -254,11 +253,11 @@ public:
 	};
 
 
-	struct gp0Commands {
+	struct gp0Commands_t {
 		std::string name;
 		uint8_t collectCount;
 	};
-	std::vector <gp0Commands> gp0Lookup;
+	std::vector <gp0Commands_t> gp0Lookup;
 
 	uint32_t gp0Command;
 	uint32_t collectCount = 0;
@@ -283,7 +282,7 @@ public:
 	void drawTexPolygon15Bit(param_t* p_param);
 	void drawTexPolygon8Bit(param_t* p_param);
 	void drawTexPolygon4Bit(param_t* p_param);
-	//void drawTexPolygon(param_t* p_param);
+	void drawTexPolygon(param_t* p_param);
 
 	void drawLine(param_t param);
 
@@ -305,10 +304,10 @@ public:
 	uint32_t gp1Command;
 
 	uint32_t gp1Result = 0;
+	uint32_t gp1TextureWindowSetting = 0;
 	uint32_t gp1TopLeft = 0;
 	uint32_t gp1BottomRight = 0;
 	uint32_t gp1DrawOffset = 0;
-
 
 	uint8_t* vram = new uint8_t[size_x * size_y];
 
@@ -322,8 +321,10 @@ public:
 	uint32_t fifoCount = 0;
 	uint64_t fifoClocks = 0;
 
+	uint16_t** textureCache = NULL;
+
+	int konstant;
+
 	//debug
 	debugUtilities* p_debugger;
-
-	uint32_t konstant = 0;
 };

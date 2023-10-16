@@ -13,33 +13,34 @@
 
 #include "../../debug_utilities/debug_utilities.h"
 
-class busInterface;
+class busInterface_t;
 
-class dmaController {
+class dmaController_t {
 public:
 
-	dmaController();
+	dmaController_t();
 
-	busInterface* pbus = nullptr;
+	busInterface_t* pbus = nullptr;
 
-	dma0 dma0;
-	dma1 dma1;
-	dma2 dma2;
-	dma3 dma3;
-	dma6 dma6;
+	void readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
+	void writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
+	void readDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
+	void writeDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
+	void readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
+	void writeDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
-	dma* ppDMA[7];
-
-	void ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
-	void WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
-	void ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
-	void WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
-	void ReadDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
-	void WriteDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
-
-	void ConnectBus(busInterface* p);
+	void connectBus(busInterface_t* p);
 
 	void clock();
+
+	dma_t* ppDMA[7];
+
+	dma0_t dma0;
+	dma1_t dma1;
+	dma2_t dma2;
+	dma3_t dma3;
+	dma6_t dma6;
+
 
 	union controlRegister_t {
 		uint32_t data;

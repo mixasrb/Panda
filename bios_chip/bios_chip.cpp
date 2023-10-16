@@ -2,7 +2,7 @@
 
 extern const char* g_biosPath;
 
-biosChip::biosChip() {
+biosChip_t::biosChip_t() {
 	std::ifstream file(g_biosPath, std::ios::binary);
 
 	if (!file.is_open())

@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void timer0::ReadTimer32(const uint32_t& addr, uint16_t* data) {
+void timer0_t::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		*data = currentValue.data;
@@ -19,7 +19,7 @@ void timer0::ReadTimer32(const uint32_t& addr, uint16_t* data) {
 	}
 }
 
-void timer0::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
+void timer0_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		currentValue.data = data;
@@ -45,7 +45,7 @@ void timer0::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	}
 }
 
-void timer0::clock(uint8_t source) {
+void timer0_t::clock(uint8_t source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {

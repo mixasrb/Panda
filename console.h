@@ -8,16 +8,17 @@
 #include "peripherals/joy_mem_card.h"
 #include "debug_utilities/debug_utilities.h"
 
-class Console {
+class console_t {
 public:
-	busInterface bus;
-	cw33300 cpuSOC;
-	mdec mdec;
-	cxd85xxx gpu;
-	hc05_pux cdDrive;
-	joyMemCard joyMemCard;
 
-	Console();
+	console_t();
+
+	busInterface_t bus;
+	cpu_t cpuSOC;
+	mdec_t mdec;
+	gpu_t gpu;
+	cdDrive cdDrive;
+	joyMemCard_t joyMemCard;
 
 	uint64_t clocks = 0;
 	uint64_t cpuClocks = 0;

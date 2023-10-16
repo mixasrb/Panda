@@ -4,10 +4,10 @@
 
 #define CLOCKS_PER_WORD_DMA_2 272.f/256.f;
 
-class dmaController;
+class dmaController_t;
 
-class dma2 :
-	public dma {
+class dma2_t :
+	public dma_t {
 public:
 	void ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) override;
 	void WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) override;
@@ -19,14 +19,14 @@ public:
 	void DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) override;
 	void DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) override;
 
+	void Clock() override;
+
 	void triggerIRQ() override;
 
 	void endDMATransfer();
 
-	void Clock() override;
-
-	busInterface* pBus;
-	dmaController* pDMAController;
+	busInterface_t* pBus;
+	dmaController_t* pDMAController;
 
 	memoryAddress_t memoryAddress;
 	blockControl_t blockControl;

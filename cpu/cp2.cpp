@@ -4,28 +4,28 @@
 extern bool g_emulationPaused;
 extern bool g_GteInstructionsLogged;
 
-cp2::cp2() {
+cp2_t::cp2_t() {
 	opcodeLookup.resize(0x40);
 	opcodeLookup = {
-		{"N/A  ",&cp2::XXXXX,0},{"RTPS ",&cp2::RTPS,15},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"NCLIP",&cp2::NCLIP,8},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"OP      ",&cp2::OP,6},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"RTPS ",&cp2_t::RTPS,15},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"NCLIP",&cp2_t::NCLIP,8},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"OP      ",&cp2_t::OP,6},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
 
-		{"DPCS  ",&cp2::DPCS,8},{"INTPL",&cp2::INTPL,8},{"MVMVA",&cp2::MVMVA,8},{"NCDS ",&cp2::NCDS,19},
-		{"CDP   ",&cp2::CDP,13},{"N/A  ",&cp2::XXXXX,0},{"NCDT ",&cp2::NCDT,44},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"NCCS ",&cp2::NCCS,17},
-		{"CC     ",&cp2::CC,11},{"N/A  ",&cp2::XXXXX,0},{"NCS   ",&cp2::NCS,14},{"N/A  ",&cp2::XXXXX,0},
+		{"DPCS  ",&cp2_t::DPCS,8},{"INTPL",&cp2_t::INTPL,8},{"MVMVA",&cp2_t::MVMVA,8},{"NCDS ",&cp2_t::NCDS,19},
+		{"CDP   ",&cp2_t::CDP,13},{"N/A  ",&cp2_t::XXXXX,0},{"NCDT ",&cp2_t::NCDT,44},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"NCCS ",&cp2_t::NCCS,17},
+		{"CC     ",&cp2_t::CC,11},{"N/A  ",&cp2_t::XXXXX,0},{"NCS   ",&cp2_t::NCS,14},{"N/A  ",&cp2_t::XXXXX,0},
 
-		{"NCT   ",&cp2::NCT,30},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"SQR    ",&cp2::SQR,5},{"DCPL  ",&cp2::DCPL,8},{"DPCT ",&cp2::DPCT,17},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"AVSZ3",&cp2::AVSZ3,5},{"AVSZ4",&cp2::AVSZ4,6},{"N/A  ",&cp2::XXXXX,0},
+		{"NCT   ",&cp2_t::NCT,30},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"SQR    ",&cp2_t::SQR,5},{"DCPL  ",&cp2_t::DCPL,8},{"DPCT ",&cp2_t::DPCT,17},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"AVSZ3",&cp2_t::AVSZ3,5},{"AVSZ4",&cp2_t::AVSZ4,6},{"N/A  ",&cp2_t::XXXXX,0},
 
-		{"RTPT ",&cp2::RTPT,23},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},{"N/A  ",&cp2::XXXXX,0},
-		{"N/A  ",&cp2::XXXXX,0},{"GPF    ",&cp2::GPF,5},{"GPF    ",&cp2::GPF,5},{"NCCT ",&cp2::NCCT,39}
+		{"RTPT ",&cp2_t::RTPT,23},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},{"N/A  ",&cp2_t::XXXXX,0},
+		{"N/A  ",&cp2_t::XXXXX,0},{"GPF    ",&cp2_t::GPF,5},{"GPL    ",&cp2_t::GPL,5},{"NCCT ",&cp2_t::NCCT,39}
 	};
 }
 
@@ -172,7 +172,7 @@ cp2::cp2() {
 #define OFY (gteRegisters.cp2Ctrl.p[25].sw)
 #define H (gteRegisters.cp2Ctrl.p[26].hw.l)
 #define DQA (gteRegisters.cp2Ctrl.p[27].shw.l)
-#define DQB (gteRegisters.cp2Ctrl.p[28].shw.l)
+#define DQB (gteRegisters.cp2Ctrl.p[28].sw)
 #define ZSF3 (gteRegisters.cp2Ctrl.p[29].shw.l)
 #define ZSF4 (gteRegisters.cp2Ctrl.p[30].shw.l)
 #define FLAG (gteRegisters.cp2Ctrl.p[31].w)
@@ -256,7 +256,7 @@ cp2::cp2() {
 #define GTE_CV(op) ((op >> 13) & 0x3) 
 #define GTE_LM(op) ((op >> 10) & 0x1) 
 
-uint32_t cp2::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {
+uint32_t cp2_t::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {
 	if (value < min) {
 		FLAG |= flag;
 		return min;
@@ -268,7 +268,7 @@ uint32_t cp2::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {
 	return value;
 }
 
-void cp2::MFC2(uint8_t rt, uint8_t rd) {
+void cp2_t::MFC2(uint8_t rt, uint8_t rd) {
 	switch (rd) {
 	case 1:
 	case 3:
@@ -301,11 +301,11 @@ void cp2::MFC2(uint8_t rt, uint8_t rd) {
 	pCpu->set(rt, gteRegisters.cp2Data.p[rd].w);
 }
 
-void cp2::CFC2(uint8_t rt, uint8_t rd) {
+void cp2_t::CFC2(uint8_t rt, uint8_t rd) {
 	pCpu->set(rt, gteRegisters.cp2Ctrl.p[rd].w);
 }
 
-void cp2::MTC2(uint8_t rt, uint8_t rd) {
+void cp2_t::MTC2(uint8_t rt, uint8_t rd) {
 	uint32_t value = pCpu->get(rt);
 
 	switch (rd) {
@@ -331,7 +331,7 @@ void cp2::MTC2(uint8_t rt, uint8_t rd) {
 	gteRegisters.cp2Data.p[rd].w = value;
 }
 
-void cp2::CTC2(uint8_t rt, uint8_t rd) {
+void cp2_t::CTC2(uint8_t rt, uint8_t rd) {
 	uint32_t value = pCpu->get(rt);
 
 	switch (rd) {
@@ -354,19 +354,19 @@ void cp2::CTC2(uint8_t rt, uint8_t rd) {
 	gteRegisters.cp2Ctrl.p[rd].w = value;
 }
 
-void cp2::BC2F(uint16_t imm) {
+void cp2_t::BC2F(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2F 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp2::BC2T(uint16_t imm) {
+void cp2_t::BC2T(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2T 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp2::COP2(uint32_t imm) {
+void cp2_t::COP2(uint32_t imm) {
 	FLAG = 0;
 	(this->*opcodeLookup[imm & 0x3f].opcode)(imm);
 	pCpu->gteClocks = opcodeLookup[imm & 0x3f].clocks;
@@ -376,7 +376,7 @@ void cp2::COP2(uint32_t imm) {
 		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
 }
 
-void cp2::LWC2(uint8_t rs, uint8_t rt, int16_t imm) {
+void cp2_t::LWC2(uint8_t rs, uint8_t rt, int16_t imm) {
 	uint32_t value;
 	uint8_t cycles;
 	pCpu->read32(pCpu->get(rs) + (int32_t)imm, value, cycles);
@@ -404,7 +404,7 @@ void cp2::LWC2(uint8_t rs, uint8_t rt, int16_t imm) {
 	gteRegisters.cp2Data.p[rt].w = value;
 }
 
-void cp2::SWC2(uint8_t rs, uint8_t rt, int16_t imm) {
+void cp2_t::SWC2(uint8_t rs, uint8_t rt, int16_t imm) {
 	switch (rt) {
 	case 1:
 	case 3:
@@ -431,24 +431,24 @@ void cp2::SWC2(uint8_t rs, uint8_t rt, int16_t imm) {
 
 #define S64(value) value##LL
 
-int32_t cp2::bounds(int44 value, uint32_t minFlag, uint32_t maxFlag) {
+int32_t cp2_t::bounds(int44 value, uint32_t minFlag, uint32_t maxFlag) {
 	if (value.negativeOverflow()) FLAG |= minFlag;
 	if (value.positiveOverflow()) FLAG |= maxFlag;
 
 	return gteSR(value.value(), sf);
 }
-int32_t cp2::A1(int44 a) { return bounds(a, (1 << 27) | (1 << 31), (1 << 30) | (1 << 31)); }
-int32_t cp2::A2(int44 a) { return bounds(a, (1 << 26) | (1 << 31), (1 << 29) | (1 << 31)); }
-int32_t cp2::A3(int44 a) {
+int32_t cp2_t::A1(int44 a) { return bounds(a, (1 << 27) | (1 << 31), (1 << 30) | (1 << 31)); }
+int32_t cp2_t::A2(int44 a) { return bounds(a, (1 << 26) | (1 << 31), (1 << 29) | (1 << 31)); }
+int32_t cp2_t::A3(int44 a) {
 	s_mac3 = a.value();
 	return bounds(a, (1 << 25) | (1 << 31), (1 << 28) | (1 << 31));
 }
 
-int32_t cp2::Lm_B1(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 24) | (1 << 31)); }
-int32_t cp2::Lm_B2(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 23) | (1 << 31)); }
-int32_t cp2::Lm_B3(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 22)); }
+int32_t cp2_t::Lm_B1(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 24) | (1 << 31)); }
+int32_t cp2_t::Lm_B2(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 23) | (1 << 31)); }
+int32_t cp2_t::Lm_B3(int32_t a, int lm) { return saturate(a, -0x8000 * !lm, 0x7fff, (1 << 22)); }
 
-int32_t cp2::Lm_B3_RTP(int64_t a, int sf, int lm) {
+int32_t cp2_t::Lm_B3_RTP(int64_t a, int sf, int lm) {
 	int32_t value_sf = gteSR(a, sf);
 	int32_t value_sr = gteSR(a, 1);
 
@@ -457,27 +457,35 @@ int32_t cp2::Lm_B3_RTP(int64_t a, int sf, int lm) {
 	return saturate(value_sf, -0x8000 * !lm, 0x7fff, 0);
 }
 
-int32_t cp2::Lm_C1(int32_t a) { return saturate(a, 0, 0xff, (1 << 21)); }
-int32_t cp2::Lm_C2(int32_t a) { return saturate(a, 0, 0xff, (1 << 20)); }
-int32_t cp2::Lm_C3(int32_t a) { return saturate(a, 0, 0xff, (1 << 19)); }
+int32_t cp2_t::Lm_C1(int32_t a) { return saturate(a, 0, 0xff, (1 << 21)); }
+int32_t cp2_t::Lm_C2(int32_t a) { return saturate(a, 0, 0xff, (1 << 20)); }
+int32_t cp2_t::Lm_C3(int32_t a) { return saturate(a, 0, 0xff, (1 << 19)); }
 
 
-int64_t cp2::Lm_D(int64_t a, int sf) { return saturate(gteSR(a, sf), 0, 0xffff, (1 << 18) | (1 << 31)); }
+int64_t cp2_t::Lm_D(int64_t a, int sf) { return saturate(gteSR(a, sf), 0, 0xffff, (1 << 18) | (1 << 31)); }
 
-int64_t cp2::F(int64_t a) {
+int64_t cp2_t::F(int64_t a) {
 	s_mac0 = a;
 	if (a > S64(0x7fffffff)) FLAG |= (1 << 16) | (1 << 31);
 	if (a < -S64(0x80000000)) FLAG |= (1 << 15) | (1 << 31);
 	return a;
 }
 
-int32_t cp2::Lm_G1(int64_t a) { return saturate(a, -0x400, 0x3ff, (1 << 14) | (1 << 31)); }
-int32_t cp2::Lm_G2(int64_t a) { return saturate(a, -0x400, 0x3ff, (1 << 13) | (1 << 31)); }
+int32_t cp2_t::Lm_G1(int64_t a) { return saturate(a, -0x400, 0x3ff, (1 << 14) | (1 << 31)); }
+int32_t cp2_t::Lm_G2(int64_t a) { return saturate(a, -0x400, 0x3ff, (1 << 13) | (1 << 31)); }
 
-int32_t cp2::Lm_H(int64_t a) { return saturate(a, 0, 0x1000, (1 << 12)); }
+int32_t cp2_t::Lm_H(int64_t value, int sf) {
+	int64_t value_sf = gteSR(value, sf);
+	int32_t value_12 = gteSR(value, 1);
 
+	constexpr int32_t max = 0x1000;
+	constexpr int32_t min = 0x0000;
 
-uint32_t cp2::gteDevide(uint16_t numerator, uint16_t denominator) {
+	if (value_sf < min || value_sf > max) FLAG |= (1 << 12);
+	return std::clamp<int32_t>(value_12, min, max);
+}
+
+uint32_t cp2_t::gteDivide(uint16_t numerator, uint16_t denominator) {
 	if (numerator >= denominator * 2) { //check if owerflow
 		FLAG |= (1 << 17) | (1 << 31);
 		return 0x1ffff;
@@ -503,18 +511,6 @@ uint32_t cp2::gteDevide(uint16_t numerator, uint16_t denominator) {
 	0x00
 	};
 
-	//int shift = cp2::countLeadingZeros16(denominator);
-
-	//int r1 = (denominator << shift) & 0x7fff;
-	//int r2 = unrTable[((r1 + 0x40) >> 7)] + 0x101;
-	//int r3 = ((0x80 - (r2 * (r1 + 0x8000))) >> 8) & 0x1ffff;
-	//uint32_t reciprocal = ((r2 * r3) + 0x80) >> 8;
-
-	//const uint32_t res = ((((uint64_t)reciprocal * (numerator << shift)) + 0x8000) >> 16);
-
-	//// Some divisions like 0xF015/0x780B result in 0x20000, but are saturated to 0x1ffff without setting FLAG
-	//return std::min<uint32_t>(0x1ffff, res);
-
 	const uint32_t z = countLeadingZeros16(denominator);
 	const uint32_t n = (uint32_t)numerator << z;
 	uint32_t d = (uint32_t)denominator << z;
@@ -522,106 +518,72 @@ uint32_t cp2::gteDevide(uint16_t numerator, uint16_t denominator) {
 	d = (0x2000080 - (d * u)) >> 8;
 	d = (0x0000080 + (d * u)) >> 8;
 	return std::min<uint32_t>(0x1ffff, (((uint64_t)d * n) + 0x8000) >> 16);
+
+	if (numerator >= denominator * 2) {  // Division overflow
+		FLAG |= (1 << 31) | (1 << 17);
+		return 0x1ffff;
+	}
 }
 
-void cp2::XXXXX(uint32_t opcode) {
+void cp2_t::XXXXX(uint32_t opcode) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[opcode & 0x3f].name
 		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp2::RTPS(uint32_t opcode) {
+void cp2_t::RTPS(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
-	int32_t h_over_sz3 = 0;
-
-	MAC1 = A1(int44(((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0)));
-	MAC2 = A2(int44(((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0)));
-	MAC3 = A3(int44(((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0)));
+	MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0));
+	MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0));
+	MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
 	IR1 = Lm_B1(MAC1, lm);
 	IR2 = Lm_B2(MAC2, lm);
 	IR3 = Lm_B3_RTP(s_mac3, sf, lm);
 	SZ0 = SZ1;
 	SZ1 = SZ2;
 	SZ2 = SZ3;
-	SZ3 = Lm_D(s_mac3, 1); //??
-	h_over_sz3 = gteDevide(H, SZ3);
+	SZ3 = Lm_D(s_mac3, 1);
+	const int32_t h_over_sz3 = gteDivide(H, SZ3);
 	SXY0 = SXY1;
 	SXY1 = SXY2;
-	SX2 = Lm_G1(F((int64_t)OFX + (int64_t)IR1 * h_over_sz3) >> 16);
-	SY2 = Lm_G2(F((int64_t)OFY + (int64_t)IR2 * h_over_sz3) >> 16);
-	MAC0 = F((int64_t)DQA + (int64_t)DQB * h_over_sz3);
-	IR0 = Lm_H(s_mac0);
-
-	//MAC0 = F((int64_t)DQB + ((int64_t)DQA * h_over_sz3));
-	//IR0 = Lm_H(s_mac0);
-
-	//MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX0) + (R12 * VY0) + (R13 * VZ0));
-	//MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX0) + (R22 * VY0) + (R23 * VZ0));
-	//MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX0) + (R32 * VY0) + (R33 * VZ0));
-	//IR1 = Lm_B1(MAC1, lm);
-	//IR2 = Lm_B2(MAC2, lm);
-	//IR3 = Lm_B3_RTP(s_mac3, sf, lm);
-	//pushZ(Lm_D(s_mac3, 1));
-
-	//h_over_sz3 = gte_divide(H, SZ3);
-	//SXY0 = SXY1;
-	//SXY1 = SXY2;
-	//SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3)) >> 16);
-
-	//SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
-
-	//MAC0 = F((int64_t)DQB + ((int64_t)DQA * h_over_sz3));
-	//IR0 = Lm_H(s_mac0);
+	SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3)) >> 16);
+	SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
+	MAC0 = F((int64_t)DQB + ((int64_t)DQA * h_over_sz3));
+	IR0 = Lm_H(s_mac0, 1);
 }
 
-void cp2::RTPT(uint32_t opcode) {
+void cp2_t::RTPT(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
 	int32_t h_over_sz3 = 0;
 
 	for (int i = 0; i < 3; i++) {
-		MAC1 = A1(int44(((int64_t)TRX << 12) + (R11 * VX(i)) + (R12 * VY(i)) + (R13 * VZ(i))));
-		MAC2 = A2(int44(((int64_t)TRY << 12) + (R21 * VX(i)) + (R22 * VY(i)) + (R23 * VZ(i))));
-		MAC3 = A3(int44(((int64_t)TRZ << 12) + (R31 * VX(i)) + (R32 * VY(i)) + (R33 * VZ(i))));
+		MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX(i)) + (R12 * VY(i)) + (R13 * VZ(i)));
+		MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX(i)) + (R22 * VY(i)) + (R23 * VZ(i)));
+		MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX(i)) + (R32 * VY(i)) + (R33 * VZ(i)));
 		IR1 = Lm_B1(MAC1, lm);
 		IR2 = Lm_B2(MAC2, lm);
 		IR3 = Lm_B3_RTP(s_mac3, sf, lm);
 		SZ0 = SZ1;
 		SZ1 = SZ2;
 		SZ2 = SZ3;
-		SZ3 = Lm_D(s_mac3, 1); //??
-		h_over_sz3 = gteDevide(H, SZ3);
-		SXY0 = SXY1;
-		SXY1 = SXY2;
-		SX2 = Lm_G1(F((int64_t)OFX + (int64_t)IR1 * h_over_sz3) >> 16);
-		SY2 = Lm_G2(F((int64_t)OFY + (int64_t)IR2 * h_over_sz3) >> 16);
-	}
-	MAC0 = F((int64_t)DQA + (int64_t)DQB * h_over_sz3);
-	IR0 = Lm_H(s_mac0);
+		SZ3 = Lm_D(s_mac3, 1);
 
-	/*for (int v = 0; v < 3; v++) {
-		MAC1 = A1(int44((int64_t)TRX << 12) + (R11 * VX(v)) + (R12 * VY(v)) + (R13 * VZ(v)));
-		MAC2 = A2(int44((int64_t)TRY << 12) + (R21 * VX(v)) + (R22 * VY(v)) + (R23 * VZ(v)));
-		MAC3 = A3(int44((int64_t)TRZ << 12) + (R31 * VX(v)) + (R32 * VY(v)) + (R33 * VZ(v)));
-		IR1 = Lm_B1(MAC1, lm);
-		IR2 = Lm_B2(MAC2, lm);
-		IR3 = Lm_B3_RTP(s_mac3, sf, lm);
-		pushZ(Lm_D(s_mac3, 1));
-
-		h_over_sz3 = gte_divide(H, SZ3);
+		h_over_sz3 = gteDivide(H, SZ3);
 		SXY0 = SXY1;
 		SXY1 = SXY2;
 		SX2 = Lm_G1(F((int64_t)OFX + ((int64_t)IR1 * h_over_sz3)) >> 16);
 		SY2 = Lm_G2(F((int64_t)OFY + ((int64_t)IR2 * h_over_sz3)) >> 16);
 	}
+
 	MAC0 = F((int64_t)DQB + ((int64_t)DQA * h_over_sz3));
-	IR0 = Lm_H(s_mac0);*/
+	IR0 = Lm_H(s_mac0, 1);
 }
 
-void cp2::MVMVA(uint32_t opcode) {
+void cp2_t::MVMVA(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int mx = GTE_MX(opcode);
 	const int v = GTE_V(opcode);
@@ -649,7 +611,7 @@ void cp2::MVMVA(uint32_t opcode) {
 	IR3 = Lm_B3(MAC3, lm);
 }
 
-void cp2::DCPL(uint32_t opcode) {
+void cp2_t::DCPL(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -667,7 +629,7 @@ void cp2::DCPL(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::DPCS(uint32_t opcode) {
+void cp2_t::DPCS(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -685,7 +647,7 @@ void cp2::DPCS(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::DPCT(uint32_t opcode) {
+void cp2_t::DPCT(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -705,7 +667,7 @@ void cp2::DPCT(uint32_t opcode) {
 	}
 }
 
-void cp2::INTPL(uint32_t opcode) {
+void cp2_t::INTPL(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -723,7 +685,7 @@ void cp2::INTPL(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::SQR(uint32_t opcode) {
+void cp2_t::SQR(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -735,7 +697,7 @@ void cp2::SQR(uint32_t opcode) {
 	IR3 = Lm_B3(MAC3, lm);
 }
 
-void cp2::NCS(uint32_t opcode) {
+void cp2_t::NCS(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -759,7 +721,7 @@ void cp2::NCS(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::NCT(uint32_t opcode) {
+void cp2_t::NCT(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -785,7 +747,7 @@ void cp2::NCT(uint32_t opcode) {
 	}
 }
 
-void cp2::NCDS(uint32_t opcode) {
+void cp2_t::NCDS(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -815,7 +777,7 @@ void cp2::NCDS(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::NCDT(uint32_t opcode) {
+void cp2_t::NCDT(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -847,7 +809,7 @@ void cp2::NCDT(uint32_t opcode) {
 	}
 }
 
-void cp2::NCCS(uint32_t opcode) {
+void cp2_t::NCCS(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -877,7 +839,7 @@ void cp2::NCCS(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::NCCT(uint32_t opcode) {
+void cp2_t::NCCT(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -909,7 +871,7 @@ void cp2::NCCT(uint32_t opcode) {
 	}
 }
 
-void cp2::CDP(uint32_t opcode) {
+void cp2_t::CDP(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -933,7 +895,7 @@ void cp2::CDP(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::CC(uint32_t opcode) {
+void cp2_t::CC(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -957,21 +919,21 @@ void cp2::CC(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::NCLIP(uint32_t opcode) {
+void cp2_t::NCLIP(uint32_t opcode) {
 	MAC0 = F((int64_t)(SX0 * SY1) + (SX1 * SY2) + (SX2 * SY0) - (SX0 * SY2) - (SX1 * SY0) - (SX2 * SY1));
 }
 
-void cp2::AVSZ3(uint32_t opcode) {
+void cp2_t::AVSZ3(uint32_t opcode) {
 	MAC0 = F((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
 	OTZ = Lm_D(s_mac0, 1);
 }
 
-void cp2::AVSZ4(uint32_t opcode) {
+void cp2_t::AVSZ4(uint32_t opcode) {
 	MAC0 = F((int64_t)(ZSF4 * SZ0) + (ZSF4 * SZ1) + (ZSF4 * SZ2) + (ZSF4 * SZ3));
 	OTZ = Lm_D(s_mac0, 1);
 }
 
-void cp2::OP(uint32_t opcode) {
+void cp2_t::OP(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -983,7 +945,7 @@ void cp2::OP(uint32_t opcode) {
 	IR3 = Lm_B3(MAC3, lm);
 }
 
-void cp2::GPF(uint32_t opcode) {
+void cp2_t::GPF(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 
@@ -1001,7 +963,7 @@ void cp2::GPF(uint32_t opcode) {
 	B2 = Lm_C3(MAC3 >> 4);
 }
 
-void cp2::GPL(uint32_t opcode) { //???
+void cp2_t::GPL(uint32_t opcode) {
 	sf = GTE_SF(opcode);
 	const int lm = GTE_LM(opcode);
 

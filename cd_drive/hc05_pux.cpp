@@ -5,18 +5,18 @@ extern bool g_emulationPaused;
 extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
-hc05_pux::hc05_pux() {
+cdDrive::cdDrive() {
 	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter,GetlocL,GetlocP,SeekP,Mute,ReadTOC
 	commandLookup.resize(20);
 	commandLookup = {
-		{"Sync?    ",&hc05_pux::xxxxx},{"Getstat"    ,&hc05_pux::Getstat},{"Setloc   ",&hc05_pux::Setloc},{"Play     ",&hc05_pux::Play},
-		{"Forward  ",&hc05_pux::xxxxx},{"Backward     ",&hc05_pux::xxxxx},{"ReadN     ",&hc05_pux::ReadN},{"MotorOn ",&hc05_pux::xxxxx},
-		{"Stop      ",&hc05_pux::Stop},{"Pause        ",&hc05_pux::Pause},{"Init       ",&hc05_pux::Init},{"Mute     ",&hc05_pux::Mute},
-		{"Demute  ",&hc05_pux::Demute},{"Setfilter",&hc05_pux::Setfilter},{"Setmode ",&hc05_pux::Setmode},{"Getparam",&hc05_pux::Getparam},
-		{"GetlocL",&hc05_pux::GetlocL},{"GetlocP    ",&hc05_pux::GetlocP},{"SetSession",&hc05_pux::xxxxx},{"GetTN   ",&hc05_pux::GetTN},
-		{"GetTD    ",&hc05_pux::GetTD},{"SeekL        ",&hc05_pux::SeekL},{"SeekP     ",&hc05_pux::SeekP},{"SetClock",&hc05_pux::xxxxx},
-		{"GetClock ",&hc05_pux::xxxxx},{"Test          ",&hc05_pux::Test},{"GetID     ",&hc05_pux::GetID},{"ReadS   ",&hc05_pux::ReadS},
-		{"Reset    ",&hc05_pux::xxxxx},{"GetQ         ",&hc05_pux::xxxxx},{"ReadTOC ",&hc05_pux::ReadTOC},{"VideoCD ",&hc05_pux::xxxxx},
+		{"Sync?    ",&cdDrive::xxxxx},{"Getstat"    ,&cdDrive::getStat},{"Setloc   ",&cdDrive::setLoc},{"Play     ",&cdDrive::play},
+		{"Forward  ",&cdDrive::xxxxx},{"Backward     ",&cdDrive::xxxxx},{"ReadN     ",&cdDrive::readN},{"MotorOn ",&cdDrive::xxxxx},
+		{"Stop      ",&cdDrive::stop},{"Pause        ",&cdDrive::pause},{"Init       ",&cdDrive::init},{"Mute     ",&cdDrive::mute},
+		{"Demute  ",&cdDrive::demute},{"Setfilter",&cdDrive::setFilter},{"Setmode ",&cdDrive::setMode},{"Getparam",&cdDrive::getParam},
+		{"GetlocL",&cdDrive::getLocL},{"GetlocP    ",&cdDrive::getLocP},{"SetSession",&cdDrive::xxxxx},{"GetTN   ",&cdDrive::getTN},
+		{"GetTD    ",&cdDrive::getTD},{"SeekL        ",&cdDrive::seekL},{"SeekP     ",&cdDrive::seekP},{"SetClock",&cdDrive::xxxxx},
+		{"GetClock ",&cdDrive::xxxxx},{"Test          ",&cdDrive::test},{"GetID     ",&cdDrive::getID},{"ReadS   ",&cdDrive::readS},
+		{"Reset    ",&cdDrive::xxxxx},{"GetQ         ",&cdDrive::xxxxx},{"ReadTOC ",&cdDrive::readTOC},{"VideoCD ",&cdDrive::xxxxx},
 	};
 
 	stat = STAT_SPINDLE_MOTOR;
@@ -34,7 +34,7 @@ hc05_pux::hc05_pux() {
 	file.close();
 }
 
-void hc05_pux::ReadCdDrive8(const uint32_t& addr, uint8_t& data) {
+void cdDrive::readCdDrive8(const uint32_t& addr, uint8_t& data) {
 	/*if (addr != 0x1f801802)
 		std::cout << "              Read8 CD_rom 0x" << std::hex << addr << '\n';*/
 
@@ -49,7 +49,7 @@ void hc05_pux::ReadCdDrive8(const uint32_t& addr, uint8_t& data) {
 		break;
 
 	case 0x1f801802:
-		data = buffer[sectorSize - bufferCounter];
+		data = pBuffer[sectorSize - bufferCounter];
 		bufferCounter--;
 		break;
 
@@ -61,7 +61,7 @@ void hc05_pux::ReadCdDrive8(const uint32_t& addr, uint8_t& data) {
 			break;
 		case 1:
 		case 3:
-			data = 0xe0 | irq_flag_read.reg.int_1_7 | (irq_flag_read.reg.int_8 << 3) | (irq_flag_read.reg.int_10 << 4);
+			data = 0xe0 | irqFlagRead.reg.int_1_7 | (irqFlagRead.reg.int_8 << 3) | (irqFlagRead.reg.int_10 << 4);
 			break;
 		default:
 			break;
@@ -70,7 +70,7 @@ void hc05_pux::ReadCdDrive8(const uint32_t& addr, uint8_t& data) {
 	}
 }
 
-void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
+void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 	//std::cout << "                Write8 CD_rom 0x" << std::hex << addr << " " << "0x" << std::hex << (uint16_t)data << '\n';
 
 	switch (addr) {
@@ -81,7 +81,7 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 	case 0x1f801801:
 		switch (indexStatus.reg.index) {
 		case 0:
-			commandFifo.push_back(data);
+			commandVector.push_back(data);
 			break;
 		case 1:
 			break;
@@ -134,19 +134,19 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 		case 1:
 
 			if ((data & 0x7) == 0x7) {
-				if (irq_flag_read.reg.int_1_7)
-					std::cout << "~[CD_DRIVE] acknowledged INT" << (uint16_t)irq_flag_read.reg.int_1_7 << std::endl;
-				irq_flag_read.reg.int_1_7 = 0;
+				if (irqFlagRead.reg.int_1_7)
+					std::cout << "~[CD_DRIVE] acknowledged INT" << (uint16_t)irqFlagRead.reg.int_1_7 << std::endl;
+				irqFlagRead.reg.int_1_7 = 0;
 			}
 			if (data & 0x8) {
-				if (irq_flag_read.reg.int_8)
+				if (irqFlagRead.reg.int_8)
 					std::cout << "~[CD_DRIVE] acknowledged INT8" << std::endl;
-				irq_flag_read.reg.int_8 = 0;
+				irqFlagRead.reg.int_8 = 0;
 			}
 			if (data & 0x10) {
-				if (irq_flag_read.reg.int_10)
+				if (irqFlagRead.reg.int_10)
 					std::cout << "~[CD_DRIVE] acknowledged INT10" << std::endl;
-				irq_flag_read.reg.int_10 = 0;
+				irqFlagRead.reg.int_10 = 0;
 			}
 			if (data & 0x40) {
 				std::cout << "~[CD_DRIVE] parameter fifo reseted" << std::endl;
@@ -170,7 +170,7 @@ void hc05_pux::WriteCdDrive8(const uint32_t& addr, const uint8_t& data) {
 	}
 }
 
-void hc05_pux::sendResponseINT(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::sendResponseINT(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
 	responsesINT.push_back(responseINT);
 
 	for (uint8_t i = 0; i < responseCount; i++) {
@@ -179,43 +179,43 @@ void hc05_pux::sendResponseINT(const responseINT_t& responseINT, uint8_t* pRespo
 	}
 }
 
-void hc05_pux::setFirstResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::setFirstResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
 	bFirstResponse = true;
 	waitClocksFirstResponse = waitClocks;
 
-	tempFirstResponseFifo.clear();
+	tempFirstResponseVector.clear();
 	for (uint8_t i = 1; i <= responseCount; i++) {
-		tempFirstResponseFifo.push_back(pResponses[responseCount - i]);
+		tempFirstResponseVector.push_back(pResponses[responseCount - i]);
 	}
 
 	firstResponseINT = responseINT;
 }
 
-void hc05_pux::setSecondResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::setSecondResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
 	bSecondResponse = true;
 	waitClocksSecondResponse = waitClocks;
 
-	tempSecondResponseFifo.clear();
+	tempSecondResponseVector.clear();
 	for (uint8_t i = 1; i <= responseCount; i++) {
-		tempSecondResponseFifo.push_back(pResponses[responseCount - i]);
+		tempSecondResponseVector.push_back(pResponses[responseCount - i]);
 	}
 
 	secondResponseINT = responseINT;
 }
 
-void hc05_pux::setDataResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::setDataResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
 	bDataResponse = true;
 	waitClocksDataResponse = waitClocks;
 
-	tempDataResponseFifo.clear();
+	tempDataResponseVector.clear();
 	for (uint8_t i = 1; i <= responseCount; i++) {
-		tempDataResponseFifo.push_back(pResponses[responseCount - i]);
+		tempDataResponseVector.push_back(pResponses[responseCount - i]);
 	}
 
 	dataResponseINT = responseINT;
 }
 
-void hc05_pux::clock() {
+void cdDrive::clock() {
 	//Set stat flags
 	if (paramFifo.empty())
 		indexStatus.reg.prmempt = 1;
@@ -239,18 +239,18 @@ void hc05_pux::clock() {
 
 
 
-	bool bDeliverResponseINT = !responsesINT.empty() && (irq_flag_read.data == 0);
+	bool bDeliverResponseINT = !responsesINT.empty() && (irqFlagRead.data == 0);
 	if (bDeliverResponseINT) {
-		irq_flag_read.reg.int_1_7 = responsesINT[0];
+		irqFlagRead.reg.int_1_7 = responsesINT[0];
 		responsesINT.erase(responsesINT.begin());
-		if (irq_flag_read.reg.int_1_7)
-			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irq_flag_read.reg.int_1_7) << " flag" << std::endl;
-		if (irq_flag_read.reg.int_8)
+		if (irqFlagRead.reg.int_1_7)
+			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irqFlagRead.reg.int_1_7) << " flag" << std::endl;
+		if (irqFlagRead.reg.int_8)
 			std::cout << "~[CD_DRIVE] sent INT8" << " flag" << std::endl;
-		if (irq_flag_read.reg.int_10)
+		if (irqFlagRead.reg.int_10)
 			std::cout << "~[CD_DRIVE] sent INT10" << " flag" << std::endl;
 
-		if ((interruptEnable.reg.enableBits & 0x7) >= irq_flag_read.reg.int_1_7) {
+		if ((interruptEnable.reg.enableBits & 0x7) >= irqFlagRead.reg.int_1_7) {
 			pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
 			std::cout << "~[CD_DRIVE] sent IRQ" << std::endl;
 		}
@@ -258,13 +258,13 @@ void hc05_pux::clock() {
 
 
 
-	bool bExecuteCommand = responsesINT.empty() && (irq_flag_read.data == 0) && !commandFifo.empty()
+	bool bExecuteCommand = responsesINT.empty() && (irqFlagRead.data == 0) && !commandVector.empty()
 		&& !bFirstResponse && !bSecondResponse;
 	if (bExecuteCommand) {
 		clocks = 0;
 
-		executeCommand(commandFifo[0]);
-		commandFifo.erase(commandFifo.begin());
+		executeCommand(commandVector[0]);
+		commandVector.erase(commandVector.begin());
 	}
 
 
@@ -273,17 +273,17 @@ void hc05_pux::clock() {
 		bFirstResponse = false;
 		clocks = 0;
 
-		sendResponseINT(firstResponseINT, tempFirstResponseFifo.data(), tempFirstResponseFifo.size());
+		sendResponseINT(firstResponseINT, tempFirstResponseVector.data(), tempFirstResponseVector.size());
 	}
 
 
 
 	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 10 / 10) && bSecondResponse &&
-		!bFirstResponse && responsesINT.empty() && (irq_flag_read.data == 0)) {
+		!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		bSecondResponse = false;
 		clocks = 0;
 
-		sendResponseINT(secondResponseINT, tempSecondResponseFifo.data(), tempSecondResponseFifo.size());
+		sendResponseINT(secondResponseINT, tempSecondResponseVector.data(), tempSecondResponseVector.size());
 	}
 
 
@@ -291,10 +291,10 @@ void hc05_pux::clock() {
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (doubleSpeed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
 	if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 15 / 10) && bDataResponse &&
-		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irq_flag_read.data == 0)) {
+		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 
-		sendResponseINT(dataResponseINT, tempDataResponseFifo.data(), tempDataResponseFifo.size());
+		sendResponseINT(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
 
 		readSector(amm, ass, asect);
 	}
@@ -307,7 +307,7 @@ void hc05_pux::clock() {
 		dataClocks++;
 }
 
-void hc05_pux::executeCommand(const uint8_t& command) {
+void cdDrive::executeCommand(const uint8_t& command) {
 	//debug
 	std::cout << "[CD_DRIVE] " << commandLookup[command].name << std::endl;
 
@@ -315,7 +315,7 @@ void hc05_pux::executeCommand(const uint8_t& command) {
 	(this->*commandLookup[command].command)(command);
 }
 
-void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
+void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	if ((ass < 2) && (amm == 0)) {
 		bufferCounter = sectorSize;
 		std::cout << std::dec << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector!" << std::endl;
@@ -324,7 +324,7 @@ void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if (bufferVect.size() < (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x930)) {
 		if (stat & STAT_PLAY)
-			buffer = (uint8_t*)bufferVect.data();
+			pBuffer = (uint8_t*)bufferVect.data();
 		else {
 			std::cout << std::dec << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD data sector!" << std::endl;
 			g_emulationPaused = true;
@@ -332,9 +332,9 @@ void hc05_pux::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	}
 	else
 		if (sectorSize == 0x800)
-			buffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x18);
+			pBuffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x18);
 		else
-			buffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x0c);
+			pBuffer = (uint8_t*)bufferVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x0c);
 
 	if (!(stat & STAT_PLAY))
 		for (int i = 0; i < 8; i++) {
@@ -402,17 +402,17 @@ static uint8_t fromHex8ToDec(const uint8_t& hex) {
 
 //Cd Drive Commands
 
-void hc05_pux::xxxxx(const uint8_t& command) {
+void cdDrive::xxxxx(const uint8_t& command) {
 	std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled command!" << std::endl;
 	g_emulationPaused = true;
 }
 
-void hc05_pux::Getstat(const uint8_t& command) {
+void cdDrive::getStat(const uint8_t& command) {
 	uint8_t response[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, response, 1);
 }
 
-void hc05_pux::Play(const uint8_t& command) {
+void cdDrive::play(const uint8_t& command) {
 	stat |= STAT_PLAY;
 
 	if (!paramFifo.empty())
@@ -428,7 +428,7 @@ void hc05_pux::Play(const uint8_t& command) {
 	}
 }
 
-void hc05_pux::Setloc(const uint8_t& command) {
+void cdDrive::setLoc(const uint8_t& command) {
 	uint8_t temp;
 
 	temp = paramFifo.back();
@@ -465,7 +465,7 @@ void hc05_pux::Setloc(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, response, 1);
 }
 
-void hc05_pux::ReadN(const uint8_t& command) {
+void cdDrive::readN(const uint8_t& command) {
 	stat = stat | STAT_READ;
 	uint8_t firstResponse[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -475,7 +475,7 @@ void hc05_pux::ReadN(const uint8_t& command) {
 	setDataResponse(dataWaitClocks, INT1, dataResponse, 1);
 }
 
-void hc05_pux::Stop(const uint8_t& command) {
+void cdDrive::stop(const uint8_t& command) {
 	bDataResponse = false;//??
 	stat ^= STAT_READ;
 	uint8_t firstResponse[1] = { stat };
@@ -486,7 +486,7 @@ void hc05_pux::Stop(const uint8_t& command) {
 	setSecondResponse(secondWaitClocks, INT2, secondResponse, 1);
 }
 
-void hc05_pux::Pause(const uint8_t& command) {
+void cdDrive::pause(const uint8_t& command) {
 	bDataResponse = false;
 	//bFilter = false;//??
 	uint8_t firstResponse[1] = { stat };
@@ -497,7 +497,7 @@ void hc05_pux::Pause(const uint8_t& command) {
 	setSecondResponse(secondWaitClocks, INT2, secondResponse, 1);
 }
 
-void hc05_pux::Init(const uint8_t& command) {
+void cdDrive::init(const uint8_t& command) {
 	bDataResponse = false;//??
 	//mode 0x20
 	sectorSize = 0x924;
@@ -509,17 +509,17 @@ void hc05_pux::Init(const uint8_t& command) {
 	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 }
 
-void hc05_pux::Mute(const uint8_t& command) {
+void cdDrive::mute(const uint8_t& command) {
 	uint8_t response[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, response, 1);
 }
 
-void hc05_pux::Demute(const uint8_t& command) {
+void cdDrive::demute(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat };
 	setFirstResponse(0x5cce, INT3, firstResponse, 1);
 }
 
-void hc05_pux::Setfilter(const uint8_t& command) {
+void cdDrive::setFilter(const uint8_t& command) {
 	//bFilter = true;
 	uint8_t response[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, response, 1);
@@ -531,7 +531,7 @@ void hc05_pux::Setfilter(const uint8_t& command) {
 	std::cout << std::hex << "~[CD_DRIVE] channel: 0x" << (uint16_t)channel << std::endl;
 }
 
-void hc05_pux::Setmode(const uint8_t& command) {
+void cdDrive::setMode(const uint8_t& command) {
 	//bFilter = false;//??
 	auto SetMode = [=] {
 		sectorSize = (mode & 0x20) ? 0x924 : 0x800;
@@ -551,22 +551,22 @@ void hc05_pux::Setmode(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 }
 
-void hc05_pux::Getparam(const uint8_t& command) {
+void cdDrive::getParam(const uint8_t& command) {
 	uint8_t firstResponse[5] = { stat, mode, 0x00, 0x01, 0x01 };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 5);
 }
 
-void hc05_pux::GetlocL(const uint8_t& command) {
+void cdDrive::getLocL(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, (uint8_t*)storedSectorHeader, 8);
 }
 
-void hc05_pux::GetlocP(const uint8_t& command) {
+void cdDrive::getLocP(const uint8_t& command) {
 	std::vector<uint8_t> firstResponse = { 0x1, 0x1, fromHex8ToDec(amm), fromHex8ToDec(ass), fromHex8ToDec(asect),
 		fromHex8ToDec(amm), fromHex8ToDec(ass), fromHex8ToDec(asect) };
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 }
 
-void hc05_pux::GetTN(const uint8_t& command) {
+void cdDrive::getTN(const uint8_t& command) {
 	std::vector<uint8_t> firstResponse = { stat, 0x1, 0x23 };
 	//mortal kombat 3
 	//std::vector<uint8_t> firstResponse = { stat, 0x1, 63 };
@@ -574,7 +574,7 @@ void hc05_pux::GetTN(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 }
 
-void hc05_pux::GetTD(const uint8_t& command) {
+void cdDrive::getTD(const uint8_t& command) {
 	std::vector<uint8_t> firstResponse = { stat, 20, 40 };
 	//mortal kombat 3
 	//std::vector<uint8_t> firstResponse = { stat, 4, 15 };
@@ -583,7 +583,7 @@ void hc05_pux::GetTD(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 }
 
-void hc05_pux::SeekL(const uint8_t& command) {
+void cdDrive::seekL(const uint8_t& command) {
 	stat = stat | STAT_SEEK;
 
 	ammOld = amm;
@@ -598,7 +598,7 @@ void hc05_pux::SeekL(const uint8_t& command) {
 	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 }
 
-void hc05_pux::SeekP(const uint8_t& command) {
+void cdDrive::seekP(const uint8_t& command) {
 	stat = stat | STAT_SEEK;
 
 	ammOld = amm;
@@ -613,7 +613,7 @@ void hc05_pux::SeekP(const uint8_t& command) {
 	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 }
 
-void hc05_pux::Test(const uint8_t& command) {
+void cdDrive::test(const uint8_t& command) {
 	switch (paramFifo.back()) {
 	case 0x04: {
 		stat = stat | STAT_SPINDLE_MOTOR;
@@ -640,7 +640,7 @@ void hc05_pux::Test(const uint8_t& command) {
 	paramFifo.pop_back();
 }
 
-void hc05_pux::GetID(const uint8_t& command) {
+void cdDrive::getID(const uint8_t& command) {
 	std::vector<uint8_t> firstResponse = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 
@@ -671,7 +671,7 @@ void hc05_pux::GetID(const uint8_t& command) {
 	setSecondResponse(0x4a00, secondINT, secondResponse.data(), secondResponse.size());
 }
 
-void hc05_pux::ReadS(const uint8_t& command) {
+void cdDrive::readS(const uint8_t& command) {
 	stat = stat | STAT_READ;
 	uint8_t firstResponse[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -681,7 +681,7 @@ void hc05_pux::ReadS(const uint8_t& command) {
 	setDataResponse(dataWaitClocks, INT1, dataResponse, 1);
 }
 
-void hc05_pux::ReadTOC(const uint8_t& command) {
+void cdDrive::readTOC(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 

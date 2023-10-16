@@ -4,11 +4,11 @@
 
 extern bool g_emulationPaused;
 
-uint32_t cp0::get(const uint8_t& reg) {
+uint32_t cp0_t::get(const uint8_t& reg) {
 	return cop0r[reg];
 }
 
-void cp0::set(const uint8_t& reg, const uint32_t& value) {
+void cp0_t::set(const uint8_t& reg, const uint32_t& value) {
 	if (reg == 13) {
 		CAUSE &= 0xffffcff;
 		CAUSE |= (value & !0xffffcff);
@@ -25,43 +25,43 @@ void cp0::set(const uint8_t& reg, const uint32_t& value) {
 	}
 }
 
-void cp0::MFC0(const uint8_t& rt, const uint8_t& rd) {
+void cp0_t::MFC0(const uint8_t& rt, const uint8_t& rd) {
 	pCpu->set(rt, get(rd));
 }
 
-void cp0::CFC0(const uint8_t& rt, const uint8_t& rd) {
+void cp0_t::CFC0(const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp0::MTC0(const uint8_t& rt, const uint8_t& rd) {
+void cp0_t::MTC0(const uint8_t& rt, const uint8_t& rd) {
 	set(rd, pCpu->get(rt));
 }
 
-void cp0::CTC0(const uint8_t& rt, const uint8_t& rd) {
+void cp0_t::CTC0(const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp0::BC0F(uint16_t imm) {
+void cp0_t::BC0F(uint16_t imm) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp0::COP0(uint32_t imm) {
+void cp0_t::COP0(uint32_t imm) {
 	std::cout << "[CP0] EMULATION PAUSED! unhandled CP0 instruction 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << std::endl;
 	g_emulationPaused = true;
 }
 
-void cp0::RFE() {
+void cp0_t::RFE() {
 	SR = (SR & 0xfffffff0) | ((SR & 0x3c) >> 2);
 }
 
-void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
+void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 
 	if ((code == _ADEL) || (code == _ADES)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
@@ -100,11 +100,11 @@ void cp0::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 	pCpu->pc = 0x80000080;
 }
 
-void cp0::interruptHandler(const uint32_t& irq) {
+void cp0_t::interruptHandler(const uint32_t& irq) {
 	pCpu->pBus->interruptStat |= irq;
 }
 
-void cp0::checkForInterrupts() {
+void cp0_t::checkForInterrupts() {
 	if (pCpu->pBus->interruptMask & pCpu->pBus->interruptStat)
 		CAUSE |= 0x400;
 	else
