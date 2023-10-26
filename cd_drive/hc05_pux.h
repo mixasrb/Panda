@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <fstream>
+#include <string>
 
 #include "../debug_utilities/debug_utilities.h"
 
@@ -70,7 +71,7 @@ public:
 	//data fifo
 	uint8_t* pBuffer = nullptr;
 	uint16_t bufferCounter = 0;
-	std::vector<char> bufferVect;
+	std::vector<char> fileDataVect;
 
 	std::vector<uint8_t> responseFifo;
 
@@ -121,7 +122,7 @@ public:
 	responseINT_t dataResponseINT;
 	bool bDataResponse = false;
 	uint32_t waitClocksDataResponse = 0;
-	void setDataResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
+	void setDataResponse(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
 
 	std::vector<uint8_t> tempFirstResponseVector;
 	std::vector<uint8_t> tempSecondResponseVector;
@@ -160,7 +161,7 @@ public:
 	void readS(const uint8_t& command);
 	void readTOC(const uint8_t& command);
 
-	enum stat_t :uint8_t {
+	/*enum stat_t :uint8_t {
 		STAT_PLAY = 0x80,
 		STAT_SEEK = 0x40,
 		STAT_READ = 0x20,
@@ -170,8 +171,25 @@ public:
 		STAT_SPINDLE_MOTOR = 0x02,
 		STAT_ERROR = 0x01,
 		STAT_NULL = 0x0
-	};
-	uint8_t stat;
+	};*/
+	//uint8_t stat;
+
+	union stat_t {
+		uint8_t data;
+		struct {
+			uint8_t error : 1;
+			uint8_t spindleMotor : 1;
+			uint8_t seekError : 1;
+			uint8_t idError : 1;
+			uint8_t shellOpen : 1;
+			uint8_t read : 1;
+			uint8_t seek : 1;
+			uint8_t play : 1;
+		}elem;
+	}stat;
+
+	//Shell same as Door??
+	bool bShellOpen = false;
 
 	uint8_t amm;
 	uint8_t ass;
@@ -180,18 +198,70 @@ public:
 	uint8_t assOld;
 	uint8_t asectOld;
 
+	uint8_t stored_amm;
+	uint8_t stored_ass;
+	uint8_t stored_asect;
+
+	uint8_t unprocessed_amm;
+	uint8_t unprocessed_ass;
+	uint8_t unprocessed_asect;
+	uint8_t track;
+
 	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
 	uint16_t sectorSize;
 
-	bool doubleSpeed = false;
-	bool bReport = false;
-	uint8_t mode;
-	uint8_t file;
-	uint8_t channel;
+	union mode_t {
+		uint8_t data;
+		struct {
+			uint8_t cdda : 1;
+			uint8_t autoPause : 1;
+			uint8_t report : 1;
+			uint8_t xa_Filter : 1;
+			uint8_t ignoreBit : 1;
+			uint8_t sectorSize : 1;
+			uint8_t xa_adpcm : 1;
+			uint8_t speed : 1;
+		}elem;
+	}mode;
+
+	void setDriveMode();
+
+	uint8_t filterFile;
+	uint8_t filterChannel;
 
 	bool bFilter = false;
+	bool bPlay = false;
+	bool bSendINT1 = true;
 	char storedSectorHeader[8];
+	bool bSetLoc = false;
+
+	struct cdSector_t {
+		uint16_t amm;
+		uint16_t ass;
+		uint16_t asect;
+	};
+
+	struct cdTrack_t {
+		uint8_t track;
+		cdSector_t index0Start;
+		cdSector_t index0End;
+		cdSector_t index1Start;
+		cdSector_t index1End;
+	};
+
+	size_t fileSize;
+	std::vector<cdTrack_t> cdTracks;
+
+	void addSector(cdSector_t& sector, uint16_t mm, uint16_t ss, uint16_t sect) {
+		sector.asect += sect;
+		sector.ass += (sector.asect / 75) + ss;
+		sector.asect %= 75;
+		sector.amm += (sector.ass / 60) + mm;
+		sector.ass %= 60;
+	}
 
 	//debug
 	debugUtilities* p_debugger;
+
+	void printStat();
 };

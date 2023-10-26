@@ -11,6 +11,9 @@ console_t::console_t() {
 
 void console_t::reset() {
 	cpuSOC.reset();
+	for (int i = 0; i < 2 * 1024 * 1024; i++) {
+		bus.ram[i] = 0;
+	}
 }
 
 void console_t::clock() {

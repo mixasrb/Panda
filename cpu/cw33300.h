@@ -20,7 +20,7 @@ public:
 
 	cpu_t();
 
-	void read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
+	void read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug = false);
 	void write32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
 
 	void read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
@@ -247,6 +247,11 @@ public:
 		bool bExecute;
 	}cycle0,cycle1;
 
+	bool gteCommandFlag = false;
+	bool gteCommandFlagTemp = false;
+	bool irqFlag = false;
+
+
 	//debug
 public:
 	debugUtilities* p_debugger;
@@ -269,4 +274,6 @@ public:
 	std::vector<std::string> loggedOpcodes;
 
 	void sideLoad();
+
+	bool checkForCopOpcode(const uint32_t& opcode);
 };

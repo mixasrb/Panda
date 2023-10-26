@@ -437,6 +437,7 @@ int32_t cp2_t::bounds(int44 value, uint32_t minFlag, uint32_t maxFlag) {
 
 	return gteSR(value.value(), sf);
 }
+
 int32_t cp2_t::A1(int44 a) { return bounds(a, (1 << 27) | (1 << 31), (1 << 30) | (1 << 31)); }
 int32_t cp2_t::A2(int44 a) { return bounds(a, (1 << 26) | (1 << 31), (1 << 29) | (1 << 31)); }
 int32_t cp2_t::A3(int44 a) {
@@ -460,7 +461,6 @@ int32_t cp2_t::Lm_B3_RTP(int64_t a, int sf, int lm) {
 int32_t cp2_t::Lm_C1(int32_t a) { return saturate(a, 0, 0xff, (1 << 21)); }
 int32_t cp2_t::Lm_C2(int32_t a) { return saturate(a, 0, 0xff, (1 << 20)); }
 int32_t cp2_t::Lm_C3(int32_t a) { return saturate(a, 0, 0xff, (1 << 19)); }
-
 
 int64_t cp2_t::Lm_D(int64_t a, int sf) { return saturate(gteSR(a, sf), 0, 0xffff, (1 << 18) | (1 << 31)); }
 
@@ -524,6 +524,8 @@ uint32_t cp2_t::gteDivide(uint16_t numerator, uint16_t denominator) {
 		return 0x1ffff;
 	}
 }
+
+//Instructions
 
 void cp2_t::XXXXX(uint32_t opcode) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[opcode & 0x3f].name

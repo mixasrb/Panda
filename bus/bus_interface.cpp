@@ -4,42 +4,70 @@ extern bool g_emulationPaused;
 
 //Memory map
 #define RAM ((addr >= 0x00000000 && addr < 0x1f000000) || \
-(addr >= 0x80000000 && addr < 0x9f000000) || \
-(addr >= 0xa0000000 && addr < 0xbf000000))
+             (addr >= 0x80000000 && addr < 0x9f000000) || \
+             (addr >= 0xa0000000 && addr < 0xbf000000))
 
 #define EXPANSION1 ((addr >= 0x1f000000 && addr < 0x1f800000) || \
-(addr >= 0x9f000000 && addr <= 0x9f800000) || \
-(addr >= 0xbf900000 && addr <= 0xbf800000))
+                    (addr >= 0x9f000000 && addr < 0x9f800000) || \
+                    (addr >= 0xbf000000 && addr < 0xbf800000))
 
-#define SCRATCHPAD (addr >= 0x1f800000 && addr < 0x1f800400) || \
-(addr >= 0x9f800000 && addr < 0x9f800400)
+#define SCRATCHPAD ((addr >= 0x1f800000 && addr < 0x1f800400) || \
+                    (addr >= 0x9f800000 && addr < 0x9f800400))
 
-#define MEMORY_CONTROL_1 (addr >= 0x1f801000 && addr <= 0x1f801020)
+#define MEMORY_CONTROL_1 ((addr >= 0x1f801000 && addr <= 0x1f801020) || \
+                          (addr >= 0x8f801000 && addr <= 0x8f801020) || \
+                          (addr >= 0xbf801000 && addr <= 0xbf801020))
 
-#define JOY_MEM_CARD (addr >= 0x1f801040 && addr <= 0x1f80104e)
+#define JOY_MEM_CARD ((addr >= 0x1f801040 && addr <= 0x1f80104e) || \
+					  (addr >= 0x8f801040 && addr <= 0x8f80104e) || \
+					  (addr >= 0xbf801040 && addr <= 0xbf80104e))
 
-#define MEMORY_CONTROL_2 (addr == 0x1f801060)
+#define SERIAL ((addr >= 0x1f801050 && addr <= 0x1f80105e) || \
+			    (addr >= 0x8f801050 && addr <= 0x8f80105e) || \
+			    (addr >= 0xbf801050 && addr <= 0xbf80105e))
 
-#define INTERRUPT_STAT (addr << 4 >> 4 == 0x0f801070)
-#define INTERRUPT_MASK (addr << 4 >> 4 == 0x0f801074)
+#define MEMORY_CONTROL_2 ((addr == 0x1f801060) || \
+						  (addr == 0x8f801060) || \
+                          (addr == 0xbf801060))
 
-#define DMA (addr >= 0x1f801080 && addr <= 0x1f8010fc)
+#define INTERRUPT_STAT ((addr == 0x1f801070) || \
+					    (addr == 0x8f801070) || \
+                        (addr == 0xbf801070))
 
-#define TIMERS (addr >= 0x1f801100 && addr <= 0x1f801128)
+#define INTERRUPT_MASK ((addr == 0x1f801074) || \
+					    (addr == 0x8f801074) || \
+                        (addr == 0xbf801074))
 
-#define CD_DRIVE (addr >= 0x1f801800 && addr <= 0x1f801803)
+#define DMA ((addr >= 0x1f801080 && addr <= 0x1f8010fc) || \
+             (addr >= 0x8f801080 && addr <= 0x8f8010fc) || \
+             (addr >= 0xbf801080 && addr <= 0xbf8010fc))
 
-#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814))
+#define TIMERS ((addr >= 0x1f801100 && addr <= 0x1f801128) || \
+			    (addr >= 0x8f801100 && addr <= 0x8f801128) || \
+                (addr >= 0xbf801100 && addr <= 0xbf801128))
 
-#define MDEC ((addr == 0x1f801820) || (addr == 0x1f801824))
+#define CD_DRIVE ((addr >= 0x1f801800 && addr <= 0x1f801803) || \
+				  (addr >= 0x8f801800 && addr <= 0x8f801803) || \
+				  (addr >= 0xbf801800 && addr <= 0xbf801803))
+
+#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814) || \
+			 (addr == 0x8f801810) || (addr == 0x8f801814) || \
+			 (addr == 0xbf801810) || (addr == 0xbf801814))
+
+#define MDEC ((addr == 0x1f801820) || (addr == 0x1f801824) || \
+              (addr == 0x8f801820) || (addr == 0x8f801824) || \
+              (addr == 0xbf801820) || (addr == 0xbf801824))
 
 #define BIOS ((addr >= 0x1fc00000 && addr <= (0x1fc00000 + BIOS_SIZE)) || \
-(addr >= 0x9fc00000 && addr <= (0x9fc00000 + BIOS_SIZE)) || \
-(addr >= 0xbfc00000 && addr <= (0xbfc00000 + BIOS_SIZE)))
+              (addr >= 0x9fc00000 && addr <= (0x9fc00000 + BIOS_SIZE)) || \
+              (addr >= 0xbfc00000 && addr <= (0xbfc00000 + BIOS_SIZE)))
 
-#define POST ((addr << 4 >> 4) == 0x0f802041)
+#define POST ((addr  == 0x1f802041) || \
+              (addr  == 0x8f802041) || \
+              (addr  == 0xbf802041))
 
 #define CACHE_CONTROL (addr == 0xfffe0130)
+
 
 void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
@@ -163,7 +191,6 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		clocks = 3;
 	}
 	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
 		pJoyMemCard->cpuRead32(addr, data);
 		clocks = 3;
 	}
@@ -276,7 +303,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		}
 	}
 	else if (MEMORY_CONTROL_2) {
-		if (data != 0xb88) {
+		if ((data != 0xb88) && (data != 0x888)) {
 			std::cout << "[BUS] unhandled ram_size reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 			g_emulationPaused = true;
 		}
@@ -326,10 +353,8 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		pGpu->writeGpu32(addr, data);
 	else if (MDEC)
 		pMdec->writeMdec32(addr, data);
-	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite32(addr, data);
-	}
 	else if (CACHE_CONTROL) {
 		cacheControl = data;
 		std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -435,8 +460,11 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 		return;
 	}
 	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PAUSED! unhandled addr read16 0x" << std::hex << addr << "\n";
 		pJoyMemCard->cpuRead16(addr, data);
+		clocks = 3;
+	}
+	else if (SERIAL) {
+		std::cout << "[BUS] Unhandled serial unhandled addr read16 0x" << std::hex << addr << "\n";
 		clocks = 3;
 	}
 	else if (CD_DRIVE) {
@@ -528,10 +556,10 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 		//std::cout << "[BUS] unhandled SPU Reverb Configuration Area write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		return;
 	}
-	else if (JOY_MEM_CARD) {
-		//std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite16(addr, data);
-	}
+	else if (SERIAL)
+		std::cout << "[BUS] Unhandled serial write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	else {
 		std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;

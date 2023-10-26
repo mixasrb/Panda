@@ -13,6 +13,10 @@ bool g_biosCallbacksLogged = false;
 bool g_GteInstructionsLogged = false;
 bool g_GpuCommandsLogged = false;
 bool g_buttonPressed = false;
+int g_mousePossitionX = 0;
+int g_mousePossitionY = 0;
+bool g_logPixel = false;
+
 uint32_t g_systemClocks = 0;
 uint32_t g_systemFrames = 0;
 uint32_t g_systemSeconds = 0;
@@ -24,6 +28,7 @@ const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin"
 
 bool g_sideload = false;
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/hit-green.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/PRINTGPU.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/PSXNICCC.exe");
@@ -44,13 +49,12 @@ bool g_sideload = false;
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/gp0-e1/gp0-e1.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/GTENCLIP.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/GTEAVSZ.exe");
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 
 //uint8_t g_driveStatus = _NO_DISC;
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Yu-Gi-Oh! - Forbidden Memories (Europe).bin");//probably stucked because unhandled spu regs
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania Chronicles (USA).bin");//SPU:T/O [wait (IRQ/OFF)]
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania Chronicles (USA).bin");//SPU:T/O [wait (IRQ/OFF)] //Pads??
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs??
@@ -60,14 +64,9 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed!
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Skullmonkeys.bin");//~[DMA2] EMULATION PAUSED! (GPU) madr: 0 and same for cd drive dma // load delay MAYBE
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider (v1.1)/Tomb Raider (v1.1) (Track 01).bin"); // GetlocP loop??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider II - Starring Lara Croft (Europe)/Tomb Raider II - Starring Lara Croft (Europe) (Track 01).bin");//hangs
+
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vib-Ribbon/Vib-Ribbon (Europe) (En,Fr,De,Es,It) (Track 1).bin");//getlocp loop or gte // problem with tracks
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin"); //gte // np input //changeThreadHandle
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout 2097 (Europe)/WipEout 2097 (Europe) (Track 01).bin"); //DMA2 LOOP???// simething goes wrong with gpu fifo
-
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin"); //mdec //test event cdrom (waitClocksDataResponse + 0x36cd2*2) // cache  //SeekP //play?? exeption 04//problem with getTn get Td
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alundra (USA) (v1.1).bin");//mute//unhandled timer1 mode 0x149//going enterier get stuck
@@ -75,16 +74,26 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Rebel Assault II - The Hidden Empire (USA) (Disc 1).bin");// DMA3 CDROM 0x11400100h //unhandled timer0 mode 0x14b //mdec //hangs??->mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");//GetTN, Mdec // no input fixed//get stuck// DMA 2 linked-list loop ??
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (USA).bin");//no input//trows an exeption// fixed prpbably if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME / 3) 2->3
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tekken 2 (USA) (v1.1)/Tekken 2 (USA) (v1.1) (Track 1).bin"); // DMA 2 linked-list loop 
 
 //working ones
+// 
+// 
+// 
+// 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin"); //mdec //getstat loop // mem card reading problem?? //setfilter
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin"); //gte // np input //changeThreadHandle
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout 2097 (Europe)/WipEout 2097 (Europe) (Track 01).bin"); //DMA2 LOOP???// something goes wrong with gpu fifo //GetTN,
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Slug X.bin"); // DMA 2 linked-list loop 
+
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/CT Special Forces - Back to Hell (Europe) (En,Fr,De,Es,It,Nl).bin");// setfilter
 
@@ -93,7 +102,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Bubble Bobble also featuring Rainbow Islands (Track 1).bin"); //bypass mdec amm 1 ass 2 assec 15 => amm 2 ass 44 asect 15 ???
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
 // 
-// //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profile (Disc 1).bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT)??
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profile (Disc 1).bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT)??
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Digimon World 3.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Chippoke Ralph no Daibouken - The Adventure of Little Ralph (Japan).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Arc the Lad Collection - Arc the Lad.bin");//[BUS] EMULATION PASUED! unhandled addr read32 0x1f801014 1F801014h 4    SPU_DELAY   Delay/Size (usually 200931E1h) // gte
@@ -106,7 +115,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rapid Reload (Europe).bin");// setfilter //GetlocP // gte // but works
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harmful Park (English v1.1).bin");//Stop //Setfilter // but works???
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec??
-
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Breath of Fire III/Breath of Fire III (v1.1) (Track 1).bin"); //cd drive out of sync ?? fixed??//~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c787878 Undocumented/Nonsense
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Discworld Noir (Europe) (En,Es,It).bin"); //get stuck mdec sometimes?
@@ -131,7 +140,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin"); //ChangeThread stuck fixed probably
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Breath of Fire III/Breath of Fire III (v1.1) (Track 1).bin"); //cd drive out of sync ?? fixed??//~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c787878 Undocumented/Nonsense
+
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite
 
@@ -148,19 +157,22 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 // 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash bash.bin"); //GetTN ?! //cdrom probably 1F801803h.Index1 read stuck fixed
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (Europe) (En,Fr,De,Es,It).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (USA).bin");//no input//trows an exeption
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro 2 - Ripto's Rage! (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (USA) (v1.1).bin");
 
- 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs fixed
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
 
@@ -179,7 +191,13 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //set
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/World's Scariest Police Chases (USA).bin"); // invalid addr [BUS] EMULATION PAUSED! invalid ram addr write8 0x3000061 data 0x1 fixed maybe // no input
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider (v1.1)/Tomb Raider (v1.1) (Track 01).bin"); // GetlocP loop??//VSync: timeout
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider II - Starring Lara Croft (Europe)/Tomb Raider II - Starring Lara Croft (Europe) (Track 01).bin");//hangs/VSync: timeout
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tomb raider 3/Tomb Raider III - Adventures of Lara Croft (Europe).bin"); //getloocp loop, no input //but works
+
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spider-Man (USA).bin");//very low fps
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Captain Commando (Japan).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Quake II/Quake II (USA) (Track 1).bin");//gte
@@ -193,8 +211,6 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //set
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Medal of Honor (USA).bin");//gte //stuck
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crusader - No Remorse.bin"); //cd drive out of sync // cutscenes need to be skipped 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin"); //mdec //getstat loop // mem card reading problem?? //setfilter
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin"); //mdec//~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x10000002
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Twisted Metal 2/Twisted Metal 2 (USA) (Track 01).bin"); //[KERNEL] A(3Ah) SystemErrorExit(exitcode) not if intro is skipped
@@ -203,9 +219,13 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //set
 //demos
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Euro Demo 67 (Europe).bin"); //Ms pacman problem
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");
 
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Polaris SnoCross (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
+// 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/SpyroCustomLogo.bin");
 
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 
@@ -326,6 +346,15 @@ public:
 					PSX.joyMemCard.swhiPad2 ^= PSX_SQUARE;
 			}
 
+
+			if (IsFocused() && GetMouse(0).bHeld) {
+				g_logPixel = true;
+				g_mousePossitionX = GetMouseX();
+				g_mousePossitionY = GetMouseY();
+
+				if (g_mousePossitionY > 511)
+					g_logPixel = false;
+			}
 
 			//clocker
 
@@ -473,17 +502,55 @@ public:
 				ss << "I_STAT 0x" << std::hex << PSX.bus.interruptStat;
 				DrawString(0, 36 * 9, ss.str());
 			}
-			else
+			else {
 				DrawSprite(0, 0, PSX.gpu.getVramSprite());
+
+				/*uint16_t x1 = PSX.gpu.display_start.x;
+				uint16_t y1 = PSX.gpu.display_start.y;
+				uint16_t x2;
+				uint16_t y2;
+				if (PSX.gpu.gpuStat.elem.horizontalRes2)
+					x2 = x1 + 367;
+				else switch (PSX.gpu.gpuStat.elem.horizontalRes1) {
+				case 0:
+					x2 = x1 + 255;
+					break;
+				case 1:
+					x2 = x1 + 319;
+					break;
+				case 2:
+					x2 = x1 + 511;
+					break;
+				case 3:
+					x2 = x1 + 639;
+					break;
+				}
+				if (PSX.gpu.gpuStat.elem.verticalRes)
+					y2 = y1 + 479;
+				else
+					y2 = y1 + 239;
+
+				DrawPartialSprite(0, 0, PSX.gpu.getVramSprite(), x1, y1, x2 - x1, y2 - y1);*/
+			}
 
 			if (g_emulationPaused)
 				DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
 
 			if (g_GteInstructionsLogged)
 				DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+
 			std::stringstream ss;
-			ss << "cpu clocks: " << PSX.gpu.cpuFrameClocks;
+			ss << "system clocks: " << PSX.gpu.cpuFrameClocks;
 			DrawString(0, 512 + 4, ss.str(), olc::WHITE);
+			ss.str("\0");
+			ss << "system frames: " << g_systemFrames;
+			DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
+			ss.str("\0");
+			ss << "system seconds: " << g_systemSeconds;
+			DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
+			ss.str("\0");
+			ss << "system minutes: " << g_systemMinutes;
+			DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
 
 		}
 		catch (const std::exception& e) {

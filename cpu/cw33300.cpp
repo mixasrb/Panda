@@ -114,8 +114,8 @@ cpu_t::cpu_t() {
 	executedOpcodes.resize(32);
 }
 
-void cpu_t::read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	pBus->cpuRead32(addr, data, cycles);
+void cpu_t::read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug) {
+	pBus->cpuRead32(addr, data, cycles, debug);
 }
 
 void cpu_t::write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cycles) {
@@ -217,9 +217,9 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//	if (loggedOpcodes.size() >= 128)
 	//		loggedOpcodes.clear();
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
-	//	//std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 	//}
-
+	if (g_executedCpuInstructionsLogged)
+		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 
 	isCurrentOpcodeBranch = false;
 	uint8_t prim_opcode = opcode >> 26;
@@ -373,7 +373,8 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 				g_emulationPaused = true;
 			}
 			break;
-		case 2: //cop2
+		case 2: //cp2
+			gteCommandFlag = true;
 			if ((prim_opcode & 0x20) == 0)
 				if (((opcode << 6 >> 27) & 0x10) == 0)
 					switch (opcode << 7 >> 28)
@@ -466,12 +467,22 @@ void cpu_t::clock() {
 		}
 	}*/
 
+
 	//debug
 	isInstructionExecuted = false;
 
 	if (clocks == 0) {
 
-		cp0.checkForInterrupts();
+		irqFlag = true;
+
+		read32(pc - 1 * 4, opcode, clocks, true);
+		irqFlag &= !checkForCopOpcode(opcode);
+
+		read32(pc + 1 * 4, opcode, clocks, true);
+		irqFlag &= !checkForCopOpcode(opcode);
+
+		if (irqFlag && !isCurrentOpcodeBranch)
+			cp0.checkForInterrupts();
 
 		switch (cycle) {
 		case 0:
@@ -505,7 +516,8 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[1]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 4;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			//clocks = 1;
 
 			//debug
 #if DEBUG
@@ -549,7 +561,8 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[0]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 4;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			//clocks = 1;
 
 			//debug
 #if DEBUG
@@ -563,6 +576,9 @@ void cpu_t::clock() {
 		}
 	}
 
+	/*if (clocks > 16)
+		g_emulationPaused = true;
+	else*/
 	clocks--;
 }
 
@@ -628,6 +644,7 @@ void cpu_t::BREAK(const uint32_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< "op 0x" << std::hex << opcode << std::endl;
 	//cp0.exceptionHandler(_BP);
+	g_emulationPaused = true;
 }
 
 void cpu_t::MULT(const uint8_t& rs, const uint8_t& rt) {
@@ -1421,4 +1438,20 @@ void cpu_t::sideLoad() {
 	for (uint32_t i = 0; i < size; i++) {
 		write8(ramAddr + i, buffer[i + 0x800], cycles);
 	}
+}
+
+bool cpu_t::checkForCopOpcode(const uint32_t& opcode) {
+	uint8_t prim_opcode = opcode >> 26;
+
+	if (prim_opcode & 0x10) { //coprocessors
+		switch (prim_opcode & 0x03) {
+		case 0: //cp0
+			return true;
+			break;
+		case 2: //cp2
+			return true;
+			break;
+		}
+	}
+	return false;
 }

@@ -90,10 +90,15 @@ void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 	if (code == _INT)
 		if (pCpu->isCurrentOpcodeBranch) {
 			EPC = pCpu->opcode_pc;
-			CAUSE |= 0x80000000;
+			CAUSE |= 0x80000000; //BD
+			//??
+			//gte in branch delays!!
 		}
 		else
-			EPC = pCpu->pc - 4;
+			//if (!pCpu->gteCommand)
+				EPC = pCpu->pc - 4;
+			//else
+			//	EPC = pCpu->opcode_pc;//??
 
 	pCpu->isPipelineFull = false;
 

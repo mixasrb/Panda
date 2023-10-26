@@ -19,7 +19,7 @@
 #define _IRQ_V_SYNC_ 0x01
 #define _IRQ_CD_ROM 0x04
 #define _IRQ_DMA 0x08
-#define _IRQ_TIMER_0 0x00
+#define _IRQ_TIMER_0 0x10
 #define _IRQ_TIMER_1 0x20
 #define _IRQ_TIMER_2 0x40
 #define _IRQ_7 0x80

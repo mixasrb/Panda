@@ -240,6 +240,7 @@ public:
 		bool bFlipHorizontally = false;
 		bool bFlipVertically = false;
 	};
+	param_t param;
 
 	union clut_t {
 		clut_t(uint16_t data) : data(data) {
@@ -299,7 +300,6 @@ public:
 	uint32_t destCoord;
 	uint32_t sourceCoord;
 	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
-	bool bTransferCommand = false;
 
 	uint32_t gp1Command;
 
