@@ -84,12 +84,12 @@ void dma0_t::triggerIRQ() {
 	else
 		pDMAController->interruptRegister.reg.IRQ_flag_dma0 = 0;
 
-	if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
+	/*if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
 		pDMAController->interruptRegister.reg.IRQ_enable_dma0 &&
 		pDMAController->interruptRegister.reg.IRQ_flag_dma0)
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	else
-		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
+		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;*/
 }
 
 void dma0_t::endDMATransfer() {

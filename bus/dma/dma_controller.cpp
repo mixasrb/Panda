@@ -8,6 +8,7 @@ dmaController_t::dmaController_t() {
 	ppDMA[1] = &dma1;
 	ppDMA[2] = &dma2;
 	ppDMA[3] = &dma3;
+	ppDMA[4] = &dma4;
 	ppDMA[6] = &dma6;
 
 	controlRegister.data = 0;
@@ -17,18 +18,19 @@ dmaController_t::dmaController_t() {
 void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
-			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 6))
+			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 4) || ((addr - 0x1f801080) >> 4 == 6))
 			ppDMA[(addr - 0x1f801080) >> 4]->ReadDMA32(addr, data, cycles);
 		else {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
-			g_emulationPaused = true;
+			//g_emulationPaused = true;
 			//std::cout << "[DMA] Unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
 		}
 	}
 	else if (addr == 0x1f8010f0)
 		data = controlRegister.data;
-	else if (addr == 0x1f8010f4)
+	else if (addr == 0x1f8010f4) {
 		data = interruptRegister.data;
+	}
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << std::endl;
 		g_emulationPaused = true;
@@ -38,25 +40,32 @@ void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& c
 void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
-			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 6))
+			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 4) || ((addr - 0x1f801080) >> 4 == 6))
 			ppDMA[(addr - 0x1f801080) >> 4]->WriteDMA32(addr, data, cycles);
 		else {
 			/*std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 				<< " data 0x" << std::hex << data << std::endl;*/
-			//g_emulationPaused = true;
+				//g_emulationPaused = true;
 			std::cout << "[DMA] Unhandled write32" << " addr 0x" << std::hex << addr
 				<< " data 0x" << std::hex << data << std::endl;
 		}
 	}
-	else if (addr == 0x1f8010f0)
+	else if (addr == 0x1f8010f0) {
+		/*std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
+			<< " data 0x" << std::hex << data << std::endl;*/
 		controlRegister.data = data;
+	}
 	else if (addr == 0x1f8010f4) {
-		uint32_t dicrTemp = interruptRegister.data;
-		interruptRegister.data = (interruptRegister.data & 0xff000000) | (data & 0x00ff803f);
-		interruptRegister.data &= ~((data << 1 >> 1) & 0x7f000000);
+		uint32_t dicrTemp = (interruptRegister.data << 1 >> 25) & (~data << 1 >> 25);
+		interruptRegister.data = (interruptRegister.data & 0x80000000) | (data & 0x00ff803f);
+		interruptRegister.data |= dicrTemp << 24;
+	/*	std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
+			<< " data 0x" << std::hex << data << std::endl;*/
+		/*interruptRegister.data = (interruptRegister.data & 0xff000000) | (data & 0x00ff803f);
+		interruptRegister.data &= ~((data << 1 >> 1) & 0x7f000000);*/
 
-		if ((dicrTemp & 0x7f000000) & (data & 0x7f000000))
-			interruptRegister.reg.IRQ_master_flag = 0;
+		/*if ((dicrTemp & 0x7f000000) & (data & 0x7f000000))
+			interruptRegister.reg.IRQ_master_flag = 0;*/
 	}
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
@@ -98,11 +107,11 @@ void dmaController_t::writeDMA8(const uint32_t& addr, const uint8_t& data, uint8
 void dmaController_t::connectBus(busInterface_t* p) {
 	pbus = p;
 
-	dma1.pBus = pbus;
-	dma1.pDMAController = this;
-
 	dma0.pBus = pbus;
 	dma0.pDMAController = this;
+
+	dma1.pBus = pbus;
+	dma1.pDMAController = this;
 
 	dma2.pBus = pbus;
 	dma2.pDMAController = this;
@@ -110,29 +119,41 @@ void dmaController_t::connectBus(busInterface_t* p) {
 	dma3.p_bus = pbus;
 	dma3.pDMAController = this;
 
+	dma4.pBus = pbus;
+	dma4.pDMAController = this;
+
 	dma6.pbus = pbus;
 	dma6.pDMAController = this;
 }
 
 void dmaController_t::clock() {
+//	if (((pbus->interruptStat & 0x8) == 0)/* && ((interruptRegister.data << 1 >> 25) == 0)*/) 
+	{
 
-	bool bOldMasterFlag = interruptRegister.reg.IRQ_master_flag;
+		bool bOldMasterFlag = interruptRegister.reg.IRQ_master_flag;
 
-	if (interruptRegister.reg.force_IRQ)
-		interruptRegister.reg.IRQ_master_flag = 1;
 
-	if (controlRegister.reg.gpu_master_enable && dma0.channelControl.reg.startBusy)//??
-		dma0.Clock();
-	else if (controlRegister.reg.gpu_master_enable && dma1.channelControl.reg.startBusy)//??
-		dma1.Clock();
-	else if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy)
-		dma2.Clock();
-	else if (controlRegister.reg.cd_drive_master_enable && dma3.bStart)
-		dma3.Clock();
-	else if (controlRegister.reg.otc_master_enable && dma6.bStart)
-		dma6.Clock();
+		if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy)//??
+			dma0.Clock();
+		else if (controlRegister.reg.mdecOut_master_enable && dma1.channelControl.reg.startBusy)//??
+			dma1.Clock();
+		else if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy)
+			dma2.Clock();
+		else if (controlRegister.reg.cd_drive_master_enable && dma3.bStart)
+			dma3.Clock();
+		else if (controlRegister.reg.spu_master_enable && dma4.channelControl.reg.startBusy)//??
+			dma4.Clock();
+		else if (controlRegister.reg.otc_master_enable && dma6.bStart)
+			dma6.Clock();
 
-	//0->1
-	if (!bOldMasterFlag && interruptRegister.reg.IRQ_master_flag)
-		pbus->pCpu->cp0.interruptHandler(_IRQ_DMA);
+		if ((interruptRegister.reg.force_IRQ) ||
+			(interruptRegister.reg.IRQ_master_enable && (interruptRegister.data << 1 >> 25)))
+			interruptRegister.reg.IRQ_master_flag = 1;
+		else
+			interruptRegister.reg.IRQ_master_flag = 0;
+
+		//0->1
+		if (!bOldMasterFlag && interruptRegister.reg.IRQ_master_flag)
+			pbus->pCpu->cp0.interruptHandler(_IRQ_DMA);
+	}
 }

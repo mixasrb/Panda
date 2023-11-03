@@ -93,12 +93,12 @@ void dma3_t::triggerIRQ() {
 	else
 		pDMAController->interruptRegister.reg.IRQ_flag_dma3 = 0;
 
-	if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
-		pDMAController->interruptRegister.reg.IRQ_enable_dma3 &&
-		pDMAController->interruptRegister.reg.IRQ_flag_dma3)
-		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
-	else
-		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
+	//if (pDMAController->interruptRegister.reg.IRQ_master_enable &&
+	//	pDMAController->interruptRegister.reg.IRQ_enable_dma3 &&
+	//	pDMAController->interruptRegister.reg.IRQ_flag_dma3)
+	//	pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
+	//else
+	//	pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
 }
 
 void dma3_t::Clock() {

@@ -19,6 +19,9 @@
 
 class busInterface_t;
 
+
+
+
 class gpu_t {
 public:
 
@@ -271,8 +274,6 @@ public:
 
 	void fillRectVram(param_t param);
 
-	float edgeFunc(const vertex_t& vert1, const vertex_t& vert2, const vertex_t& point);
-
 	enum triangleOrientation_t {
 		PSX_CLOCKWISE,
 		PSX_ANTI_CLOCKWISE
@@ -280,9 +281,6 @@ public:
 
 	void drawPolygon(param_t* p_param);
 
-	void drawTexPolygon15Bit(param_t* p_param);
-	void drawTexPolygon8Bit(param_t* p_param);
-	void drawTexPolygon4Bit(param_t* p_param);
 	void drawTexPolygon(param_t* p_param);
 
 	void drawLine(param_t param);

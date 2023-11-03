@@ -58,6 +58,10 @@ extern bool g_emulationPaused;
               (addr == 0x8f801820) || (addr == 0x8f801824) || \
               (addr == 0xbf801820) || (addr == 0xbf801824))
 
+#define SPU ((addr >= 0x1f801c00) && (addr <= 0x1f801fff) || \
+             (addr >= 0x8f801c00) && (addr <= 0x8f801fff) || \
+             (addr >= 0xbf801c00) && (addr <= 0xbf801fff))
+
 #define BIOS ((addr >= 0x1fc00000 && addr <= (0x1fc00000 + BIOS_SIZE)) || \
               (addr >= 0x9fc00000 && addr <= (0x9fc00000 + BIOS_SIZE)) || \
               (addr >= 0xbfc00000 && addr <= (0xbfc00000 + BIOS_SIZE)))
@@ -330,23 +334,8 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 			break;
 		}
 	}
-	else if (addr == 0x1f801da4)
-		soundRAM_IRQAddress = data;
-	else if (addr == 0x1f801daa) {
-		spuControlRegister.data = data & 0xffbf;
-		if (spuControlRegister.elem.cdAudioEnable && (data & 0x0040))
-			spuControlRegister.elem.irq9Enable = 1;
-		if (spuControlRegister.elem.irq9Enable == 0)
-			spuStatusRegister.elem.irq9Flag = 0;
-	}
-	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbe)) {
-		//std::cout << "[BUS] unhandled SPU Control Registers write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		return;
-	}
-	else if (addr >= 0x1f801dc0 && addr <= 0x1f801dfe) {
-		//std::cout << "[BUS] unhandled SPU Reverb Configuration Area write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		return;
-	}
+	else if (SPU)
+		spu.write32(addr, data);
 	else if (DMA)
 		dma.writeDMA32(addr, data, clocks);
 	else if (GPU)
@@ -438,26 +427,9 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 		data = biosChip.biosData[(addr & 0x000fffff) + 1] << (2 * 4) | biosChip.biosData[addr & 0x000fffff];
 		clocks = 13;
 	}
-	else if ((addr >= 0x1f801c00) && (addr < 0x1f801d80)) {
-		//std::cout << "[BUS] unhandled SPU Voice Registers read16 0x" << std::hex << addr << "\n";
-		clocks = 18;//??
-		return;
-	}
-	else if (addr == 0x1f801da4)
-		data = soundRAM_IRQAddress;
-	else if (addr == 0x1f801daa)
-		data = spuControlRegister.data;
-	else if (addr == 0x1f801dae)
-		data = spuStatusRegister.data;
-	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dfe)) {
-		//std::cout << "[BUS] unhandled SPU Registers read16 0x" << std::hex << addr << "\n";
-		clocks = 18;//??
-		return;
-	}
-	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e80)) {
-		//std::cout << "[BUS] unhandled SPU Internal Registers read16 0x" << std::hex << addr << "\n";
-		clocks = 18;//??
-		return;
+	else if (SPU) {
+		spu.read16(addr, data);
+		clocks = 18;
 	}
 	else if (JOY_MEM_CARD) {
 		pJoyMemCard->cpuRead16(addr, data);
@@ -531,35 +503,16 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 			break;
 		}
 	}
-	else if (addr == 0xfffe0130) {
-		cacheControl = data;
-		std::cout << "[BUS] unhandled cache control reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-	}
-	else if ((addr >= 0x1f801c00) && (addr < 0x1f801d80)) {
-		//std::cout << "[BUS] unhandled SPU Voice Registers write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		return;
-	}
-	else if (addr == 0x1f801da4)
-		soundRAM_IRQAddress = data;
-	else if (addr == 0x1f801daa) {
-		spuControlRegister.data = data & 0xffbf;
-		if (spuControlRegister.elem.cdAudioEnable && (data & 0x0040))
-			spuControlRegister.elem.irq9Enable = 1;
-		if (spuControlRegister.elem.irq9Enable == 0)
-			spuStatusRegister.elem.irq9Flag = 0;
-	}
-	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbe)) {
-		//std::cout << "[BUS] unhandled SPU Control Registers write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		return;
-	}
-	else if (addr >= 0x1f801dc0 && addr <= 0x1f801dfe) {
-		//std::cout << "[BUS] unhandled SPU Reverb Configuration Area write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		return;
-	}
+	else if (SPU)
+		spu.write16(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite16(addr, data);
 	else if (SERIAL)
 		std::cout << "[BUS] Unhandled serial write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+	else if (CACHE_CONTROL) {
+		cacheControl = data;
+		std::cout << "[BUS] unhandled cache control reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+	}
 	else {
 		std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;

@@ -153,6 +153,7 @@
     <ClCompile Include="bus\dma\dma_1.cpp" />
     <ClCompile Include="bus\dma\dma_2.cpp" />
     <ClCompile Include="bus\dma\dma_3.cpp" />
+    <ClCompile Include="bus\dma\dma_4.cpp" />
     <ClCompile Include="bus\dma\dma_6.cpp" />
     <ClCompile Include="bus\dma\dma_controller.cpp" />
     <ClCompile Include="cd_drive\hc05_pux.cpp" />
@@ -166,6 +167,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mdec\mdec.cpp" />
     <ClCompile Include="peripherals\joy_mem_card.cpp" />
+    <ClCompile Include="spu\spu.cpp" />
     <ClCompile Include="timers\timer_0.cpp" />
     <ClCompile Include="timers\timer_1.cpp" />
     <ClCompile Include="timers\timer_2.cpp" />
@@ -178,6 +180,7 @@
     <ClInclude Include="bus\dma\dma_1.h" />
     <ClInclude Include="bus\dma\dma_2.h" />
     <ClInclude Include="bus\dma\dma_3.h" />
+    <ClInclude Include="bus\dma\dma_4.h" />
     <ClInclude Include="bus\dma\dma_6.h" />
     <ClInclude Include="bus\dma\dma_controller.h" />
     <ClInclude Include="cd_drive\hc05_pux.h" />
@@ -192,6 +195,7 @@
     <ClInclude Include="gpu\utils.h" />
     <ClInclude Include="mdec\mdec.h" />
     <ClInclude Include="peripherals\joy_mem_card.h" />
+    <ClInclude Include="spu\spu.h" />
     <ClInclude Include="timers\timer.h" />
     <ClInclude Include="timers\timer_0.h" />
     <ClInclude Include="timers\timer_1.h" />

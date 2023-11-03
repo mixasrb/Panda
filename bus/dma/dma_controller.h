@@ -9,6 +9,7 @@
 #include "dma_1.h"
 #include "dma_2.h"
 #include "dma_3.h"
+#include "dma_4.h"
 #include "dma_6.h"
 
 #include "../../debug_utilities/debug_utilities.h"
@@ -39,18 +40,24 @@ public:
 	dma1_t dma1;
 	dma2_t dma2;
 	dma3_t dma3;
+	dma4_t dma4;
 	dma6_t dma6;
 
 
 	union controlRegister_t {
 		uint32_t data;
 		struct {
-			uint32_t : 8;
+			uint32_t mdecIn_priority : 3;
+			uint32_t mdecIn_master_enable : 1;
+			uint32_t mdecOut_priority : 3;
+			uint32_t mdecOut_master_enable : 1;
 			uint32_t gpu_priority : 3;
 			uint32_t gpu_master_enable : 1;
 			uint32_t cd_drive_priority : 3;
 			uint32_t cd_drive_master_enable : 1;
-			uint32_t : 8;
+			uint32_t spu_priority : 3;
+			uint32_t spu_master_enable : 1;
+			uint32_t : 4;
 			uint32_t otc_priority : 3;
 			uint32_t otc_master_enable : 1;
 			uint32_t : 4;

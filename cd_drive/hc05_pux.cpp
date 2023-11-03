@@ -488,7 +488,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	default:
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
 			std::hex << " 0x" << (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) << std::endl;
-		g_emulationPaused = true;
+		//g_emulationPaused = true;
 		break;
 	}
 
@@ -916,18 +916,18 @@ void cdDrive::seekP(const uint8_t& command) {
 
 void cdDrive::test(const uint8_t& command) {
 	switch (paramFifo.back()) {
-		//case 0x04: {
-		//	stat = stat | STAT_SPINDLE_MOTOR;
-		//	std::vector<uint8_t> firstResponse = { stat };
-		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		//	break;
-		//}
-		//case 0x05: {
-		//	std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
-		//	//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
-		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		//	break;
-		//}
+	case 0x04: {
+		stat.elem.spindleMotor = 1;
+		std::vector<uint8_t> firstResponse = { stat.data };
+		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		break;
+	}
+	case 0x05: {
+		std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
+		//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
+		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		break;
+	}
 	case 0x20: {
 		std::vector<uint8_t> firstResponse = { 0x94, 0x09, 0x19, 0xc0 };
 		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());

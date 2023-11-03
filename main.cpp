@@ -5,6 +5,9 @@
 #define OLC_PGE_APPLICATION
 #include "dependencies/olcPixelGameEngine.h"
 
+#define OLC_PGEX_SOUND
+#include "dependencies/olcPGEX_Sound.h"
+
 #include "console.h"
 
 bool g_emulationPaused = false;
@@ -27,8 +30,8 @@ uint32_t g_systemMinutes = 0;
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
 bool g_sideload = false;
-//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
+//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/hit-green.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/PRINTGPU.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/PSXNICCC.exe");
@@ -53,15 +56,13 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_
 //uint8_t g_driveStatus = _NO_DISC;
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Yu-Gi-Oh! - Forbidden Memories (Europe).bin");//probably stucked because unhandled spu regs
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Yu-Gi-Oh! - Forbidden Memories (Europe).bin");//probably stucked because unhandled spu regs
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania Chronicles (USA).bin");//SPU:T/O [wait (IRQ/OFF)] //Pads??
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (USA).bin");//stuck // problem with mem card // like no input// maybe spu regs ??
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman/Rayman (USA) (Track 01).bin");//VSync: timeout
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed!
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot??
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Skullmonkeys.bin");//~[DMA2] EMULATION PAUSED! (GPU) madr: 0 and same for cd drive dma // load delay MAYBE
 
@@ -77,12 +78,15 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem // reads problem, needs spu regs
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tekken 2 (USA) (v1.1)/Tekken 2 (USA) (v1.1) (Track 1).bin"); // DMA 2 linked-list loop 
 
 //working ones
 // 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (USA).bin");//stuck // problem with mem card // like no input// maybe spu regs ?? needs reverb
+
 // 
 // 
 // 
@@ -163,14 +167,13 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (USA) (v1.1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs fixed
 
 
@@ -202,7 +205,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //set
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Captain Commando (Japan).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Quake II/Quake II (USA) (Track 1).bin");//gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tom Clancy's Rainbow Six - Lone Wolf (USA).bin");
-;
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ace Combat 3 - Electrosphere (USA).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Formula 1 (Europe) (En,Fr,De,Es,It) (Rev 1)/Formula 1 (Europe) (En,Fr,De,Es,It) (Rev 1) (Track 01).bin");
@@ -216,6 +219,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //set
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Twisted Metal 2/Twisted Metal 2 (USA) (Track 01).bin"); //[KERNEL] A(3Ah) SystemErrorExit(exitcode) not if intro is skipped
 
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tank Racer (Europe) (En,Fr,De,Es,It)/Tank Racer (Europe) (En,Fr,De,Es,It) (Track 01).bin");
 //demos
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Euro Demo 67 (Europe).bin"); //Ms pacman problem
@@ -229,6 +233,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //set
 
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 
+
 class engine : public olc::PixelGameEngine {
 public:
 
@@ -238,9 +243,15 @@ public:
 
 	console_t PSX;
 
+	static engine* pInstance;
+
 	bool isDebuggerViewed = false;
 
-public:
+	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
+		//if (!g_emulationPaused)
+		    return pInstance->PSX.bus.spu.clock();
+	}
+
 	bool OnUserCreate() override {
 
 #if !CONSOLE_LOGGING
@@ -248,8 +259,15 @@ public:
 #endif
 
 		PSX.reset();
+
+		pInstance = this;
+
+
+		olc::SOUND::InitialiseAudio(44100, 1, 8, 512);
+		olc::SOUND::SetUserSynthFunction(soundOut);
+
 		return true;
-	}
+}
 
 	bool OnUserUpdate(float fElapsedTime) override {
 		try {
@@ -436,8 +454,14 @@ public:
 				if (GetKey(olc::Key::R).bPressed)
 					PSX.debugger.dump("logs/ram.bin", PSX.bus.ram, 2048 * 1024);
 
+				if (GetKey(olc::Key::W).bPressed)
+					PSX.debugger.dump("logs/scratchpad.bin", PSX.bus.scratchpad, 1024);
+
 				if (GetKey(olc::Key::V).bPressed)
 					PSX.debugger.dump("logs/vram.bin", PSX.gpu.vram, 2048 * 512 * 2);
+
+				if (GetKey(olc::Key::S).bPressed)
+					PSX.debugger.dump("logs/dram.bin", PSX.bus.spu.dram, 512 * 1024);
 
 				if (GetKey(olc::Key::O).bPressed)
 					executeOneInstruction = true;
@@ -560,7 +584,16 @@ public:
 		}
 		return true;
 	}
+
+	bool OnUserDestroy()
+	{
+		olc::SOUND::DestroyAudio();
+
+		return true;
+	}
 };
+
+engine* engine::pInstance = nullptr;
 
 int main(int argumentCount, char* argumetVector[]) {
 

@@ -81,6 +81,12 @@
     <ClCompile Include="cpu\cp2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="spu\spu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bus\dma\dma_4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="console.h">
@@ -156,6 +162,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpu\cp2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spu\spu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bus\dma\dma_4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

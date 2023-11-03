@@ -14,13 +14,14 @@
 #include "../timers/timer_1.h"
 #include "../timers/timer_2.h"
 #include "../peripherals/joy_mem_card.h"
+#include "../spu/spu.h"
 
 #include "../defines/defines.h"
 
 #include "../debug_utilities/debug_utilities.h"
 
 #define RAM_SIZE  4 * 2 * 1024 * 1024 / 4
-#define SCRATCHPAD_SIZE  1024 * 1024
+#define SCRATCHPAD_SIZE  1024
 
 class busInterface_t {
 public:
@@ -52,6 +53,8 @@ public:
 	timer2_t timer2;
 
 	joyMemCard_t* pJoyMemCard = nullptr;
+
+	spu_t spu;
 
 	biosChip_t biosChip;
 
