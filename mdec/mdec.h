@@ -55,10 +55,10 @@ public:
 		Cb
 	};
 
-	uint8_t* quantTableY = new (uint8_t)(64);
-	uint8_t* quantTableUV = new (uint8_t)(64);
-	uint16_t* scaleTable = new (uint16_t)(64);
-	uint8_t* source = new(uint8_t)(128);
+	uint8_t* quantTableY = new uint8_t[64];
+	uint8_t* quantTableUV = new uint8_t[64];
+	uint16_t* scaleTable = new uint16_t[64];
+	uint8_t* source = new uint8_t[128];
 
 	void decodeMacroblock(uint32_t command);
 	void setQuantTable(uint32_t command);
@@ -73,6 +73,15 @@ public:
 
 	std::vector<command_t> commandLookup;
 
+	union rle_t {
+		uint16_t data;
+		struct {
+			uint16_t value : 10;
+			uint16_t factor : 6;
+		}elem;
+	};
+
+	std::vector<rle_t> recievedData16;
 	std::vector<uint32_t> recievedData32;
 	uint32_t recievedData32Count = 0;
 	uint32_t command;
@@ -81,19 +90,23 @@ public:
 	bool bEnabledDma1 = false;
 
 	uint16_t* src;
-	uint32_t* dst = new (uint32_t)((8+8)*16);
+	uint32_t* dst = new uint32_t[(8+8)*16*256*256];
 	int dst_num;
+	int i = 0;
+	int blockCount = 0;
+	int srcTracker = 0;
 
-	uint16_t Crblk[64];
-	uint16_t Cbblk[64];
-	uint16_t Yblk[64];
+	int16_t Crblk[64];
+	int16_t Cbblk[64];
+	int16_t Yblk[64];
 
 	std::vector<uint8_t> zigzag;
 	std::vector<uint8_t> zagzig;
 
-	void rl_decode_block(uint16_t* blk, uint16_t*& src, uint16_t* qt);
+	void rl_decode_block(uint16_t* blk, uint16_t*& src, uint8_t* qt);
 
-	uint16_t* temb_buffer = new (uint16_t)(64);
+	uint16_t* temb_buffer = new uint16_t[64];
 	void real_idct_core(uint16_t* blk);
 	void yuv_to_rgb(int xx, int yy);
+	void y_to_mono();
 };

@@ -45,7 +45,9 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
-				float clks = elementCount * CLOCKS_PER_WORD_DMA_0;
+				std::cout << "~[DMA1] (MDECout) element count: 0x"
+					<< std::hex << elementCount << std::endl;
+				float clks = elementCount * CLOCKS_PER_WORD_DMA_1;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}

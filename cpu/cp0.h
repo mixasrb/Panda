@@ -30,8 +30,9 @@ public:
 	void exceptionHandler(const excode_t& code, const uint32_t addrRef = 0);
 
 	void interruptHandler(const uint32_t& irq);
+	void updateInterruptMaskStat();
 
-	void checkForInterrupts();
+	bool executeInterrupt = false;
 
 	bool isolateDataCache = false;
 

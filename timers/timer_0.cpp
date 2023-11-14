@@ -34,7 +34,7 @@ void timer0_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 		if (counterMode.elem.synchronizationMode == 3)
 			bSynchronize = true;
 
-		if (mode != 0x000) {
+		if ((mode != 0x000) && (mode != 0x14b)) {
 			std::cout << "[TIMER0] EMULATION PAUSED! unhandled timer mode 0x" << std::hex << mode << std::endl;
 			g_emulationPaused = true;
 		}
@@ -46,7 +46,14 @@ void timer0_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 }
 
 void timer0_t::clock(uint8_t source) {
+	if ((static_cast<clockSource_t>(source) == HBLANK_CLOCK) && (counterMode.elem.synchronizationEnable) &&
+		(counterMode.elem.synchronizationMode == 1)) {
+		currentValue.elem.currentCounterValue = 0;
+		return;
+	}
+
 	if (clockSource == static_cast<clockSource_t>(source)) {
+
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {
 			currentValue.elem.currentCounterValue = 0;

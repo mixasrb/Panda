@@ -81,9 +81,15 @@ void joyMemCard_t::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 		}
 		break;
 	case 0x1f80104a: {
+		joyCtrl_t tempJoyCtrl;
+		tempJoyCtrl.data = data;
+		if (tempJoyCtrl.elem.joynOutput != joyCtrl.elem.joynOutput)
+			sequvenceIndex = 0;
+
+
 		joyCtrl.data = data;
 
-		auto changeState = [=] {
+		auto changeState = [&] {
 			txen = joyCtrl.elem.txEnable ? true : false;
 			rxen = joyCtrl.elem.rxEnable ? true : false; //??
 
@@ -129,12 +135,25 @@ void joyMemCard_t::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 					std::cout << "[JOY/MEMCARD] enabled IRQ"/* << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 					<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes*/ << std::endl;
 			}
-
-			/*if (joyCtrl.elem.joynOutput == 0)
-				sequvenceIndex = 0;*/
 			};
 
 		changeState();
+
+		if ((data != 0x0000) &&
+			(data != 0x0002) &&
+			(data != 0x0012) &&
+			(data != 0x0040) &&
+			(data != 0x1003) &&
+			(data != 0x1013) &&
+			(data != 0x2002) &&
+			(data != 0x2012) &&
+			(data != 0x3003) &&
+			(data != 0x3013)) {
+			std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled joy control 0x"
+				<< std::hex << data << std::endl;
+			g_emulationPaused = true;
+		}
+
 		break;
 	}
 
@@ -208,13 +227,13 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				sequvenceIndex++;
 			}
 			else if (joyTxData.elem.dataToBeSent == 0x81) {
-				device = MEM_CARD;
 				joyRxData.elem.firstEntry = 0xff;
 				if (joy.slotNumber == JOY1) {
-					//sequvenceIndex++;
-					bSendingData = false;
-					bACK = false;
-					sequvenceIndex = 0;
+				device = MEM_CARD;
+				sequvenceIndex++;
+				/*bSendingData = false;
+				bACK = false;
+				sequvenceIndex = 0;*/
 				}
 				else {
 					bSendingData = false;
@@ -223,6 +242,12 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				}
 			}
 			else {
+
+				std::cout << "[JOY/MEMCARD] Unhandled sent tx data >>>>>> 0x" << std::hex << (uint16_t)joyTxData.elem.dataToBeSent << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
+					<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+					<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
+				g_emulationPaused = true;
+
 				bSendingData = false;
 				bACK = false;
 				joyRxData.elem.firstEntry = 0xff;
@@ -244,6 +269,14 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 			}
 			if (device == MEM_CARD) {
 				memCardCommand = joyTxData.elem.dataToBeSent;
+
+				if ((memCardCommand != 0x52) && (memCardCommand != 0x57)) {
+					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
+						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
+					g_emulationPaused = true;
+				}
+
 				joyRxData.elem.firstEntry = memCardFlags[joy.slotNumber];
 				sequvenceIndex++;
 				break;
@@ -262,12 +295,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					break;
 				case 'W':
 					joyRxData.elem.firstEntry = 0x5a;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -296,12 +323,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					break;
 				case 'W':
 					joyRxData.elem.firstEntry = 0x5d;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -334,12 +355,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					sectorNum = joyTxData.elem.dataToBeSent << 8;
 					joyRxData.elem.firstEntry = 0x00;
 					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
-					break;
 				}
 				sequvenceIndex++;
 				break;
@@ -361,12 +376,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				case 'W':
 					sectorNum |= joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				if (sectorNum > 0x3fff) {
@@ -392,7 +401,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				case 'R':
 					if (joyTxData.elem.dataToBeSent == 0) {
 						joyRxData.elem.firstEntry = 0x5c;
-						ackClocks = (31000 - 1500);
+						//ackClocks = (31000 - 1500);
 					}
 					else {
 						std::cout << "[JOY/MEMCARD] Unhandled sent tx data >>>>>> 0x" << std::hex << (uint16_t)joyTxData.elem.dataToBeSent << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
@@ -404,12 +413,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				case 'W':
 					memCards[joy.slotNumber][sectorNum * 128] = joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -440,12 +443,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					memCards[joy.slotNumber][sectorNum * 128 + 1] = joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
 					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
-					break;
 				}
 				sequvenceIndex++;
 				break;
@@ -462,7 +459,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				switch (memCardCommand) {
 				case 'R':
 					if (joyTxData.elem.dataToBeSent == 0) {
-						joyRxData.elem.firstEntry = sectorNum >> 8;
+						joyRxData.elem.firstEntry = (uint8_t)(sectorNum >> 8);
 					}
 					else {
 						std::cout << "[JOY/MEMCARD] Unhandled sent tx data >>>>>> 0x" << std::hex << (uint16_t)joyTxData.elem.dataToBeSent << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
@@ -474,12 +471,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				case 'W':
 					memCards[joy.slotNumber][sectorNum * 128 + 2] = joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -497,7 +488,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				switch (memCardCommand) {
 				case 'R':
 					if (joyTxData.elem.dataToBeSent == 0) {
-						joyRxData.elem.firstEntry = sectorNum & 0xff;
+						joyRxData.elem.firstEntry = (uint8_t)sectorNum;
 					}
 					else {
 						std::cout << "[JOY/MEMCARD] Unhandled sent tx data >>>>>> 0x" << std::hex << (uint16_t)joyTxData.elem.dataToBeSent << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
@@ -509,12 +500,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 				case 'W':
 					memCards[joy.slotNumber][sectorNum * 128 + 3] = joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -543,12 +528,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					break;
 				case 'W':
 					joyRxData.elem.firstEntry = 0x00;
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -586,12 +565,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 						g_emulationPaused = true;
 					}
 					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
-					break;
 				}
 				sequvenceIndex++;
 				break;
@@ -627,12 +600,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 							<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
 						g_emulationPaused = true;
 					}
-					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
 					break;
 				}
 				sequvenceIndex++;
@@ -674,12 +641,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 						g_emulationPaused = true;
 					}
 					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
-					break;
 				}
 				break;
 			}
@@ -697,7 +658,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					if (joyTxData.elem.dataToBeSent == 0) {
 						uint8_t chk = (sectorNum >> 8) ^ (sectorNum & 0xff);
 						for (int i = 0; i < 128; i++) {
-							chk ^= memCards[joy.slotNumber][i];
+							chk ^= memCards[joy.slotNumber][sectorNum * 128 + i];
 						}
 						joyRxData.elem.firstEntry = chk;
 					}
@@ -708,7 +669,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 						g_emulationPaused = true;
 					}
 					break;
-				default:
+				case 'W':
 					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
 						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
@@ -734,7 +695,7 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					sequvenceIndex = 0;
 					memCardFlags[joy.slotNumber] = 0;
 					break;
-				default:
+				case 'W':
 					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
 						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
@@ -772,21 +733,9 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 					memCards[joy.slotNumber][sectorNum * 128 + sequvenceIndex - 6] = joyTxData.elem.dataToBeSent;
 					joyRxData.elem.firstEntry = 0x00;
 					break;
-				default:
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-					g_emulationPaused = true;
-					break;
 				}
 				sequvenceIndex++;
 				break;
-			}
-			else {
-				std::cout << "[JOY/MEMCARD] Unhandled sent tx data >>>>>> 0x" << std::hex << (uint16_t)joyTxData.elem.dataToBeSent << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-					<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-					<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
-				g_emulationPaused = true;
 			}
 			break;
 		}
@@ -841,7 +790,6 @@ void joyMemCard_t::clock() {
 
 	if ((oldAckInputLevel == HIGH) && (joyStat.elem.ackInputLevel == LOW)) {
 		if (joyCtrl.elem.ackInterruptEnable) {
-			//joyCtrl.elem.ackInterruptEnable = 1;
 			joyStat.elem.irq = 1;
 			if (g_buttonPressed)
 				std::cout << "[JOY/MEMCARD] IRQ7" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
@@ -905,6 +853,14 @@ void joyMemCard_t::readMemCardFiles() {
 void joyMemCard_t::writeMemCardFiles() {
 	constexpr size_t memCardSize = 128 * 1024;
 
+	std::ofstream memCardFile("D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", std::ios::binary);
+
+	if (!memCardFile.is_open())
+		throw std::runtime_error("failed to open memory card files");
+	else {
+		memCardFile.write((char*)memCards[0], memCardSize);
+		memCardFile.close();
+	}
 	/*for (int i = 0; i < 2; i++) {
 		std::ofstream newMemCardFile(g_memCardPaths[i], std::ios::binary);
 		if (!newMemCardFile.is_open())
@@ -919,7 +875,7 @@ void joyMemCard_t::reset() {
 	joyTxData.data = 0;
 	joyRxData.data = 0xff;
 	joyStat.data = 0;
-	joyMode.data = 0;
+	//joyMode.data = 0;
 	joyBaud.baudrateReloadValue = 0;
 	//sequvenceIndex = 0;
 	/*if (g_buttonPressed)

@@ -22,7 +22,7 @@ void console_t::clock() {
 
 	bus.dma.clock();
 
-	//mdec.clock();
+	mdec.clock();
 
 	gpu.videoClock();
 

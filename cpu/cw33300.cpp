@@ -218,8 +218,10 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//		loggedOpcodes.clear();
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
 	//}
+#if DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
+#endif
 
 	isCurrentOpcodeBranch = false;
 	uint8_t prim_opcode = opcode >> 26;
@@ -472,7 +474,7 @@ void cpu_t::clock() {
 	isInstructionExecuted = false;
 
 	if (clocks == 0) {
-
+		r[0] = 0;
 		irqFlag = true;
 
 		read32(pc - 1 * 4, opcode, clocks, true);
@@ -481,8 +483,10 @@ void cpu_t::clock() {
 		read32(pc + 1 * 4, opcode, clocks, true);
 		irqFlag &= !checkForCopOpcode(opcode);
 
-		if (irqFlag && !isCurrentOpcodeBranch)
-			cp0.checkForInterrupts();
+		if (irqFlag && !isCurrentOpcodeBranch && cp0.executeInterrupt) {
+			cp0.executeInterrupt = false;
+			cp0.exceptionHandler(_INT);
+		}
 
 		switch (cycle) {
 		case 0:
@@ -535,6 +539,7 @@ void cpu_t::clock() {
 				goto label0;
 
 		label1:
+			r[0] = 0;
 			cycle = 0;
 			isPipelineFull = true;
 
@@ -585,7 +590,7 @@ void cpu_t::clock() {
 //instructions
 
 void cpu_t::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
-	set(rd, get(rt) << imm);
+	r[rd] = r[rt] << imm;
 }
 
 void cpu_t::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
@@ -595,43 +600,37 @@ void cpu_t::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 }
 
 void cpu_t::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
-	set(rd, get(rt) >> imm);
+	r[rd] = r[rt] >> imm;
 }
 
 void cpu_t::SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
-	int32_t temp = get(rt);
-	temp >>= imm;
-	set(rd, temp);
+	r[rd] = (int32_t)r[rt] >> imm;
 }
 
 void cpu_t::SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rt) << (get(rs) & 0x1f));
+	r[rd] = r[rt] << (r[rs] & 0x1f);
 }
 
 void cpu_t::SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rt) >> (get(rs) & 0x1f));
+	r[rd] = r[rt] >> (r[rs] & 0x1f);
 }
 
 void cpu_t::SRAV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	int32_t temp = get(rt);
-	temp >>= (get(rs) & 0x1f);
-	set(rd, temp);
+	r[rd] = (int32_t)r[rt] >> (r[rs] & 0x1f);
 }
 
 void cpu_t::JR(const uint8_t& rs) {
-	if (get(rs) & 0x3) {
-		cp0.exceptionHandler(_ADEL, get(rs));
-	}
+	if (r[rs] & 0x3)
+		cp0.exceptionHandler(_ADEL, r[rs]);
 	else
-		pc = get(rs);
+		pc = r[rs];
 }
 
 void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
-	uint32_t tempAddr = get(rs);
-	set(rd, pc);
-	if (tempAddr & 0x3) {
+	uint32_t tempAddr = r[rs];
+	r[rd] = pc;
+	if (tempAddr & 0x3)
 		cp0.exceptionHandler(_ADEL, tempAddr);
-	}
 	else
 		pc = tempAddr;
 }
@@ -641,31 +640,31 @@ void cpu_t::SYSCALL(const uint32_t& imm) {
 }
 
 void cpu_t::BREAK(const uint32_t& imm) {
-	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
+	/*std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< "op 0x" << std::hex << opcode << std::endl;
-	//cp0.exceptionHandler(_BP);
-	g_emulationPaused = true;
+	g_emulationPaused = true;*/
+	cp0.exceptionHandler(_BP);
 }
 
 void cpu_t::MULT(const uint8_t& rs, const uint8_t& rt) {
-	int64_t operandA = (int32_t)get(rs);
-	int64_t operandB = (int32_t)get(rt);
+	int64_t operandA = (int32_t)r[rs];
+	int64_t operandB = (int32_t)r[rt];
 	int64_t temp = operandA * operandB;
 	hi = temp >> 32;
 	lo = temp << 32 >> 32;
 }
 
 void cpu_t::MULTU(const uint8_t& rs, const uint8_t& rt) {
-	uint64_t operandA = (uint32_t)get(rs);
-	uint64_t operandB = (uint32_t)get(rt);
+	uint64_t operandA = (uint32_t)r[rs];
+	uint64_t operandB = (uint32_t)r[rt];
 	uint64_t temp = operandA * operandB;
 	hi = temp >> 32;
 	lo = temp << 32 >> 32;
 }
 
 void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
-	int32_t operandA = get(rs);
-	int32_t operandB = get(rt);
+	int32_t operandA = r[rs];
+	int32_t operandB = r[rt];
 
 	if ((operandA == 0x80000000) && (operandB == 0xffffffff)) {
 		lo = 0x80000000;
@@ -673,7 +672,7 @@ void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
 		return;
 	}
 
-	if (operandB == 0) {
+	else if (operandB == 0) {
 		if (operandA < 0) {
 			lo = 0x00000001;
 			hi = operandA;
@@ -682,9 +681,10 @@ void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
 			lo = 0xffffffff;
 			hi = operandA;
 		}
+		return;
 	}
 
-	if (operandB) {
+	else if (operandB) {
 		lo = operandA / operandB;
 		hi = operandA % operandB;
 	}
@@ -693,15 +693,16 @@ void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
 }
 
 void cpu_t::DIVU(const uint8_t& rs, const uint8_t& rt) {
-	uint32_t operand_a = get(rs);
-	uint32_t operand_b = get(rt);
+	uint32_t operand_a = r[rs];
+	uint32_t operand_b = r[rt];
 
 	if (operand_b == 0) {
 		lo = 0xffffffff;
 		hi = operand_a;
+		return;
 	}
 
-	if (operand_b) {
+	else if (operand_b) {
 		lo = operand_a / operand_b;
 		hi = operand_a % operand_b;
 	}
@@ -710,67 +711,67 @@ void cpu_t::DIVU(const uint8_t& rs, const uint8_t& rt) {
 }
 
 void cpu_t::MFHI(const uint8_t& rd) {
-	set(rd, hi);
+	r[rd] = hi;
 }
 
 void cpu_t::MFLO(const uint8_t& rd) {
-	set(rd, lo);
+	r[rd] = lo;
 }
 
 void cpu_t::MTHI(const uint8_t& rs) {
-	hi = get(rs);
+	hi = r[rs];
 }
 
 void cpu_t::MTLO(const uint8_t& rs) {
-	lo = get(rs);
+	lo = r[rs];
 }
 
 void cpu_t::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	uint32_t a = get(rs);
-	uint32_t b = get(rt);
+	uint32_t a = r[rs];
+	uint32_t b = r[rt];
 	uint32_t res = a + b;
 
 	bool overflow = ((a ^ res) & (b ^ res)) >> 31;
 	if (overflow)
 		cp0.exceptionHandler(_OV);
 	else
-		set(rd, res);
+		r[rd] = res;
 }
 
 void cpu_t::ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rs) + get(rt));
+	r[rd] = r[rs] + r[rt];
 }
 
 void cpu_t::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	uint32_t a = get(rs);
-	uint32_t b = get(rt);
+	uint32_t a = r[rs];
+	uint32_t b = r[rt];
 	uint32_t res = a - b;
 
 	if (((int32_t)b > 0 && (int32_t)a < INT32_MIN + (int32_t)b) ||
 		((int32_t)b < 0 && (int32_t)a > INT32_MAX + (int32_t)b))
 		cp0.exceptionHandler(_OV); // ???
 	else
-		set(rd, res);
+		r[rd] = res;
 }
 
 void cpu_t::SUBU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rs) - get(rt));
+	r[rd] = r[rs] - r[rt];
 }
 
 void cpu_t::AND(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rs) & get(rt));
+	r[rd] = r[rs] & r[rt];
 }
 
 void cpu_t::OR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rs) | get(rt));
+	r[rd] = r[rs] | r[rt];
 }
 
 void cpu_t::XOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, get(rs) ^ get(rt));
+	r[rd] = r[rs] ^ r[rt];
 }
 
 void cpu_t::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	set(rd, ~(get(rs) | get(rt)));
+	r[rd] = ~(r[rs] | r[rt]);
 }
 
 void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
@@ -780,37 +781,33 @@ void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 }
 
 void cpu_t::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	int32_t openand_a = get(rs);
-	int32_t openand_b = get(rt);
-	openand_a < openand_b ? set(rd, 1) : set(rd, 0);
+	r[rd] = ((int32_t)r[rs] < (int32_t)r[rt]) ? 1 : 0;
 }
 
 void cpu_t::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
-	get(rs) < get(rt) ? set(rd, 1) : set(rd, 0);
+	r[rd] = (r[rs] < r[rt]) ? 1 : 0;
 }
 
 void cpu_t::BLTZ(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	if (temp < 0)
+	if ((int32_t)r[rs] < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BGEZ(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	if (temp >= 0)
+	if ((int32_t)r[rs] >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	set(31, pc - 8 + 8);
+	int32_t temp = r[rs];
+	r[31] = pc;
 	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	set(31, pc - 8 + 8);
+	int32_t temp = r[rs];
+	r[31] = pc;
 	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
@@ -820,34 +817,32 @@ void cpu_t::J(const uint32_t& imm) {
 }
 
 void cpu_t::JAL(const uint32_t& imm) {
-	set(31, pc);
+	r[31] = pc;
 	pc = (pc - 8 & 0xf0000000) | (imm << 2);
 }
 
 void cpu_t::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	if (get(rs) == get(rt))
+	if (r[rs] == r[rt])
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	if (get(rs) != get(rt))
+	if (r[rs] != r[rt])
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BLEZ(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	if (temp <= 0)
+	if ((int32_t)r[rs] <= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::BGTZ(const uint8_t& rs, const uint16_t& imm) {
-	int32_t temp = get(rs);
-	if (temp > 0)
+	if ((int32_t)r[rs] > 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
 void cpu_t::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	uint32_t a = get(rs);
+	uint32_t a = r[rs];
 	uint16_t b = imm;
 	uint32_t temp = a + (int16_t)b;
 
@@ -855,134 +850,134 @@ void cpu_t::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 		((int32_t)a < 0 && (int16_t)b < 0 && (int32_t)temp > 0))
 		cp0.exceptionHandler(_OV);
 	else
-		set(rt, temp);
+		r[rt] = temp;
 }
 
 void cpu_t::ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	set(rt, get(rs) + (int16_t)imm);
+	r[rt] = r[rs] + (int16_t)imm;
 }
 
 void cpu_t::SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	(int32_t)get(rs) < (int32_t)((int16_t)imm) ? set(rt, 1) : set(rt, 0);
+	r[rt] = ((int32_t)r[rs] < (int32_t)((int16_t)imm)) ? 1 : 0;
 }
 
 void cpu_t::SLTIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	get(rs) < (uint32_t)(int32_t)((int16_t)imm) ? set(rt, 1) : set(rt, 0);
+	r[rt] = (r[rs] < (uint32_t)(int32_t)((int16_t)imm)) ? 1 : 0;
 }
 
 void cpu_t::ANDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	set(rt, get(rs) & imm);
+	r[rt] = r[rs] & imm;
 }
 
-void cpu_t::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm)
-{
-	set(rt, (get(rs) | imm));
+void cpu_t::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+	r[rt] = r[rs] | imm;
 }
 
 void cpu_t::XORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
-	set(rt, (get(rs) ^ imm));
+	r[rt] = r[rs] ^ imm;
 }
 
 void cpu_t::LUI(const uint8_t& rt, const uint16_t& imm) {
-	set(rt, imm << 16);
+	r[rt] = imm << 16;
 }
 
 void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
 	uint8_t temp;
 	read8(temp_addr, temp, memoryClocks);
-	set(rt, (int32_t)((int8_t)temp), true);
+	r[rt] = (int32_t)((int8_t)temp);
 }
 
 void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
-	if (temp_addr & 0x1) {
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+
+	if (temp_addr & 0x1)
 		cp0.exceptionHandler(_ADEL, temp_addr);
-	}
 	else {
 		uint16_t temp;
 		read16(temp_addr, temp, memoryClocks);
-		set(rt, (int32_t)((int16_t)temp), true);
+		r[rt] = (int32_t)((int16_t)temp);
 	}
 }
 
 void cpu_t::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
-	uint32_t temp_addr = get(rs) + addr_offset;
+	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
+
 	switch (offset) {
 	case 0:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) << 8 >> 8) | (data << 24), true);
+		r[rt] = (r[rt] << 8 >> 8) | (data << 24);
 		break;
 	case 1:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) << 16 >> 16) | (data << 16), true);
+		r[rt] = (r[rt] << 16 >> 16) | (data << 16);
 		break;
 	case 2:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) << 24 >> 24) | (data << 8), true);
+		r[rt] = (r[rt] << 24 >> 24) | (data << 8);
 		break;
 	case 3:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, data, true);
+		r[rt] = data;
 		break;
 	}
 }
 
 void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
-	if (temp_addr & 0x3) {
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+
+	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADEL, temp_addr);
-	}
 	else {
 		uint32_t temp;
 		read32(temp_addr, temp, memoryClocks);
-		set(rt, temp, true);
+		r[rt] = temp;
 	}
 }
 
 void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
 	uint8_t temp;
-	read8(temp_addr, temp, memoryClocks);
-	set(rt, temp, true);
+	read8(r[rs] + (int32_t)imm, temp, memoryClocks);
+	r[rt] = temp;
 }
 
 void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
-	if (temp_addr & 0x1) {
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+
+	if (temp_addr & 0x1)
 		cp0.exceptionHandler(_ADEL, temp_addr);
-	}
 	else {
 		uint16_t temp;
 		read16(temp_addr, temp, memoryClocks);
-		set(rt, temp, true);
+		r[rt] = temp;
 	}
 }
 
 void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
-	uint32_t temp_addr = get(rs) + addr_offset;
+	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
+
 	switch (offset) {
 	case 0:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, data, true);
+		r[rt] = data;
 		break;
 	case 1:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) >> 24 << 24) | (data >> 8), true);
+		r[rt] = (r[rt] >> 24 << 24) | (data >> 8);
 		break;
 	case 2:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) >> 16 << 16) | (data >> 16), true);
+		r[rt] = (r[rt] >> 16 << 16) | (data >> 16);
 		break;
 	case 3:
 		read32(temp_addr, data, memoryClocks);
-		set(rt, (get(rt) >> 8 << 8) | (data >> 24), true);
+		r[rt] = (r[rt] >> 8 << 8) | (data >> 24);
 		break;
 	}
 }
@@ -994,50 +989,51 @@ void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 }
 
 void cpu_t::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
-	write8(temp_addr, get(rt) & 0xff, writeClocks);
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+	write8(temp_addr, r[rt], writeClocks);
 }
 
 void cpu_t::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+
 	if (temp_addr & 0x1) {
 		cp0.exceptionHandler(_ADES, temp_addr);
 	}
 	else
-		write16(temp_addr, get(rt) & 0xffff, writeClocks);
+		write16(temp_addr, r[rt], writeClocks);
 }
 
 void cpu_t::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
-	uint32_t temp_addr = get(rs) + addr_offset;
+	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 	switch (offset) {
 	case 0:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) >> 24) | (data >> 8 << 8), writeClocks);
+		write32(temp_addr, (r[rt] >> 24) | (data >> 8 << 8), writeClocks);
 		break;
 	case 1:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) >> 16) | (data >> 16 << 16), writeClocks);
+		write32(temp_addr, (r[rt] >> 16) | (data >> 16 << 16), writeClocks);
 		break;
 	case 2:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) >> 8) | (data >> 24 << 24), writeClocks);
+		write32(temp_addr, (r[rt] >> 8) | (data >> 24 << 24), writeClocks);
 		break;
 	case 3:
-		write32(temp_addr, get(rt), writeClocks);
+		write32(temp_addr, r[rt], writeClocks);
 		break;
 	}
 }
 
 void cpu_t::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
-	uint32_t temp_addr = get(rs) + (int32_t)imm;
-	if (temp_addr & 0x3) {
+	uint32_t temp_addr = r[rs] + (int32_t)imm;
+
+	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADES, temp_addr);
-	}
 	else
-		write32(temp_addr, get(rt), writeClocks);
+		write32(temp_addr, r[rt], writeClocks);
 }
 
 void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1048,25 +1044,25 @@ void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cpu_t::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
-	uint32_t temp_addr = get(rs) + addr_offset;
+	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 	switch (offset)
 	{
 	case 0:
-		write32(temp_addr, get(rt), memoryClocks);
+		write32(temp_addr, r[rt], memoryClocks);
 		break;
 	case 1:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) << 8) | (data << 24 >> 24), writeClocks);
+		write32(temp_addr, (r[rt] << 8) | (data << 24 >> 24), writeClocks);
 		break;
 	case 2:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) << 16) | (data << 16 >> 16), writeClocks);
+		write32(temp_addr, (r[rt] << 16) | (data << 16 >> 16), writeClocks);
 		break;
 	case 3:
 		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (get(rt) << 24) | (data << 8 >> 8), writeClocks);
+		write32(temp_addr, (r[rt] << 24) | (data << 8 >> 8), writeClocks);
 		break;
 	}
 }
@@ -1104,6 +1100,14 @@ void cpu_t::printBiosCall() {
 					std::cout << "~[KERNEL] src 0x" << std::hex << get(5) << std::endl;
 					std::cout << "~[KERNEL] len 0x" << std::hex << get(6) << std::endl;
 				}
+
+				if (call == 0xab) {
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+				}
+
+				if (call == 0xaf) {
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+				}
 			}
 
 			if (call == 0x3c) {
@@ -1124,6 +1128,14 @@ void cpu_t::printBiosCall() {
 					std::cout << "[KERNEL] " << pBus->biosChip.B[call].info << std::endl;
 
 				oldCall = call;
+
+				if (call == 0x4a) {
+					std::cout << "~[KERNEL] pad_enable 0x" << std::hex << get(4) << std::endl;
+				}
+
+				if (call == 0x4d) {
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+				}
 
 				if (call == 0x02) {
 					std::cout << "~[KERNEL] t 0x" << std::hex << get(4) << std::endl;
@@ -1187,11 +1199,15 @@ void cpu_t::printBiosCall() {
 			}
 
 			if (g_biosCallbacksLogged) {
-				if (call == 0x4f) {
+				if ((call == 0x4e) || (call == 0x4f)) {
 					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
 					std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << std::endl;
 					std::cout << "~[KERNEL] dst 0x" << std::hex << get(6) << std::endl;
-					//isEmulationPaused = true;
+					g_emulationPaused = true;
+				}
+
+				if ((call == 0x5c) || (call == 0x5d)) {
+					std::cout << "~[KERNEL] slot 0x" << std::hex << get(4) << std::endl;
 				}
 			}
 

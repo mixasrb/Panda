@@ -142,6 +142,27 @@ void cdDrive::readCdDrive8(const uint32_t& addr, uint8_t& data) {
 
 	switch (addr) {
 	case 0x1f801800:
+		//Set stat flags
+		if (paramFifo.empty())
+			indexStatus.reg.prmempt = 1;
+		else
+			indexStatus.reg.prmempt = 0;
+
+		if (paramFifo.size() == 16)
+			indexStatus.reg.prmwrdy = 0;
+		else
+			indexStatus.reg.prmwrdy = 1;
+
+		if (responseFifo.empty())
+			indexStatus.reg.rslrrdy = 0;
+		else
+			indexStatus.reg.rslrrdy = 1;
+
+		if (bufferCounter == 0)
+			indexStatus.reg.drqsts = 0;
+		else
+			indexStatus.reg.drqsts = 1;
+
 		data = indexStatus.data;
 		break;
 
@@ -322,28 +343,6 @@ void cdDrive::setDataResponse(const responseINT_t& responseINT, uint8_t* pRespon
 }
 
 void cdDrive::clock() {
-	//Set stat flags
-	if (paramFifo.empty())
-		indexStatus.reg.prmempt = 1;
-	else
-		indexStatus.reg.prmempt = 0;
-
-	if (paramFifo.size() == 16)
-		indexStatus.reg.prmwrdy = 0;
-	else
-		indexStatus.reg.prmwrdy = 1;
-
-	if (responseFifo.empty())
-		indexStatus.reg.rslrrdy = 0;
-	else
-		indexStatus.reg.rslrrdy = 1;
-
-	if (bufferCounter == 0)
-		indexStatus.reg.drqsts = 0;
-	else
-		indexStatus.reg.drqsts = 1;
-
-
 
 	bool bDeliverResponseINT = !responsesINT.empty() && (irqFlagRead.data == 0);
 	if (bDeliverResponseINT) {
@@ -453,7 +452,9 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		bSendINT1 = false;
 	else {
 		bSendINT1 = true;
-		stat.elem.read = 1;
+
+		if (stat.elem.play == 0)
+			stat.elem.read = 1;
 
 		pBuffer = (uint8_t*)fileDataVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + (mode.elem.sectorSize ? 0x0c : 0x18));
 
@@ -546,6 +547,8 @@ void cdDrive::getStat(const uint8_t& command) {
 void cdDrive::play(const uint8_t& command) {
 	bPlay = true;
 
+	//stat.elem.read = 0;//??
+
 	stat.elem.spindleMotor = 1;
 	//seek 
 	if (bSetLoc) {
@@ -619,6 +622,10 @@ void cdDrive::setLoc(const uint8_t& command) {
 
 void cdDrive::readN(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
+
+	//bPlay = false;//??
+	//stat.elem.play = 0;//??
+
 	//seek 
 	if (bSetLoc) {
 		bSetLoc = false;
@@ -827,8 +834,8 @@ void cdDrive::getTD(const uint8_t& command) {
 	uint8_t ass;
 	uint8_t amm;
 
-	/*ass = 2;
-	amm = 0;*/
+	//ass = 2;
+	//amm = 0;
 
 	if (track == 0x00) {
 		ass = cdTracks[cdTracks.size() - 1].index1End.ass;
@@ -916,18 +923,18 @@ void cdDrive::seekP(const uint8_t& command) {
 
 void cdDrive::test(const uint8_t& command) {
 	switch (paramFifo.back()) {
-	case 0x04: {
-		stat.elem.spindleMotor = 1;
-		std::vector<uint8_t> firstResponse = { stat.data };
-		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		break;
-	}
-	case 0x05: {
-		std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
-		//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
-		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		break;
-	}
+		//case 0x04: {
+		//	stat.elem.spindleMotor = 1;
+		//	std::vector<uint8_t> firstResponse = { stat.data };
+		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		//	break;
+		//}
+		//case 0x05: {
+		//	std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
+		//	//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
+		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		//	break;
+		//}
 	case 0x20: {
 		std::vector<uint8_t> firstResponse = { 0x94, 0x09, 0x19, 0xc0 };
 		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
@@ -976,6 +983,11 @@ void cdDrive::getID(const uint8_t& command) {
 
 void cdDrive::readS(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
+
+	bPlay = false;//??
+	stat.elem.play = 0;//??
+	stat.elem.read = 0;//??
+
 	//seek 
 	if (bSetLoc) {
 		bSetLoc = false;

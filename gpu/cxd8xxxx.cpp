@@ -521,27 +521,6 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void gpu_t::videoClock() {
-	constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-	constexpr uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
-	constexpr uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / 263;
-
-	if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME) {
-		cpuFrameClocks = 0;
-
-		//fifoCount = 0;
-		//gpuStat.elem.readyDma = 1;
-		//gpuStat.elem.readyCommand = 1;
-
-		//V-Sync interrupt is naturally edge trigered
-		pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
-
-		if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
-			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
-
-		//Vblank synchronization timer 1
-		pBus->timer1.clock(_VBLANK_CLOCK);
-	}
-
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
 		cpuScanlineClocks = 0;
 		if (!gpuStat.elem.verticalRes)
@@ -549,31 +528,39 @@ void gpu_t::videoClock() {
 
 		//Hblank clocking timer 1
 		pBus->timer1.clock(_HBLANK_CLOCK);
+		pBus->timer0.clock(_HBLANK_CLOCK);
 
+		scanlineCount++;
+		if (scanlineCount == SCANLINE_NUMBER_PAL) {
+			scanlineCount = -1;
+
+			//fifoCount = 0;
+			//gpuStat.elem.readyDma = 1;
+			//gpuStat.elem.readyCommand = 1;
+
+			//V-Sync interrupt is naturally edge trigered
+			pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
+
+			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
+				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+
+			//Vblank synchronization timer 1
+			pBus->timer1.clock(_VBLANK_CLOCK);
+		}
 	}
 
-	if (cpuFrameClocks % 10 == 0) {
+	if ((cpuScanlineClocks & 0xf) == 0)
 		pBus->timer0.clock(_DOT_CLOCK);
+
+
+	if (cpuScanlineClocks % (0x300 * 0x3ff) == 0) {
+		//if (pBus->spuControlRegister.elem.irq9Enable) //metal gear solid
+		{
+			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+		}
 	}
 
-	//if (cpuFrameClocks % 10000000 == 0) {
-	//	//if (pBus->spuControlRegister.elem.irq9Enable) //metal gear solid
-	//	{
-	//		pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-	//		pBus->spuStatusRegister.elem.irq9Flag = 1;
-	//	}
-	//}
-
-	//if (cpuFrameClocks == CPU_CLOCKS_PER_FRAME / 2) {
-	//	//HAHHAHA BYPASS SPU_DMA
-	//	if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4 && pBus->dma.interruptRegister.reg.IRQ_master_enable) {
-	//		pBus->dma.interruptRegister.reg.IRQ_master_flag = 1;
-	//		pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
-	//		pBus->pCpu->cp0.interruptHandler(_IRQ_DMA);
-	//	}
-	//}
-
-	cpuFrameClocks++;
 	cpuScanlineClocks++;
 
 	//fifoClocks++;
@@ -641,8 +628,8 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		}
 
 		if (((gpuStat.elem.drawPixels == 1) && ((data & 0x8000) == 0x8000)) || (gpuStat.elem.drawPixels == 0)) {
-			vram[(position.x & 1023) * 2 * size_y + (position.y & 511)] = data << 8 >> 8;
-			vram[((position.x & 1023) * 2 + 1) * size_y + (position.y & 511)] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
+			vram[(position.x & 1023) * 2 + (position.y & 511) * size_x] = data << 8 >> 8;
+			vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
 			updateVramView(position, data);
 		}
 		return;
@@ -661,8 +648,8 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		}
 
 		if (((gpuStat.elem.drawPixels == 1) && ((data & 0x8000) == 0x8000)) || (gpuStat.elem.drawPixels == 0)) {
-			vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 * size_y + ((position.y + (drawOffset.y >> 5)) & 511)] = data << 8 >> 8;
-			vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) * size_y + ((position.y + (drawOffset.y >> 5)) & 511)] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
+			vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = data << 8 >> 8;
+			vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
 
 			vertex_t p = { 0, 0 };
 			p.x = position.x + (drawOffset.x >> 5);
@@ -699,8 +686,8 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = vram[(position.x & 1023) * 2 * size_y + (position.y & 511)];
-		data |= vram[((position.x & 1023) * 2 + 1) * size_y + (position.y & 511)] << 8;
+		data = vram[(position.x & 1023) * 2 + (position.y & 511) * size_x];
+		data |= vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] << 8;
 		return;
 	}
 
@@ -716,8 +703,8 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 * size_y + ((position.y + (drawOffset.y >> 5)) & 511)];
-		data |= vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) * size_y + ((position.y + (drawOffset.y >> 5)) & 511)] << 8;
+		data = vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 + ((position.y + (drawOffset.y >> 5)) & 511) * size_x];
+		data |= vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] << 8;
 	}
 }
 

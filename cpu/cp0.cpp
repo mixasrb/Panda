@@ -23,6 +23,8 @@ void cp0_t::set(const uint8_t& reg, const uint32_t& value) {
 		std::cout << "[CP0] EMULATION PAUSED! unhandled BEV\n";
 		g_emulationPaused = true;
 	}
+
+	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
 }
 
 void cp0_t::MFC0(const uint8_t& rt, const uint8_t& rd) {
@@ -59,6 +61,7 @@ void cp0_t::COP0(uint32_t imm) {
 
 void cp0_t::RFE() {
 	SR = (SR & 0xfffffff0) | ((SR & 0x3c) >> 2);
+	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
 }
 
 void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
@@ -105,18 +108,16 @@ void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 	pCpu->pc = 0x80000080;
 }
 
-void cp0_t::interruptHandler(const uint32_t& irq) {
-	pCpu->pBus->interruptStat |= irq;
-}
-
-void cp0_t::checkForInterrupts() {
+void cp0_t::updateInterruptMaskStat() {
 	if (pCpu->pBus->interruptMask & pCpu->pBus->interruptStat)
 		CAUSE |= 0x400;
 	else
 		CAUSE &= 0xfffffbff;
 
-	const bool executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
+	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
+}
 
-	if (executeInterrupt)
-		exceptionHandler(_INT);
+void cp0_t::interruptHandler(const uint32_t& irq) {
+	pCpu->pBus->interruptStat |= irq;
+	updateInterruptMaskStat();
 }

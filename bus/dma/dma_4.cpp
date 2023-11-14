@@ -31,7 +31,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 		channelControl.data = data;
 
 		if ((channelControl.data != 0) &&
-			(channelControl.data != 0x00000201) &&
+			(channelControl.data != 0x01000200) &&
 			(channelControl.data != 0x01000201)) {
 			std::cout << "[DMA4] EMULATION PAUSED! unhandled sync channel control mode data 0x"
 				<< std::hex << channelControl.data << std::endl;
@@ -113,7 +113,8 @@ void dma4_t::Clock() {
 		uint16_t data;
 
 		if (channelControl.reg.transDir == toMainRAM) {
-			//Unhandled
+			DMARead16(0x1f801da8, data, cycles);
+			pBus->cpuWrite16(memAddrTemp, data, cycles);
 		}
 		else {
 			DMARead16(memAddrTemp, data, cycles);

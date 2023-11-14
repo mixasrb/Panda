@@ -313,10 +313,14 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		}
 		ramSize = data;
 	}
-	else if (INTERRUPT_STAT)
+	else if (INTERRUPT_STAT) {
 		interruptStat &= data;
-	else if (INTERRUPT_MASK)
+		pCpu->cp0.updateInterruptMaskStat();
+	}
+	else if (INTERRUPT_MASK) {
 		interruptMask = data;
+		pCpu->cp0.updateInterruptMaskStat();
+	}
 	else if (TIMERS) {
 		switch (addr << 24 >> 28) {
 		case 0:
@@ -482,10 +486,14 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 		std::cout << "[BUS] unhandled ram_size reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		ramSize = (uint32_t)data;
 	}*/
-	else if (INTERRUPT_STAT)
+	else if (INTERRUPT_STAT) {
 		interruptStat &= 0xffff0000 | (uint32_t)data;
-	else if (INTERRUPT_MASK)
+		pCpu->cp0.updateInterruptMaskStat();
+	}
+	else if (INTERRUPT_MASK) {
 		interruptMask = data;
+		pCpu->cp0.updateInterruptMaskStat();
+	}
 	else if (TIMERS) {
 		switch (addr << 24 >> 28) {
 		case 0:

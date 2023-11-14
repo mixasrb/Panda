@@ -123,8 +123,8 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		case 0x1f801d88:
-			/*std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+			/*	std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+					<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.keyOn.data |= data;
 			voices.tempKeyOn.data = data;
 			for (int voice = 0; voice < 24; voice++) {
@@ -134,10 +134,10 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
 					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
+					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].decay = false;
 					voices.voiceRegisters[voice].sustain = false;
 					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].adsrLevel = 0;
 					voices.voiceRegisters[voice].adsrCycles = 0;
 					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
@@ -210,6 +210,10 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
 		uint8_t voiceIndex = (addr >> 4) - 0x1f801c0;
 		switch (addr & 0xf) {
+		case 0x4:
+			data = voices.voiceRegisters[voiceIndex].adpcmSampleRate.data;
+			break;
+
 		case 0x8:
 			data = voices.voiceRegisters[voiceIndex].adsr.hw.l;
 			break;
@@ -230,6 +234,14 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 	}
 	else if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbc)) {
 		switch (addr) {
+		case 0x1f801d80:
+			data = mainVolumeLeftRight.hw.l;
+			break;
+
+		case 0x1f801d82:
+			data = mainVolumeLeftRight.hw.h;
+			break;
+
 		case 0x1f801d88:
 			data = voices.tempKeyOn.hw.l;
 			break;
@@ -244,6 +256,14 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 
 		case 0x1f801d8e:
 			data = voices.tempKeyOff.hw.h;
+			break;
+
+		case 0x1f801d90:
+			data = voices.channel_FM_Mode.hw.l;
+			break;
+
+		case 0x1f801d92:
+			data = voices.channel_FM_Mode.hw.h;
 			break;
 
 		case 0x1f801d94:
@@ -266,6 +286,11 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			data = dramDataTransferAddress.data;
 			break;
 
+		case 0x1f801da8:
+			readDram16(currentAddress, data);
+			currentAddress += 2;
+			break;
+
 		case 0x1f801daa:
 			data = spuControlRegister.data;
 			break;
@@ -276,6 +301,22 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 
 		case 0x1f801dac:
 			data = dramDataTransferControl.data;
+			break;
+
+		case 0x1f801db0:
+			data = cdVolumeLeftRight.hw.l;
+			break;
+
+		case 0x1f801db2:
+			data = cdVolumeLeftRight.hw.h;
+			break;
+
+		case 0x1f801db4:
+			data = externVolumeLeftRight.hw.l;
+			break;
+
+		case 0x1f801db6:
+			data = externVolumeLeftRight.hw.h;
 			break;
 
 		case 0x1f801db8:
@@ -367,7 +408,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0x1f801d88:
-			/*std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+			/*std::cout << "[SPU] Key On8 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.keyOn.hw.l |= data;
 			voices.tempKeyOn.hw.l = data;
@@ -378,10 +419,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
 					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
+					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].decay = false;
 					voices.voiceRegisters[voice].sustain = false;
 					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].adsrLevel = 0;
 					voices.voiceRegisters[voice].adsrCycles = 0;
 					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
@@ -391,7 +432,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0x1f801d8a:
-			/*std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+			/*std::cout << "[SPU] Key Ona 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.keyOn.hw.h |= data;
 			voices.tempKeyOn.hw.h = data;
@@ -402,10 +443,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
 					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
+					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].decay = false;
 					voices.voiceRegisters[voice].sustain = false;
 					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].attack = true;
 					voices.voiceRegisters[voice].adsrLevel = 0;
 					voices.voiceRegisters[voice].adsrCycles = 0;
 					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
@@ -415,36 +456,36 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0x1f801d8c:
-			/*std::cout << "[SPU] Key Off 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+			/*std::cout << "[SPU] Key Offc 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.keyOff.hw.l |= data;
 			voices.tempKeyOff.hw.l = data;
 			for (uint32_t voice = 0; voice < 24; voice++) {
 				if (((uint32_t)data >> voice) & 0x1) {
 					//if (voices.voiceRegisters[voice].sustain) {
-					/*voices.voiceRegisters[voice].attack = false;
+					voices.voiceRegisters[voice].attack = false;
 					voices.voiceRegisters[voice].decay = false;
 					voices.voiceRegisters[voice].sustain = false;
 					voices.voiceRegisters[voice].release = true;
-					voices.voiceRegisters[voice].adsrCycles = 0;*/
+					voices.voiceRegisters[voice].adsrCycles = 0;
 					//}
 				}
 			}
 			break;
 
 		case 0x1f801d8e:
-			/*std::cout << "[SPU] Key Off 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+			/*std::cout << "[SPU] Key Offe 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.keyOff.hw.h |= data;
 			voices.tempKeyOff.hw.h = data;
 			for (uint32_t voice = 0; voice < 24; voice++) {
 				if ((((uint32_t)data << 16) >> voice) & 0x1) {
 					//if (voices.voiceRegisters[voice].sustain) {
-					/*voices.voiceRegisters[voice].attack = false;
+					voices.voiceRegisters[voice].attack = false;
 					voices.voiceRegisters[voice].decay = false;
 					voices.voiceRegisters[voice].sustain = false;
 					voices.voiceRegisters[voice].release = true;
-					voices.voiceRegisters[voice].adsrCycles = 0;*/
+					voices.voiceRegisters[voice].adsrCycles = 0;
 					//	}
 				}
 			}
@@ -508,14 +549,25 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			spuStatusRegister.elem.dataTransferDMAReadWriteRequest = (spuControlRegister.data & 0x0020) ? 1 : 0;
 
 			if (spuControlRegister.elem.soundRAMTransferMode == 3) {
-				std::cout << "[SPU] EMULATION PASUED! unhandled DMA read" << "\n";
-				g_emulationPaused = true;
+				spuStatusRegister.elem.dataTransferDMAReadRequest = 1;
+				//std::cout << "[SPU] EMULATION PASUED! unhandled DMA read" << "\n";
+				//g_emulationPaused = true;
+			}
+
+			if (spuControlRegister.elem.irq9Enable == 0) {
+				//std::cout << "[SPU] EMULATION PASUED! unhandled IRQ" << "\n";
+				//g_emulationPaused = true;
+				spuStatusRegister.elem.irq9Flag = 0;
 			}
 
 			break;
 
 		case 0x1f801dac:
 			dramDataTransferControl.data = data;
+			if (data != 0x0004) {
+				std::cout << "[SPU] EMULATION PASUED! unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801db0:
@@ -561,7 +613,7 @@ float spu_t::clock() {
 	output_t out;
 	out.channel1 = 0.0f;
 	out.channel2 = 0.0f;
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 24; i++) {
 		out = out + voices.voiceRegisters[i].envelope(voices.output(i));
 	}
 	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f;
@@ -744,7 +796,7 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
 			if (adsrLevel == 0) {
-				release = false;
+				//release = false;
 				adsrCycles = 1;
 			}
 		}
@@ -818,8 +870,8 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	}
 
 	output_t output;
-	output.channel1 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f * (float)(volumeLeftRight.hw.l << 1) / 32767.0f;
-	output.channel2 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f * (float)(volumeLeftRight.hw.h << 1) / 32767.0f;
+	output.channel1 = (float)input / 32767.0f * /*(float)adsrLevel / 32767.0f*/  (float)(volumeLeftRight.hw.l << 1) / 32767.0f;
+	output.channel2 = (float)input / 32767.0f * /*(float)adsrLevel / 32767.0f*/  (float)(volumeLeftRight.hw.h << 1) / 32767.0f;
 
 	return output;
 }
