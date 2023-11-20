@@ -5,7 +5,6 @@
 extern bool g_emulationPaused;
 
 void dma0_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	std::cout << "[DMA0] unhandled read32 0x" << std::hex << addr << std::endl;
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = memoryAddress.reg.memAddr;
@@ -20,11 +19,9 @@ void dma0_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 }
 
 void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
-	std::cout << "[DMA0] unhandled write32 0x" << std::hex << addr << " data 0x" << data << std::endl;
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		std::cout << "~[DMA0] (MDECin) madr: 0x" << std::hex << memoryAddress.data << std::endl;
 		break;
 	case 4:
 		blockControl.data = data;
@@ -45,8 +42,8 @@ void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
-				std::cout << "~[DMA0] (MDECin) element count: 0x"
-					<< std::hex << elementCount << std::endl;
+				//std::cout << "~[DMA0] (MDECin) element count: 0x"
+					//<< std::hex << elementCount << std::endl;
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_0;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}

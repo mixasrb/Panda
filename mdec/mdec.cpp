@@ -91,7 +91,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//}
 		//else {
 
-		if (i >= dst_num) {
+		if (i >= dstBlock) {
 			std::cout << "[MDEC] EMULATION PAUSED! data out fifo overun 0x" << i << std::endl;
 			data = rand();
 			return;
@@ -100,7 +100,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 
 		data = dst[i];
 		i++;
-		if (i >= dst_num)
+		if (i >= dstBlock)
 			statusRegister.elem.dataOutFifoEmpty = 1;
 
 		//	}
@@ -124,8 +124,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			temp_rle.data = (uint16_t)(data >> 16);
 			recievedData16.push_back(temp_rle);
 
-			std::cout << "[MDEC] recieved data 0x" << (uint16_t)data << std::endl;
-			std::cout << "[MDEC] recieved data 0x" << (uint16_t)(data >> 16) << std::endl;
+			/*	std::cout << "[MDEC] recieved data 0x" << (uint16_t)data << std::endl;
+				std::cout << "[MDEC] recieved data 0x" << (uint16_t)(data >> 16) << std::endl;*/
 
 			recievedData32.push_back(data);
 			recievedData32Count--;
@@ -138,7 +138,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			switch (command >> 29) {
 			case 1:
 				recievedData32Count = command & 0x0000ffff;
-				clocks = 360000;
+				clocks = 3000000/1000;
 				break;
 			case 2:
 				if (command & 0x1)
@@ -176,12 +176,12 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			(this->*commandLookup[command >> 29].command)(command);
 
 
-			std::cout << "~[MDEC] recievedData16 count: 0x"
-				<< std::hex << recievedData16.size() << std::endl;
-			std::cout << "~[MDEC] recievedData32 count: 0x"
-				<< std::hex << recievedData32.size() << std::endl;
-			std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;
-			//g_emulationPaused = true;
+			/*	std::cout << "~[MDEC] recievedData16 count: 0x"
+					<< std::hex << recievedData16.size() << std::endl;
+				std::cout << "~[MDEC] recievedData32 count: 0x"
+					<< std::hex << recievedData32.size() << std::endl;
+				std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;*/
+				//g_emulationPaused = true;
 
 			recievedData16.clear();
 			recievedData32.clear();
@@ -220,38 +220,56 @@ void mdec_t::clock() {
 		else
 			statusRegister.elem.currentBlock = 0x4;
 
-		if (clocks == 0)
+		if (clocks == 0) {
+			if (bEnabledDma1)
+				statusRegister.elem.dataOutRequest = 1;
 			statusRegister.elem.commandBusy = 0;
-		if (bEnabledDma1)
-			statusRegister.elem.dataOutRequest = 1;
+		}
 	}
 }
 
 void mdec_t::decodeMacroblock(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
-	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
-	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 	i = 0;
-	dst_num = 0;
+	dstBlock = 0;
 	src = (uint16_t*)recievedData16.data();
 	srcTracker = 0;
 	blockCount = 0;
-	for (; srcTracker < recievedData16.size();) {
+
+
+	for (; srcTracker < recievedData16.size() - 1;) {
 		if ((statusRegister.elem.dataOutputDepth == 2) ||
 			(statusRegister.elem.dataOutputDepth == 3)) {
 			statusRegister.elem.currentBlock = 5;
+
 			rl_decode_block((uint16_t*)Crblk, src, quantTableUV);
 			if (srcTracker >= recievedData16.size())
 				return;
 			rl_decode_block((uint16_t*)Cbblk, src, quantTableUV);
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY); yuv_to_rgb(0, 0);
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY); yuv_to_rgb(0, 8);
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY); yuv_to_rgb(8, 0);
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY), yuv_to_rgb(8, 8);
+
+			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			yuv_to_rgb(0, 0);
+
+			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			yuv_to_rgb(8, 0);
+
+			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			yuv_to_rgb(0, 8);
+
+			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			yuv_to_rgb(8, 8);
+
+			if (statusRegister.elem.dataOutputDepth == 3)
+				dstBlock += 4 * 8 * 2 / 4 * 8;
+			else
+				dstBlock += 4 * 8 * 3 / 4 * 8;
 		}
 		else {
 			statusRegister.elem.currentBlock = 4;
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY); y_to_mono();
+			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			y_to_mono();
 		}
 		//g_emulationPaused = true;
 	}
@@ -259,8 +277,8 @@ void mdec_t::decodeMacroblock(uint32_t command) {
 
 void mdec_t::setQuantTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
-	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
-	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 
 	for (uint32_t i = 0; i < 16; i++) {
 		for (uint32_t j = 0; j < 4; j++) {
@@ -278,8 +296,8 @@ void mdec_t::setQuantTable(uint32_t command) {
 
 void mdec_t::setScaleTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
-	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
-	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 
 	for (uint32_t i = 0; i < 32; i++) {
 		for (uint32_t j = 0; j < 2; j++) {
@@ -290,8 +308,8 @@ void mdec_t::setScaleTable(uint32_t command) {
 
 void mdec_t::noFunction(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
-	statusRegister.elem.dataOutputSigned = (command & 0x08000000) ? 1 : 0;
-	statusRegister.elem.dataOutputBit15 = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
+	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 }
 
 void mdec_t::invalid(uint32_t command) {
@@ -307,50 +325,160 @@ static uint16_t minmax(int16_t val, int16_t min, int16_t max) {
 	return val;
 }
 
-void mdec_t::rl_decode_block(uint16_t* blk, uint16_t*& src, uint8_t* qt) {
-	uint16_t n = 0;
-	int k = 0;
-	uint16_t q_scale = 0;
-	int16_t val = 0;
+//void mdec_t::rl_decode_block(uint16_t* blk, uint16_t*& src, uint8_t* qt) {
+//	uint16_t n = 0;
+//	int k = 0;
+//	uint16_t q_scale = 0;
+//	int16_t val = 0;
+//
+//	for (int i = 0; i < 64; i++) {
+//		blk[i] = 0;
+//	}
+//
+//	if (srcTracker >= recievedData16.size())
+//		return;
+//skip:
+//	n = *src; src++; k = 0;
+//	srcTracker++;
+//
+//	if (srcTracker >= recievedData16.size())
+//		return;
+//
+//	if (n == 0xfe00) goto skip;
+//
+//	q_scale = (n >> 10) & 0x3f;
+//	val = singned10bit(n & 0x3ff) * qt[k];
+//lop:
+//	if (q_scale == 0)
+//		val = singned10bit(n & 0x3ff) * 2;
+//
+//	val = minmax(val, -0x400, 0x3ff);
+//
+//	if (q_scale > 0)
+//		blk[zagzig[k]] = val;
+//
+//	if (q_scale == 0)
+//		blk[k] = val;
+//
+//	n = *src; src++;
+//	srcTracker++;
+//	k = k + ((n >> 10) & 0x3f) + 1;
+//	val = (singned10bit(n & 0x3ff) * qt[k] * q_scale + 4) / 8;
+//
+//	if (k <= 63) goto lop;
+//
+//
+//	real_idct_core(blk);
+//
+//	return;
+//}
 
-	for (int i = 0; i < 64; i++) {
-		blk[i] = 0;
+void mdec_t::rl_decode_block(uint16_t* coefficientList, uint16_t*& src, uint8_t* qt) {
+
+skip:
+	if (srcTracker >= recievedData16.size() - 1)
+		return;
+	if (recievedData16[srcTracker].data == 0xfe00) {
+		if (srcTracker >= recievedData16.size() - 1)
+			return;
+		srcTracker++;
+
+		goto skip;
 	}
 
-	if (srcTracker >= recievedData16.size())
-		return;
-skip:
-	n = *src; src++; k = 0;
+	uint16_t quantizationScale = recievedData16[srcTracker].elem.factor;
+	uint16_t dcCoefficient = recievedData16[srcTracker].elem.value;
 	srcTracker++;
+	//if (srcTracker >= recievedData16.size() - 1)
+	//	return;
 
-	if (srcTracker >= recievedData16.size())
-		return;
+	for (int i = 0; i < 64; i++) {
+		coefficientList[i] = 0;
+	}
 
-	if (n == 0xfe00) goto skip;
+	coefficientList[0] = singned10bit(dcCoefficient);
 
-	q_scale = (n >> 10) & 0x3f;
-	val = singned10bit(n & 0x3ff) * qt[k];
-lop:
-	if (q_scale == 0)
-		val = singned10bit(n & 0x3ff) * 2;
-
-	val = minmax(val, -0x400, 0x3ff);
-
-	if (q_scale > 0)
-		blk[zagzig[k]] = val;
-
-	if (q_scale == 0)
-		blk[k] = val;
-
-	n = *src; src ++;
+	uint16_t runLenghtCode = recievedData16[srcTracker].data;
 	srcTracker++;
-	k = k + ((n >> 10) & 0x3f) + 1;
-	val = (singned10bit(n & 0x3ff) * qt[k] * q_scale + 4) / 8;
+	/*if (srcTracker >= recievedData16.size() - 1)
+		return;*/
 
-	if (k <= 63) goto lop;
+	int i = 1 + ((runLenghtCode >> 10) & 0x3f);
+	while (runLenghtCode != 0xfe00) {
+		coefficientList[i] = singned10bit(runLenghtCode & 0x3ff);
+		runLenghtCode = recievedData16[srcTracker].data;
+		i += 1 + ((runLenghtCode >> 10) & 0x3f);
+		if (i > 63)
+			break;
+		srcTracker++;
+		/*if (srcTracker >= recievedData16.size() - 1)
+			break;*/
+	}
+
+	int16_t coefficientMatrix[64];
+
+	for (int i = 0; i < 64; i++) {
+		if (quantizationScale > 0)
+			coefficientMatrix[i] = coefficientList[zigzag[i]];
+		else
+			coefficientMatrix[i] = coefficientList[i];
+	}
+
+	int16_t dequantizedMatrix[64];
+
+	for (int i = 0; i < 64; i++) {
+		if (i == 0)
+			/* The DC coefficient is not multiplied
+			   by the quantization scale */
+			dequantizedMatrix[i] = minmax(coefficientMatrix[i] * qt[i],
+				-0x400, 0x3ff);
+		else
+			if (quantizationScale > 0)
+				dequantizedMatrix[i] = minmax((coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8,
+					-0x400, 0x3ff);
+			else
+				dequantizedMatrix[i] = minmax(coefficientMatrix[i] * 2,
+					-0x400, 0x3ff);
+	}
+
+	for (int i = 0; i < 64; i++) {
+		coefficientList[i] = dequantizedMatrix[i];
+	}
+
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			float sum = 0;
+
+			for (int dct_x = 0; dct_x < 8; dct_x++) {
+				for (int dct_y = 0; dct_y < 8; dct_y++) {
+
+					float Sub_Total = dequantizedMatrix[dct_x + dct_y * 8];
+
+					if (dct_x == 0)
+						Sub_Total *= sqrt(1.0f / 8.0f);
+					else
+						Sub_Total *= sqrt(2.0f / 8.0f);
+
+					if (dct_y == 0)
+						Sub_Total *= sqrt(1.0f / 8.0f);
+					else
+						Sub_Total *= sqrt(2.0f / 8.0f);
+
+					Sub_Total *=
+						cos(float(dct_x * 3.1412f * (2.0f * float(x) + 1.0f) / (2.0f * 8.0f)));
+					Sub_Total *=
+						cos(float(dct_y * 3.1412f * (2.0f * float(y) + 1.0f) / (2.0f * 8.0f)));
+
+					sum += Sub_Total;
+				}
+			}
+
+			coefficientList[x + y * 8] = (int16_t)sum;
+		}
+	}
 
 
-	real_idct_core(blk);
+	//real_idct_core(coefficientList);
 
 	return;
 }
@@ -387,74 +515,69 @@ static T MinMax(T min, T max, T val) {
 void mdec_t::yuv_to_rgb(int xx, int yy) {
 	//if (src >= recievedData16.data() + recievedData16.size())
 	//	return;
-	int i = 0;
-	uint32_t oldBGR = 0;
-	for (int y = 0; y <= 7; y++) {
-		for (int x = 0; x <= 7; x++) {
-			float R = *(int16_t*)(Crblk + ((x + xx) / 2) + ((y + yy) / 2) * 8);
-			float B = *(int16_t*)(Cbblk + ((x + xx) / 2) + ((y + yy) / 2) * 8);
-			float G = (-0.3437 * B) + (-0.7143 * R);
-			R = (1.402 * R); B = (1.772 * B);
-			float Y = *(int16_t*)(Yblk + (x)+(y) * 8);
-			R = MinMax(-128.f, 127.f, (Y + R));
-			G = MinMax(-128.f, 127.f, (Y + G));
-			B = MinMax(-128.f, 127.f, (Y + B));
+	for (int y = 0; y < 8; y++) {
+		for (int x = 0; x < 8; x++) {
+
+			float R = (float)*(Crblk + (x + xx) / 2 + (y + yy) / 2 * 8);
+			float B = (float)*(Cbblk + (x + xx) / 2 + (y + yy) / 2 * 8);
+			float Y = (float)*(Yblk + x + y * 8);
+
+			float G = Y - 0.3437 * B - 0.7143 * R;
+			R = Y + 1.402 * R;
+			B = Y + 1.772 * B;
+
+			if (statusRegister.elem.dataOutputSigned == 0) {
+				R = MinMax(0.0f, 255.0f, R + 128.0f);
+				G = MinMax(0.0f, 255.0f, G + 128.0f);
+				B = MinMax(0.0f, 255.0f, B + 128.0f);
+			}
+			else {
+				R = MinMax(-128.0f, 127.0f, R);
+				G = MinMax(-128.0f, 127.0f, G);
+				B = MinMax(-128.0f, 127.0f, B);
+			}
 
 			if (statusRegister.elem.dataOutputDepth == 3) {
 				psxColor16_t color1;
-				color1.component.blue = (uint32_t)B >> 3;
-				color1.component.green = (uint32_t)G >> 3;
 				color1.component.red = (uint32_t)R >> 3;
-
-				if (statusRegister.elem.dataOutputSigned == 0)
-					color1.data ^= 0x101010;
+				color1.component.green = (uint32_t)G >> 3;
+				color1.component.blue = (uint32_t)B >> 3;
 
 				if (statusRegister.elem.dataOutputBit15)
-					color1.data |= 0x800000;
+					color1.data |= 0x8000;
+
+				uint16_t destination = ((x + xx) + (y + yy) * 16) / 2;
 
 				if (x % 2 == 0)
-					dst[dst_num + i / 2] = color1.data;
+					dst[dstBlock + destination] = (uint32_t)color1.data;
 				else
-					dst[dst_num + i / 2] =
-					((uint32_t)dst[dst_num + i / 2] << 16) | color1.data;
-				i++;
+					dst[dstBlock + destination] =
+					(dst[dstBlock + destination]) | ((uint32_t)color1.data << 16);
 			}
 			else {
-				uint32_t BGR = (((int8_t)B) << 16) | (((int8_t)G) << 8) | ((int8_t)R);
-				if (statusRegister.elem.dataOutputSigned == 0)
-					BGR = BGR ^ 0x808080;
+				uint32_t BGR = (((uint32_t)(uint8_t)B) << 16) | (((uint32_t)(uint8_t)G) << 8) | ((uint32_t)(uint8_t)R);
 
-				switch (i % 3) {
+				uint16_t destination = ((x + xx) + (y + yy) * 16) * 3 / 4;
+
+				switch (x % 4) {
 				case 0:
-					if (i != 0)
-						dst[dst_num + i - 1] = dst[dst_num + i - 1] | oldBGR;
-
-					dst[dst_num + i] = BGR << 8;
-					i++;
+					dst[dstBlock + destination] = BGR;
 					break;
 				case 1:
-					dst[dst_num + i - 1] = dst[dst_num + i - 1] | (BGR >> 16);
-					dst[dst_num + i] = BGR << 16;
-					i++;
+					dst[dstBlock + destination] = dst[dstBlock + destination] | (BGR << 24);
+					dst[dstBlock + destination + 1] = BGR >> 8;
 					break;
 				case 2:
-					dst[dst_num + i - 1] = dst[dst_num + i - 1] | (BGR >> 8);
-					dst[dst_num + i] = BGR << 24;
-					i++;
+					dst[dstBlock + destination] = dst[dstBlock + destination] | (BGR << 16);
+					dst[dstBlock + destination + 1] = BGR >> 16;
+					break;
+				case 3:
+					dst[dstBlock + destination] = dst[dstBlock + destination] | (BGR << 8);
 					break;
 				}
-
-				oldBGR = BGR;
-
-				//dst[dst_num + (x + xx) + (y + yy) * 16] = BGR;
 			}
 		}
 	}
-
-	if (statusRegister.elem.dataOutputDepth == 3)
-		dst_num += 8 * 2 / 4 * 8;
-	else
-		dst_num += 8 * 3 / 4 * 8;
 
 	statusRegister.elem.dataOutFifoEmpty = 0;
 
@@ -467,19 +590,19 @@ void mdec_t::y_to_mono() {
 		return;*/
 
 	for (int i = 0; i < 64; i++) {
-		dst[dst_num + i] = 0;
+		dst[dstBlock + i] = 0;
 	}
 	for (int i = 0; i < 64; i++) {
 		int16_t Y = *(Yblk + i);
 		//Y = Y & 0x1ff; //??
 		Y = MinMax((int16_t)-128, (int16_t)127, Y);
 		//Y >>= 1; //??
-		/*if (statusRegister.elem.dataOutputSigned == 0)
-			Y = Y ^ 0x80;*/
-		dst[dst_num + i / 4] = dst[dst_num + i / 4] | ((uint32_t)(uint8_t)Y << (i % 4) * 8);
+		if (statusRegister.elem.dataOutputSigned == 0)
+			Y = Y ^ 0x80;
+		dst[dstBlock + i / 4] = dst[dstBlock + i / 4] | ((uint32_t)(uint8_t)Y << (i % 4) * 8);
 	}
 
-	dst_num += 8 / 4 * 8;
+	dstBlock += 8 / 4 * 8;
 	statusRegister.elem.dataOutFifoEmpty = 0;
 	blockCount++;
 }

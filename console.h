@@ -8,10 +8,10 @@
 #include "peripherals/joy_mem_card.h"
 #include "debug_utilities/debug_utilities.h"
 
-class console_t {
+class psxConsole_t {
 public:
 
-	console_t();
+	psxConsole_t();
 
 	busInterface_t bus;
 	cpu_t cpuSOC;

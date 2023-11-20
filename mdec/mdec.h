@@ -91,10 +91,11 @@ public:
 
 	uint16_t* src;
 	uint32_t* dst = new uint32_t[(8+8)*16*256*256];
-	int dst_num;
+	int dstBlock;
 	int i = 0;
 	int blockCount = 0;
 	int srcTracker = 0;
+	bool exit = false;
 
 	int16_t Crblk[64];
 	int16_t Cbblk[64];

@@ -45,7 +45,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
 				std::cout << "~[DMA4] (SPU) element count: 0x"
 					<< std::hex << elementCount << std::endl;
-				float clks = elementCount * CLOCKS_PER_WORD_DMA_4 / 2.0f;
+				float clks = elementCount * CLOCKS_PER_WORD_DMA_4;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}

@@ -520,7 +520,7 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[1]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
 			//clocks = 1;
 
 			//debug
@@ -566,7 +566,7 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[0]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 3;
+			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
 			//clocks = 1;
 
 			//debug
@@ -1155,7 +1155,7 @@ void cpu_t::printBiosCall() {
 					std::cout << "~[KERNEL] specs 0x" << std::hex << get(5) << std::endl;
 				}
 
-				if (/*(call == 0x0b) || */(call == 0x0c) || (call == 0x09)) {
+				if ((call == 0x0b) || (call == 0x0c) || (call == 0x09)) {
 					uint8_t cycles;
 					uint32_t ptr;
 					uint32_t data;
@@ -1202,7 +1202,7 @@ void cpu_t::printBiosCall() {
 				if ((call == 0x4e) || (call == 0x4f)) {
 					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
 					std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << std::endl;
-					std::cout << "~[KERNEL] dst 0x" << std::hex << get(6) << std::endl;
+					std::cout << "~[KERNEL] dst/src 0x" << std::hex << get(6) << std::endl;
 					g_emulationPaused = true;
 				}
 

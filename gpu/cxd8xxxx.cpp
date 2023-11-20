@@ -25,7 +25,7 @@ public:
 };
 
 template<typename PlotFunc, typename T, std::size_t Size = std::tuple_size_v<T>>
-void DrawTexturedPolygon(
+void DrawPolygonInterpolated(
 	T p0,
 	T p1,
 	T p2,
@@ -100,260 +100,260 @@ gpu_t::gpu_t() {
 	gp0Lookup.resize(0xef);
 	gp0Lookup = {
 		//0x00
-		{"NOP (?)",1},
-		{"Clear Cache",1},
-		{"Fill Rectangle in VRAM",3},
-		{"Unknown?",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
+		{"NOP (?)", 1},
+		{"Clear Cache", 1},
+		{"Fill Rectangle in VRAM", 3},
+		{"Unknown?", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
 		//0x10
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Mirror of NOP (?)",1},
-		{"Interrupt Request (IRQ1)",1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Mirror of NOP (?)", 1},
+		{"Interrupt Request (IRQ1)", 1},
 		//0x20
-		{"Monochrome three-point polygon, opaque",4},
-		{"Undocumented/Nonsense",4},
-		{"Monochrome three - point polygon, semi - transparent",4},
-		{"Undocumented/Nonsense",4},
-		{"Textured three-point polygon, opaque, texture-blending",7},
-		{"Textured three-point polygon, opaque, raw-texture",7},
-		{"Textured three-point polygon, semi-transparent, texture-blending",7},
-		{"Textured three-point polygon, semi-transparent, raw-texture",7},
-		{"Monochrome four-point polygon, opaque",5},
-		{"Undocumented/Nonsense",5},
-		{"Monochrome four-point polygon, semi-transparent",5},
-		{"Undocumented/Nonsense",5},
-		{"Textured four-point polygon, opaque, texture-blending",9},
-		{"Textured four-point polygon, opaque, raw-texture",9},
-		{"Textured four-point polygon, semi-transparent, texture-blending",9},
-		{"Textured four-point polygon, semi-transparent, raw-texture",9},
+		{"Monochrome three-point polygon, opaque", 4},
+		{"Undocumented/Nonsense", 4},
+		{"Monochrome three - point polygon, semi - transparent", 4},
+		{"Undocumented/Nonsense", 4},
+		{"Textured three-point polygon, opaque, texture-blending", 7},
+		{"Textured three-point polygon, opaque, raw-texture", 7},
+		{"Textured three-point polygon, semi-transparent, texture-blending", 7},
+		{"Textured three-point polygon, semi-transparent, raw-texture", 7},
+		{"Monochrome four-point polygon, opaque", 5},
+		{"Undocumented/Nonsense", 5},
+		{"Monochrome four-point polygon, semi-transparent", 5},
+		{"Undocumented/Nonsense", 5},
+		{"Textured four-point polygon, opaque, texture-blending", 9},
+		{"Textured four-point polygon, opaque, raw-texture", 9},
+		{"Textured four-point polygon, semi-transparent, texture-blending", 9},
+		{"Textured four-point polygon, semi-transparent, raw-texture", 9},
 		//0x30
-		{"Shaded three-point polygon, opaque",6},
-		{"Undocumented/Nonsense",6},
-		{"Shaded three-point polygon, semi-transparent",6},
-		{"Undocumented/Nonsense",6},
-		{"Shaded Textured three-point polygon, opaque, texture-blending",9},
-		{"Undocumented/Nonsense",9},
-		{"Shaded Textured three-point polygon, semi-transparent, tex-blend",9},
-		{"Undocumented/Nonsense",9},
-		{"Shaded four-point polygon, opaque",8},
-		{"Undocumented/Nonsense",8},
-		{"Shaded four-point polygon, semi-transparent",8},
-		{"Undocumented/Nonsense",8},
-		{"Shaded Textured four-point polygon, opaque, texture-blending",12},
-		{"Undocumented/Nonsense",12},
-		{"Shaded Textured four-point polygon, semi-transparent, tex-blend",12},
-		{"Undocumented/Nonsense",12},
+		{"Shaded three-point polygon, opaque", 6},
+		{"Undocumented/Nonsense", 6},
+		{"Shaded three-point polygon, semi-transparent", 6},
+		{"Undocumented/Nonsense", 6},
+		{"Shaded Textured three-point polygon, opaque, texture-blending", 9},
+		{"Undocumented/Nonsense", 9},
+		{"Shaded Textured three-point polygon, semi-transparent, tex-blend", 9},
+		{"Undocumented/Nonsense", 9},
+		{"Shaded four-point polygon, opaque", 8},
+		{"Undocumented/Nonsense", 8},
+		{"Shaded four-point polygon, semi-transparent", 8},
+		{"Undocumented/Nonsense", 8},
+		{"Shaded Textured four-point polygon, opaque, texture-blending", 12},
+		{"Undocumented/Nonsense", 12},
+		{"Shaded Textured four-point polygon, semi-transparent, tex-blend", 12},
+		{"Undocumented/Nonsense", 12},
 		//0x40
-		{"Monochrome line, opaque",3},
-		{"Monochrome line, opaque",3}, //???
-		{"Monochrome line, semi-transparent",3},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Monochrome Poly-line, opaque",3},
-		{"Undocumented/Nonsense",1},
-		{"Monochrome Poly-line, semi-transparent",3},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",3},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",3},
-		{"Undocumented/Nonsense",1},
+		{"Monochrome line, opaque", 3},
+		{"Monochrome line, opaque", 3}, //???
+		{"Monochrome line, semi-transparent", 3},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Monochrome Poly-line, opaque", 3},
+		{"Undocumented/Nonsense", 1},
+		{"Monochrome Poly-line, semi-transparent", 3},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 3},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 3},
+		{"Undocumented/Nonsense", 1},
 		//0x50
-		{"Shaded line, opaque",4},
-		{"Undocumented/Nonsense",4},
-		{"Shaded line, semi-transparent",4},
-		{"Undocumented/Nonsense",4},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",1},
-		{"Shaded Poly-line, opaque",4},
-		{"Undocumented/Nonsense",1},
-		{"Shaded Poly-line, semi-transparent",4},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",4},
-		{"Undocumented/Nonsense",1},
-		{"Undocumented/Nonsense",4},
-		{"Undocumented/Nonsense",1},
+		{"Shaded line, opaque", 4},
+		{"Undocumented/Nonsense", 4},
+		{"Shaded line, semi-transparent", 4},
+		{"Undocumented/Nonsense", 4},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 1},
+		{"Shaded Poly-line, opaque", 4},
+		{"Undocumented/Nonsense", 1},
+		{"Shaded Poly-line, semi-transparent", 4},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 4},
+		{"Undocumented/Nonsense", 1},
+		{"Undocumented/Nonsense", 4},
+		{"Undocumented/Nonsense", 1},
 		//0x60
-		{"Monochrome Rectangle (variable size) (opaque)",3},
-		{"Undocumented/Nonsense",3},
-		{"Monochrome Rectangle (variable size) (semi-transparent)",3},
-		{"Undocumented/Nonsense",3},
-		{"Textured Rectangle, variable size, opaque, texture-blending",4},
-		{"Textured Rectangle, variable size, opaque, raw-texture",4},
-		{"Textured Rectangle, variable size, semi-transp, texture-blending",4},
-		{"Textured Rectangle, variable size, semi-transp, raw-texture",4},
-		{"Monochrome Rectangle (1x1) (Dot) (opaque)",2},
-		{"Undocumented/Nonsense",1},
-		{"Monochrome Rectangle (1x1) (Dot) (semi-transparent)",2},
-		{"Undocumented/Nonsense",1},
-		{"Textured Rectangle, 1x1 (nonsense), opaque, texture-blending",3},
-		{"Textured Rectangle, 1x1 (nonsense), opaque, raw-texture",3},
-		{"Textured Rectangle, 1x1 (nonsense), semi-transp, texture-blending",3},
-		{"Textured Rectangle, 1x1 (nonsense), semi-transp, raw-texture",3},
+		{"Monochrome Rectangle (variable size) (opaque)", 3},
+		{"Undocumented/Nonsense", 3},
+		{"Monochrome Rectangle (variable size) (semi-transparent)", 3},
+		{"Undocumented/Nonsense", 3},
+		{"Textured Rectangle, variable size, opaque, texture-blending", 4},
+		{"Textured Rectangle, variable size, opaque, raw-texture", 4},
+		{"Textured Rectangle, variable size, semi-transp, texture-blending", 4},
+		{"Textured Rectangle, variable size, semi-transp, raw-texture", 4},
+		{"Monochrome Rectangle (1x1) (Dot) (opaque)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Monochrome Rectangle (1x1) (Dot) (semi-transparent)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Textured Rectangle, 1x1 (nonsense), opaque, texture-blending", 3},
+		{"Textured Rectangle, 1x1 (nonsense), opaque, raw-texture", 3},
+		{"Textured Rectangle, 1x1 (nonsense), semi-transp, texture-blending", 3},
+		{"Textured Rectangle, 1x1 (nonsense), semi-transp, raw-texture", 3},
 		//0x70
-		{"Monochrome Rectangle (8x8) (opaque)",2},
-		{"Undocumented/Nonsense",1},
-		{"Monochrome Rectangle (8x8) (semi-transparent)",2},
-		{"Undocumented/Nonsense",2},
-		{"Textured Rectangle, 8x8, opaque, texture-blending",3},
-		{"Textured Rectangle, 8x8, opaque, raw-texture",3},
-		{"Textured Rectangle, 8x8, semi-transparent, texture-blending",3},
-		{"Textured Rectangle, 8x8, semi-transparent, raw-texture",3},
-		{"Monochrome Rectangle (16x16) (opaque)",2},
-		{"Undocumented/Nonsense",1},
-		{"Monochrome Rectangle (16x16) (semi-transparent)",2},
-		{"Undocumented/Nonsense",1},
-		{"Textured Rectangle, 16x16, opaque, texture-blending",3},
-		{"Textured Rectangle, 16x16, opaque, raw-texture",3},
-		{"Textured Rectangle, 16x16, semi-transparent, texture-blending",3},
-		{"Textured Rectangle, 16x16, semi-transparent, raw-texture",3},
+		{"Monochrome Rectangle (8x8) (opaque)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Monochrome Rectangle (8x8) (semi-transparent)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Textured Rectangle, 8x8, opaque, texture-blending", 3},
+		{"Textured Rectangle, 8x8, opaque, raw-texture", 3},
+		{"Textured Rectangle, 8x8, semi-transparent, texture-blending", 3},
+		{"Textured Rectangle, 8x8, semi-transparent, raw-texture", 3},
+		{"Monochrome Rectangle (16x16) (opaque)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Monochrome Rectangle (16x16) (semi-transparent)", 2},
+		{"Undocumented/Nonsense", 2},
+		{"Textured Rectangle, 16x16, opaque, texture-blending", 3},
+		{"Textured Rectangle, 16x16, opaque, raw-texture", 3},
+		{"Textured Rectangle, 16x16, semi-transparent, texture-blending", 3},
+		{"Textured Rectangle, 16x16, semi-transparent, raw-texture", 3},
 		//0x80
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
 		//0x90
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
-		{"Copy Rectangle (VRAM to VRAM)",4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{"Copy Rectangle (VRAM to VRAM)", 4},
 		//0xa0
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
 		//0xb0										  			   
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
-		{"Copy Rectangle (CPU to VRAM)",3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
+		{"Copy Rectangle (CPU to VRAM)", 3},
 		//0xc0
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
 		//0xd0										   			   
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
-		{"Copy Rectangle (VRAM to CPU)",3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
+		{"Copy Rectangle (VRAM to CPU)", 3},
 		//0xe0
-		{"NOP (?)",1},
-		{"Draw Mode setting (aka 'Texpage')",1},
-		{"Texture Window setting",1},
-		{"Set Drawing Area top left (X1,Y1)",1},
-		{"Set Drawing Area bottom right (X2,Y2)",1},
-		{"Set Drawing Offset (X,Y)",1},
-		{"Mask Bit Setting",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
-		{"NOP (?)",1},
+		{"NOP (?)", 1},
+		{"Draw Mode setting (aka 'Texpage')", 1},
+		{"Texture Window setting", 1},
+		{"Set Drawing Area top left (X1,Y1)", 1},
+		{"Set Drawing Area bottom right (X2,Y2)", 1},
+		{"Set Drawing Offset (X,Y)", 1},
+		{"Mask Bit Setting", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
+		{"NOP (?)", 1},
 	};
 }
 
@@ -378,10 +378,10 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 
 void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		if (g_GpuCommandsLogged)
-			std::cout << std::hex << "0x" << data << std::endl;
-		/*if ((int32_t)collectCount < 0)
-			g_emulationPaused = true;*/
+		/*if (g_GpuCommandsLogged)
+			std::cout << std::hex << "0x" << data << std::endl;*/
+			/*if ((int32_t)collectCount < 0)
+				g_emulationPaused = true;*/
 
 		if (collectCount) {
 			fifo.push_back(data);
@@ -530,6 +530,8 @@ void gpu_t::videoClock() {
 		pBus->timer1.clock(_HBLANK_CLOCK);
 		pBus->timer0.clock(_HBLANK_CLOCK);
 
+
+
 		scanlineCount++;
 		if (scanlineCount == SCANLINE_NUMBER_PAL) {
 			scanlineCount = -1;
@@ -544,6 +546,10 @@ void gpu_t::videoClock() {
 			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
 				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
+			//metal gear solid
+			/*pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;*/
+
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
 		}
@@ -553,13 +559,12 @@ void gpu_t::videoClock() {
 		pBus->timer0.clock(_DOT_CLOCK);
 
 
-	if (cpuScanlineClocks % (0x300 * 0x3ff) == 0) {
-		//if (pBus->spuControlRegister.elem.irq9Enable) //metal gear solid
-		{
+	/*if (cpuScanlineClocks % (0x300 * 0x3ff) == 0) {
+		if (pBus->spu.spuControlRegister.elem.irq9Enable) {
 			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
 			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
 		}
-	}
+	}*/
 
 	cpuScanlineClocks++;
 
@@ -614,7 +619,7 @@ void gpu_t::updateVramView(const vertex_t& possition, const psxColor16_t& color1
 	if (g_logPixel && (possition.x == g_mousePossitionX) && (possition.y == g_mousePossitionY)) {
 		vramView.SetPixel(possition.x, possition.y, olc::YELLOW);
 		std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command << " " << gp0Lookup[gp0Command >> 24].name << std::endl;
-		g_emulationPaused = true;
+		//g_emulationPaused = true;
 	}
 }
 
@@ -627,7 +632,10 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			return;
 		}
 
-		if (((gpuStat.elem.drawPixels == 1) && ((data & 0x8000) == 0x8000)) || (gpuStat.elem.drawPixels == 0)) {
+		uint16_t temp;
+		readVram(position, temp, bIgnoreDrawingArea);
+
+		if (((gpuStat.elem.drawPixels == 1) && ((temp & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
 			vram[(position.x & 1023) * 2 + (position.y & 511) * size_x] = data << 8 >> 8;
 			vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
 			updateVramView(position, data);
@@ -647,7 +655,10 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			return;
 		}
 
-		if (((gpuStat.elem.drawPixels == 1) && ((data & 0x8000) == 0x8000)) || (gpuStat.elem.drawPixels == 0)) {
+		uint16_t temp;
+		readVram(position, temp, bIgnoreDrawingArea);
+
+		if (((gpuStat.elem.drawPixels == 1) && ((temp & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
 			vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = data << 8 >> 8;
 			vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
 
@@ -657,6 +668,8 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			updateVramView(p, data);
 		}
 	}
+
+
 	//else {
 	//	if ((position.x + (drawOffset.x >> 5) < 0) || (position.y + (drawOffset.y >> 5)) < 0) {
 	//		/*std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x + (drawOffset.x >> 5) << "," <<
@@ -777,7 +790,7 @@ void gpu_t::drawPolygon(param_t* pParam) {
 	std::tuple p1{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
 	std::tuple p2{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
 
-	DrawTexturedPolygon(
+	DrawPolygonInterpolated(
 		p0, p1, p2,
 		[&](int x, int y, int b, int g, int r)
 		{
@@ -808,7 +821,7 @@ void gpu_t::drawPolygon(param_t* pParam) {
 		std::tuple p1{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
 		std::tuple p2{ vert4.x, vert4.y, color4.component.blue, color4.component.green, color4.component.red };
 
-		DrawTexturedPolygon(
+		DrawPolygonInterpolated(
 			p0, p1, p2,
 			[&](int x, int y, int b, int g, int r)
 			{
@@ -903,7 +916,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	std::tuple p1{ x2, y2, color2.component.blue, color2.component.green, color2.component.red, u2, v2 };
 	std::tuple p2{ x3, y3, color3.component.blue, color3.component.green, color3.component.red, u3, v3 };
 
-	DrawTexturedPolygon(
+	DrawPolygonInterpolated(
 		p0, p1, p2,
 		[&](int x, int y, int b, int g, int r, int u, int v)
 		{
@@ -960,7 +973,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 		std::tuple p1{ x3, y3, color3.component.blue, color3.component.green, color3.component.red, u3, v3 };
 		std::tuple p2{ x4, y4, color4.component.blue, color4.component.green, color4.component.red, u4, v4 };
 
-		DrawTexturedPolygon(
+		DrawPolygonInterpolated(
 			p0, p1, p2,
 			[&](int x, int y, int b, int g, int r, int u, int v)
 			{

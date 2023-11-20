@@ -3,20 +3,20 @@
 
 extern bool g_emulationPaused;
 
-console_t::console_t() {
+psxConsole_t::psxConsole_t() {
 	connectComponents();
 	//debug
 	connectDebugger();
 }
 
-void console_t::reset() {
+void psxConsole_t::reset() {
 	cpuSOC.reset();
 	for (int i = 0; i < 2 * 1024 * 1024; i++) {
 		bus.ram[i] = 0;
 	}
 }
 
-void console_t::clock() {
+void psxConsole_t::clock() {
 	if (!bus.dma.isCpuStopped)
 		cpuSOC.clock();
 
@@ -35,7 +35,7 @@ void console_t::clock() {
 	joyMemCard.clock();
 }
 
-void console_t::connectComponents() {
+void psxConsole_t::connectComponents() {
 	bus.dma.connectBus(&bus);
 
 	cpuSOC.pBus = &bus;
@@ -58,7 +58,7 @@ void console_t::connectComponents() {
 	bus.pJoyMemCard = &joyMemCard;
 }
 
-void console_t::connectDebugger() {
+void psxConsole_t::connectDebugger() {
 	bus.pDebugger = &debugger;
 	bus.dma.p_debugger = &debugger;
 	cpuSOC.p_debugger = &debugger;

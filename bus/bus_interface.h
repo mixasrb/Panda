@@ -114,41 +114,6 @@ public:
 
 	delayType calculateDelays(const delayRegisterType& delayRegister);
 
-	//spu
-
-	union spuControlRegister_t {
-		uint16_t data;
-		struct {
-			uint16_t cdAudioEnable : 1;
-			uint16_t externalAudioEnable : 1;
-			uint16_t cdAudioReverb : 1;
-			uint16_t externalAudioReverb : 1;
-			uint16_t soundRAMTransferMode : 2;
-			uint16_t irq9Enable : 1;
-			uint16_t reverbMasterEnable : 1;
-			uint16_t noiseFrequencyStep : 2;
-			uint16_t noiseFrequencyShift : 4;
-			uint16_t muteSPU : 1;
-			uint16_t spuEnable : 1;
-		}elem;
-	}spuControlRegister;
-
-	union spuStatusRegister_t {
-		uint16_t data;
-		struct {
-			uint16_t currentSPUMode : 6;
-			uint16_t irq9Flag : 1;
-			uint16_t dataTransferDMAReadWriteRequest : 1;
-			uint16_t dataTransferDMAWriteRequest : 1;
-			uint16_t dataTransferDMAReadRequest : 1;
-			uint16_t dataTransferBusyFlag : 1;
-			uint16_t writingFirstSecondHalfCaptureBuffers : 1;
-			uint16_t unused : 4;
-		}elem;
-	}spuStatusRegister;
-
-	uint16_t soundRAM_IRQAddress;
-
 	//debug
 	debugUtilities* pDebugger = nullptr;
 };

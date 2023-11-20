@@ -98,6 +98,9 @@ public:
 
 			union voice_CurrentVolumeLeftRight_t {
 				uint32_t data;
+				struct {
+					uint16_t l, h;
+				}hw;
 			}currentVolumeLeftRight;
 
 			uint32_t currentVoiceAddress;

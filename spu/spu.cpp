@@ -210,8 +210,20 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
 		uint8_t voiceIndex = (addr >> 4) - 0x1f801c0;
 		switch (addr & 0xf) {
+		case 0x0:
+			data = voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.l;
+			break;
+
+		case 0x2:
+			data = voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.h;
+			break;
+
 		case 0x4:
 			data = voices.voiceRegisters[voiceIndex].adpcmSampleRate.data;
+			break;
+
+		case 0x6:
+			data = voices.voiceRegisters[voiceIndex].adpcmStartAddress.data;
 			break;
 
 		case 0x8:
@@ -224,6 +236,10 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 
 		case 0xc:
 			data = voices.voiceRegisters[voiceIndex].adsrCurrentVolume.data;
+			break;
+
+		case 0xe:
+			data = voices.voiceRegisters[voiceIndex].adpcmRepeatAddress.data;
 			break;
 
 		default:
@@ -282,6 +298,10 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			data = voices.channelReverbMode.hw.h;
 			break;
 
+		case 0x1f801da2:
+			data = dramReverbWorkAreaStartAddress.data;
+			break;
+
 		case 0x1f801da6:
 			data = dramDataTransferAddress.data;
 			break;
@@ -333,11 +353,28 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			break;
 		}
 	}
-	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfc)) {
+	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
 		data = reverb[addr - 0x1f801dc0];
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
-		std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
+		uint8_t voiceIndex = (addr - 0x1f801e00) >> 2;
+		switch (addr & 0x3) {
+		case 0:
+			data = voices.voiceRegisters[voiceIndex].currentVolumeLeftRight.hw.l;
+			break;
+
+		case 2:
+			data = voices.voiceRegisters[voiceIndex].currentVolumeLeftRight.hw.h;
+			break;
+
+		default:
+			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
+			g_emulationPaused = true;
+			break;
+		}
+	}
+	else {
+		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;
 	}
 }
@@ -532,11 +569,24 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801da6:
 			dramDataTransferAddress.data = data;
 			currentAddress = dramDataTransferAddress.data * 8;
+			//if (currentAddress >= DRAM_SIZE) {
+			/*	std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
+					<< std::hex << currentAddress << "\n";*/
+					//g_emulationPaused = true;
+				//}
 			break;
 
 		case 0x1f801da8:
 			dramDataTransferFifo.data = data;
-			writeDram16(currentAddress, data);
+			if (currentAddress >= DRAM_SIZE) {  // spyro 1 sends 0x10 more hw's
+				std::cout << "[SPU] EMULATION PASUED! current address > DRAM_SIZE : 0x"
+					<< std::hex << currentAddress << " data 0x" << std::hex << data << "\n";
+				//g_emulationPaused = true;
+			}
+			else
+				writeDram16(currentAddress, data);
+
+
 			currentAddress += 2;
 			break;
 
@@ -600,10 +650,14 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 		}
 	}
-	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfc)) {
+	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
 		reverb[addr - 0x1f801dc0] = data;
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
+		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+		g_emulationPaused = true;
+	}
+	else {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;
 	}
@@ -741,6 +795,7 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 			tempStep = (tempStep * (uint16_t)factor) >> 15;
 			currentVoiceRegisters.step = tempStep & 0x0000ffff;
 		}
+
 		if (currentVoiceRegisters.step > 0x3fff)
 			currentVoiceRegisters.step = 0x4000;
 		currentVoiceRegisters.counter += currentVoiceRegisters.step;
@@ -870,8 +925,11 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	}
 
 	output_t output;
-	output.channel1 = (float)input / 32767.0f * /*(float)adsrLevel / 32767.0f*/  (float)(volumeLeftRight.hw.l << 1) / 32767.0f;
-	output.channel2 = (float)input / 32767.0f * /*(float)adsrLevel / 32767.0f*/  (float)(volumeLeftRight.hw.h << 1) / 32767.0f;
+	output.channel1 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f * (float)(volumeLeftRight.hw.l << 1) / 32767.0f;
+	output.channel2 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f * (float)(volumeLeftRight.hw.h << 1) / 32767.0f;
+
+	currentVolumeLeftRight.hw.l = uint32_t(output.channel1 * 32767.0f);//??
+	currentVolumeLeftRight.hw.h = uint32_t(output.channel2 * 32767.0f);//??
 
 	return output;
 }

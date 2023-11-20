@@ -29,7 +29,8 @@ uint32_t g_systemMinutes = 0;
 
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
-bool g_sideload = 1;
+bool g_sideload = 0;
+//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/rectangles.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/8bit.exe"); //dma write mdec
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-15bit.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-15bit-dma.exe");
@@ -63,13 +64,14 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlock
 //uint8_t g_driveStatus = _NO_DISC;
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Polaris SnoCross (USA).bin");
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Yu-Gi-Oh! - Forbidden Memories (Europe).bin");//probably stucked because unhandled spu regs
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania Chronicles (USA).bin");//SPU:T/O [wait (IRQ/OFF)] //Pads??
 
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman/Rayman (USA) (Track 01).bin");//VSync: timeout
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot??
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Skullmonkeys.bin");//~[DMA2] EMULATION PAUSED! (GPU) madr: 0 and same for cd drive dma // load delay MAYBE
 
@@ -90,6 +92,8 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tekken 2 (USA) (v1.1)/Tekken 2 (USA) (v1.1) (Track 1).bin"); // DMA 2 linked-list loop 
 
 //working ones
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot?? // crashes if cpu is too fast
+// 
 // 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input// fixed with implemted spu??
 // 
@@ -153,9 +157,9 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin"); //ChangeThread stuck fixed probably
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte
+//problems with drawing after implementing new rasterizer algorithm
 
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite seems it depends of cpu speed
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
 
@@ -164,7 +168,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot (Europe) (EDC).bin");//gte
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash2.bin")
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash2.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot - Warped (USA).bin"); //gte? //1f8008cf unhandled addr read8
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/ctr.bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT) SPU:T/O [wait (IRQ/OFF)]
 // 
@@ -178,20 +182,23 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
+
+
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input!!! if cpu is too fast //spu irq problem
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs fixed
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin"); //gte //play
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil (Europe).bin");//getlocp and setfilter//CD_init:addr=800ad268 fixed?? //low fps
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil (Europe).bin");//getlocp and setfilter//CD_init:addr=800ad268 fixed?? //low fps
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/resident evil 2/Resident Evil 2 (Disc 1) (Track 1).bin");//gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil 3 - Nemesis (USA).bin");
 
@@ -215,7 +222,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercul
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Quake II/Quake II (USA) (Track 1).bin");//gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tom Clancy's Rainbow Six - Lone Wolf (USA).bin");
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ace Combat 3 - Electrosphere (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ace Combat 3 - Electrosphere (USA).bin"); //mem card problem // texture window problem//
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Formula 1 (Europe) (En,Fr,De,Es,It) (Rev 1)/Formula 1 (Europe) (En,Fr,De,Es,It) (Rev 1) (Track 01).bin");
 
@@ -229,13 +236,13 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercul
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tank Racer (Europe) (En,Fr,De,Es,It)/Tank Racer (Europe) (En,Fr,De,Es,It) (Track 01).bin");
+
 //demos
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Euro Demo 67 (Europe).bin"); //Ms pacman problem
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Euro Demo 67 (Europe).bin"); //Ms pacman problem seems working now
 
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Polaris SnoCross (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
 // 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/SpyroCustomLogo.bin");
@@ -243,22 +250,22 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercul
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 
 
-class engine : public olc::PixelGameEngine {
+class psxEmulator_t : public olc::PixelGameEngine {
 public:
 
-	engine() {
+	psxEmulator_t() {
 		sAppName = "Panda by Miloseviceva Milicija";
 	}
 
-	console_t PSX;
+	psxConsole_t psx;
 
-	static engine* pInstance;
+	static psxEmulator_t* pInstance;
 
 	bool isDebuggerViewed = false;
 
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
-		//if (!g_emulationPaused)
-		    return pInstance->PSX.bus.spu.clock();
+		if (!g_emulationPaused)
+			return pInstance->psx.bus.spu.clock();
 	}
 
 	bool OnUserCreate() override {
@@ -267,22 +274,23 @@ public:
 		std::cout.setstate(std::ios_base::failbit);
 #endif
 
-		PSX.reset();
-
 		pInstance = this;
-
 
 		olc::SOUND::InitialiseAudio(44100, 1, 8, 512);
 		olc::SOUND::SetUserSynthFunction(soundOut);
 
+		psx.reset();
+
 		return true;
-}
+	}
 
 	bool OnUserUpdate(float fElapsedTime) override {
-		try {
-			Clear(olc::VERY_DARK_BLUE);
 
-			//gamepad input 
+		Clear(olc::VERY_DARK_GREY);
+
+		//gamepad input 
+
+		if (!g_emulationPaused) {
 
 			enum keyMap_swlo {
 				PSX_SELECT = 0x01,
@@ -305,307 +313,347 @@ public:
 				PSX_SQUARE = 0x80
 			};
 
-			if (!g_emulationPaused) {
+			psx.joyMemCard.swloPad1 = 0xff;
+			psx.joyMemCard.swhiPad1 = 0xff;
 
-				PSX.joyMemCard.swloPad1 = 0xff;
-				PSX.joyMemCard.swhiPad1 = 0xff;
+			if (GetKey(olc::Key::F).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_SELECT;
+			if (GetKey(olc::Key::K3).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_L3;
+			if (GetKey(olc::Key::K8).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_R3;
+			if (GetKey(olc::Key::H).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_START;
 
-				if (GetKey(olc::Key::F).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_SELECT;
-				if (GetKey(olc::Key::K3).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_L3;
-				if (GetKey(olc::Key::K8).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_R3;
-				if (GetKey(olc::Key::H).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_START;
+			if (GetKey(olc::Key::W).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_JOYPAD_UP;
+			if (GetKey(olc::Key::D).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_JOYPAD_RIGHT;
+			if (GetKey(olc::Key::S).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_JOYPAD_DOWN;
+			if (GetKey(olc::Key::A).bHeld)
+				psx.joyMemCard.swloPad1 ^= PSX_JOYPAD_LEFT;
 
-				if (GetKey(olc::Key::W).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_UP;
-				if (GetKey(olc::Key::D).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_RIGHT;
-				if (GetKey(olc::Key::S).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_DOWN;
-				if (GetKey(olc::Key::A).bHeld)
-					PSX.joyMemCard.swloPad1 ^= PSX_JOYPAD_LEFT;
+			if (GetKey(olc::Key::K2).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_L2;
+			if (GetKey(olc::Key::K9).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_R2;
+			if (GetKey(olc::Key::K1).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_L1;
+			if (GetKey(olc::Key::K0).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_R1;
 
-				if (GetKey(olc::Key::K2).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_L2;
-				if (GetKey(olc::Key::K9).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_R2;
-				if (GetKey(olc::Key::K1).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_L1;
-				if (GetKey(olc::Key::K0).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_R1;
+			if (GetKey(olc::Key::I).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_TRIANGLE;
+			if (GetKey(olc::Key::L).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_CIRCLE;
+			if (GetKey(olc::Key::K).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_CROSS;
+			if (GetKey(olc::Key::J).bHeld)
+				psx.joyMemCard.swhiPad1 ^= PSX_SQUARE;
 
-				if (GetKey(olc::Key::I).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_TRIANGLE;
-				if (GetKey(olc::Key::L).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_CIRCLE;
-				if (GetKey(olc::Key::K).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_CROSS;
-				if (GetKey(olc::Key::J).bHeld)
-					PSX.joyMemCard.swhiPad1 ^= PSX_SQUARE;
+			psx.joyMemCard.swloPad2 = 0xff;
+			psx.joyMemCard.swhiPad2 = 0xff;
 
-				PSX.joyMemCard.swloPad2 = 0xff;
-				PSX.joyMemCard.swhiPad2 = 0xff;
+			if (GetKey(olc::Key::NP1).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_SELECT;
+			if (GetKey(olc::Key::NP2).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_START;
 
-				if (GetKey(olc::Key::NP1).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_SELECT;
-				if (GetKey(olc::Key::NP2).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_START;
+			if (GetKey(olc::Key::UP).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_JOYPAD_UP;
+			if (GetKey(olc::Key::RIGHT).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_JOYPAD_RIGHT;
+			if (GetKey(olc::Key::DOWN).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_JOYPAD_DOWN;
+			if (GetKey(olc::Key::LEFT).bHeld)
+				psx.joyMemCard.swloPad2 ^= PSX_JOYPAD_LEFT;
 
-				if (GetKey(olc::Key::UP).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_UP;
-				if (GetKey(olc::Key::RIGHT).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_RIGHT;
-				if (GetKey(olc::Key::DOWN).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_DOWN;
-				if (GetKey(olc::Key::LEFT).bHeld)
-					PSX.joyMemCard.swloPad2 ^= PSX_JOYPAD_LEFT;
+			if (GetKey(olc::Key::NP8).bHeld)
+				psx.joyMemCard.swhiPad2 ^= PSX_TRIANGLE;
+			if (GetKey(olc::Key::NP6).bHeld)
+				psx.joyMemCard.swhiPad2 ^= PSX_CIRCLE;
+			if (GetKey(olc::Key::NP5).bHeld)
+				psx.joyMemCard.swhiPad2 ^= PSX_CROSS;
+			if (GetKey(olc::Key::NP4).bHeld)
+				psx.joyMemCard.swhiPad2 ^= PSX_SQUARE;
+		}
 
-				if (GetKey(olc::Key::NP8).bHeld)
-					PSX.joyMemCard.swhiPad2 ^= PSX_TRIANGLE;
-				if (GetKey(olc::Key::NP6).bHeld)
-					PSX.joyMemCard.swhiPad2 ^= PSX_CIRCLE;
-				if (GetKey(olc::Key::NP5).bHeld)
-					PSX.joyMemCard.swhiPad2 ^= PSX_CROSS;
-				if (GetKey(olc::Key::NP4).bHeld)
-					PSX.joyMemCard.swhiPad2 ^= PSX_SQUARE;
+
+		if (IsFocused() && GetMouse(0).bHeld) {
+			g_logPixel = true;
+			g_mousePossitionX = GetMouseX();
+			g_mousePossitionY = GetMouseY();
+
+			if (g_mousePossitionY > 511)
+				g_logPixel = false;
+		}
+
+		//clocker
+
+		constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
+		constexpr uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCK / 60;
+
+		if (!g_emulationPaused) {
+			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
+				psx.clock();
+				if (g_emulationPaused) break;
 			}
-
-
-			if (IsFocused() && GetMouse(0).bHeld) {
-				g_logPixel = true;
-				g_mousePossitionX = GetMouseX();
-				g_mousePossitionY = GetMouseY();
-
-				if (g_mousePossitionY > 511)
-					g_logPixel = false;
-			}
-
-			//clocker
-
-			const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-			const uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCK / 60;
-
-			if (!g_emulationPaused) {
-				for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
-					PSX.clock();
-					if (g_emulationPaused) break;
-				}
-				g_systemFrames++;
-				if (g_systemFrames == 60) {
-					g_systemFrames = 0;
-					g_systemSeconds++;
-					if (g_systemSeconds == 60) {
-						g_systemSeconds = 0;
-						g_systemMinutes++;
-					}
+			g_systemFrames++;
+			if (g_systemFrames == 60) {
+				g_systemFrames = 0;
+				g_systemSeconds++;
+				if (g_systemSeconds == 60) {
+					g_systemSeconds = 0;
+					g_systemMinutes++;
 				}
 			}
+		}
+
+		//debugger
+
+		bool executeOneInstruction = false;
+
+		if (executeOneInstruction) {
+			do { psx.clock(); } while (!psx.cpuSOC.isInstructionExecuted);
+			psx.cpuSOC.isInstructionExecuted = false;
+			executeOneInstruction = !executeOneInstruction;
+		}
 
 
+		if (GetKey(olc::Key::CTRL).bHeld) {
+
+			if (GetKey(olc::Key::Q).bHeld) {
+
+				//Metal Slug DMA 2 linked list loop bypass
+				psx.bus.dma.dma2.channelControl.reg.startBusy = ~psx.bus.dma.dma2.channelControl.reg.startBusy;
+				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
+				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME / 10000; i++) {
+					psx.cpuSOC.clock();
+				}
+
+				//Crash Bash
+				//PSX.cdDrive.irq_flag_read.reg.int_1_7 = 3;
+				//PSX.cdDrive.pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
+			}
+
+			if (GetKey(olc::Key::SPACE).bPressed)
+				g_emulationPaused = !g_emulationPaused;
+
+			if (GetKey(olc::Key::X).bPressed)
+				g_executedCpuInstructionsLogged = !g_executedCpuInstructionsLogged;
+
+			if (GetKey(olc::Key::N).bPressed)
+				g_biosCallbacksLogged = !g_biosCallbacksLogged;
+
+			if (GetKey(olc::Key::C).bPressed)
+				g_GteInstructionsLogged = !g_GteInstructionsLogged;
+
+			if (GetKey(olc::Key::Z).bPressed)
+				g_GpuCommandsLogged = !g_GpuCommandsLogged;
+
+			if (GetKey(olc::Key::B).bPressed) {
+				g_buttonPressed = !g_buttonPressed;
+				/*for (int i = 0; i < PSX.cpuSOC.loggedOpcodes.size(); i++) {
+					std::cout << PSX.cpuSOC.loggedOpcodes[i];
+				}*/
+			}
+
+			if (GetKey(olc::Key::R).bPressed)
+				psx.debugger.dump("logs/ram.bin", psx.bus.ram, 2048 * 1024);
+
+			if (GetKey(olc::Key::W).bPressed)
+				psx.debugger.dump("logs/scratchpad.bin", psx.bus.scratchpad, 1024);
+
+			if (GetKey(olc::Key::V).bPressed)
+				psx.debugger.dump("logs/vram.bin", psx.gpu.vram, 2048 * 512);
+
+			if (GetKey(olc::Key::S).bPressed)
+				psx.debugger.dump("logs/dram.bin", psx.bus.spu.dram, 512 * 1024);
+
+			if (GetKey(olc::Key::M).bPressed)
+				psx.debugger.dump("logs/memcardDumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
+
+			if (GetKey(olc::Key::O).bPressed)
+				executeOneInstruction = true;
+
+			if (GetKey(olc::Key::P).bHeld)
+				executeOneInstruction = true;
+
+			if (GetKey(olc::Key::E).bPressed)
+				isDebuggerViewed = !isDebuggerViewed;
+
+			if (GetKey(olc::Key::T).bPressed) {
+				psx.gpu.konstant = (psx.gpu.konstant + 1) & 0x7;
+			}
+		}
+
+
+		if (!isDebuggerViewed) {
+			// main DRAW
+
+			DrawSprite(0, 0, psx.gpu.getVramSprite());
+
+			//uint16_t x1 = PSX.gpu.display_start.x;
+			//uint16_t y1 = PSX.gpu.display_start.y;
+			//uint16_t x2;
+			//uint16_t y2;
+
+			//uint16_t horizontalResolution;
+			//uint16_t verticalResolution;
+			//if (PSX.gpu.gpuStat.elem.horizontalRes2) {
+			//	x2 = x1 + 367;
+			//	horizontalResolution = 368;
+			//}
+			//else switch (PSX.gpu.gpuStat.elem.horizontalRes1) {
+			//case 0:
+			//	x2 = x1 + 255;
+			//	horizontalResolution = 256;
+			//	break;
+			//case 1:
+			//	x2 = x1 + 319;
+			//	horizontalResolution = 320;
+			//	break;
+			//case 2:
+			//	x2 = x1 + 511;
+			//	horizontalResolution = 512;
+			//	break;
+			//case 3:
+			//	x2 = x1 + 639;
+			//	horizontalResolution = 640;
+			//	break;
+			//}
+			//if (PSX.gpu.gpuStat.elem.verticalRes) {
+			//	y2 = y1 + 479;
+			//	verticalResolution = 480;
+			//}
+			//else {
+			//	y2 = y1 + 239;
+			//	verticalResolution = 240;
+			//}
+
+
+			//if (PSX.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
+			//	olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
+			//	for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
+			//		int i = 2; //??
+			//		for (int y = 0; y < verticalResolution; y++) {
+			//			olc::Pixel pixel;
+			//			switch ((x1 + x + i) % 3) {
+			//			case 0: {
+			//				uint16_t data;
+			//				gpu_t::vertex_t p;
+			//				p.x = x1 + x + i;
+			//				p.y = y1 + y;
+			//				PSX.bus.pGpu->readVram(p, data, true);
+			//				pixel.r = data & 0xff;
+			//				pixel.g = (data >> 8) & 0xff;
+			//				p.x = x1 + x + 1 + i;
+			//				PSX.bus.pGpu->readVram(p, data, true);
+			//				pixel.b = data & 0xff;
+			//				break;
+			//			}
+			//			case 1: {
+			//				uint16_t data;
+			//				gpu_t::vertex_t p;
+			//				p.x = x1 + x + i;
+			//				p.y = y1 + y;
+			//				PSX.bus.pGpu->readVram(p, data, true);
+			//				pixel.r = (data >> 8) & 0xff;
+			//				p.x = x1 + x + 1 + i;
+			//				PSX.bus.pGpu->readVram(p, data, true);
+			//				pixel.g = data & 0xff;
+			//				pixel.b = (data >> 8) & 0xff;
+			//				break;
+			//			}
+			//			case 2:
+			//				i++;
+			//				break;
+			//			}
+			//			vramView.SetPixel(x * 2 / 3, y, pixel);
+			//		}
+			//	}
+			//	DrawSprite(0, 0, &vramView);
+			//}
+			//else
+			//	DrawPartialSprite(0, 0, PSX.gpu.getVramSprite(), x1, y1, x2 - x1 - 1, y2 - y1 - 1);
+
+
+		}
+		else {
 			//debugger
-			bool executeOneInstruction = false;
 
-			if (GetKey(olc::Key::CTRL).bHeld) {
+			for (int i = 0; i < 32; i++) {
+				uint32_t data;
+				uint8_t cycels;
 
-				if (GetKey(olc::Key::Q).bHeld) {
-					//HAHHAHA BYPASS
-					/*if (PSX.bus.dma.interruptRegister.reg.IRQ_enable_dma1 && PSX.bus.dma.interruptRegister.reg.IRQ_master_enable) {
-						PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
-						PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
-						PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);
-					}*/
-					/*if (PSX.bus.dma.interruptRegister.reg.IRQ_enable_dma1 && PSX.bus.dma.interruptRegister.reg.IRQ_master_enable) {
-						PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
-						PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
-						PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);
-					}*/
-					/*PSX.bus.dma.interruptRegister.reg.IRQ_master_flag = 1;
-					PSX.bus.dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
-					PSX.bus.pCpu->cp0.interruptHandler(_IRQ_DMA);*/
-
-					//Metal Slug DMA 2 linked list loop bypass
-					PSX.bus.dma.dma2.channelControl.reg.startBusy = ~PSX.bus.dma.dma2.channelControl.reg.startBusy;
-					PSX.bus.dma.isCpuStopped = !PSX.bus.dma.isCpuStopped;
-					for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME / 10000; i++) {
-						PSX.cpuSOC.clock();
-					}
-
-					//Crash Bash
-					//PSX.cdDrive.irq_flag_read.reg.int_1_7 = 3;
-					//PSX.cdDrive.pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
-				}
-
-				if (GetKey(olc::Key::SPACE).bPressed)
-					g_emulationPaused = !g_emulationPaused;
-
-				if (GetKey(olc::Key::X).bPressed)
-					g_executedCpuInstructionsLogged = !g_executedCpuInstructionsLogged;
-
-				if (GetKey(olc::Key::N).bPressed)
-					g_biosCallbacksLogged = !g_biosCallbacksLogged;
-
-				if (GetKey(olc::Key::C).bPressed)
-					g_GteInstructionsLogged = !g_GteInstructionsLogged;
-
-				if (GetKey(olc::Key::Z).bPressed)
-					g_GpuCommandsLogged = !g_GpuCommandsLogged;
-
-				if (GetKey(olc::Key::B).bPressed) {
-					g_buttonPressed = !g_buttonPressed;
-					/*for (int i = 0; i < PSX.cpuSOC.loggedOpcodes.size(); i++) {
-						std::cout << PSX.cpuSOC.loggedOpcodes[i];
-					}*/
-				}
-
-				if (GetKey(olc::Key::R).bPressed)
-					PSX.debugger.dump("logs/ram.bin", PSX.bus.ram, 2048 * 1024);
-
-				if (GetKey(olc::Key::W).bPressed)
-					PSX.debugger.dump("logs/scratchpad.bin", PSX.bus.scratchpad, 1024);
-
-				if (GetKey(olc::Key::V).bPressed)
-					PSX.debugger.dump("logs/vram.bin", PSX.gpu.vram, 2048 * 512);
-
-				if (GetKey(olc::Key::S).bPressed)
-					PSX.debugger.dump("logs/dram.bin", PSX.bus.spu.dram, 512 * 1024);
-
-				if (GetKey(olc::Key::M).bPressed)
-					PSX.debugger.dump("logs/memcardDumped.bin", PSX.joyMemCard.memCards[0], 128 * 1024);
-
-				if (GetKey(olc::Key::O).bPressed)
-					executeOneInstruction = true;
-
-				if (GetKey(olc::Key::P).bHeld)
-					executeOneInstruction = true;
-
-				if (GetKey(olc::Key::E).bPressed)
-					isDebuggerViewed = !isDebuggerViewed;
-
-				if (GetKey(olc::Key::T).bPressed) {
-					PSX.gpu.konstant = (PSX.gpu.konstant + 1) & 0x7;
+				psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
+				uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
+				DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
+				if (i == 16) {
+					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
+					DrawString(464, 108 + 36, "pc:", olc::WHITE);
+					DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
 				}
 			}
-
-			if (executeOneInstruction) {
-				do { PSX.clock(); } while (!PSX.cpuSOC.isInstructionExecuted);
-				PSX.cpuSOC.isInstructionExecuted = false;
-				executeOneInstruction = !executeOneInstruction;
+			for (int i = 0; i < 32; i++) {
+				std::string s = psx.cpuSOC.executedOpcodes[i];
+				DrawString(489, 0 + 9 * (33 + i), s);
 			}
-
-
-			if (isDebuggerViewed) {
-				for (int i = 0; i < 32; i++) {
-					uint32_t data;
-					uint8_t cycels;
-
-					PSX.bus.cpuRead32(PSX.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
-					uint32_t pc = PSX.cpuSOC.pc_old - 16 * 4 + i * 4;
-					DrawString(489, 0 + 9 * i, PSX.cpuSOC.getInstructionStr(data, pc));
-					if (i == 16) {
-						DrawString(489, 0 + 9 * i, PSX.cpuSOC.getInstructionStr(data, PSX.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
-						DrawString(464, 108 + 36, "pc:", olc::WHITE);
-						DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
-					}
-				}
-				for (int i = 0; i < 32; i++) {
-					std::string s = PSX.cpuSOC.executedOpcodes[i];
-					DrawString(489, 0 + 9 * (33 + i), s);
-				}
-				for (int i = 0; i < 32; i++) {
-					std::stringstream ss;
-					if (i < 10)
-						ss << "r[0" << i << "] 0x" << std::hex << PSX.cpuSOC.get(i);
-					else
-						ss << "r[" << i << "] 0x" << std::hex << PSX.cpuSOC.get(i);
-					DrawString(0, i * 9, ss.str());
-				}
+			for (int i = 0; i < 32; i++) {
 				std::stringstream ss;
-				ss << "hi 0x" << std::hex << PSX.cpuSOC.hi;
-				DrawString(0, 32 * 9, ss.str());
-				ss.str("\0");
-				ss << "lo 0x" << std::hex << PSX.cpuSOC.lo;
-				DrawString(0, 33 * 9, ss.str());
-				ss.str("\0");
-				ss << "Cop0 SR 0x" << std::hex << PSX.cpuSOC.cp0.cop0r[12];
-				DrawString(0, 34 * 9, ss.str());
-				ss.str("\0");
-				ss << "I_MASK 0x" << std::hex << PSX.bus.interruptMask;
-				DrawString(0, 35 * 9, ss.str());
-				ss.str("\0");
-				ss << "I_STAT 0x" << std::hex << PSX.bus.interruptStat;
-				DrawString(0, 36 * 9, ss.str());
-			}
-			else {
-				DrawSprite(0, 0, PSX.gpu.getVramSprite());
-
-				/*uint16_t x1 = PSX.gpu.display_start.x;
-				uint16_t y1 = PSX.gpu.display_start.y;
-				uint16_t x2;
-				uint16_t y2;
-				if (PSX.gpu.gpuStat.elem.horizontalRes2)
-					x2 = x1 + 367;
-				else switch (PSX.gpu.gpuStat.elem.horizontalRes1) {
-				case 0:
-					x2 = x1 + 255;
-					break;
-				case 1:
-					x2 = x1 + 319;
-					break;
-				case 2:
-					x2 = x1 + 511;
-					break;
-				case 3:
-					x2 = x1 + 639;
-					break;
-				}
-				if (PSX.gpu.gpuStat.elem.verticalRes)
-					y2 = y1 + 479;
+				if (i < 10)
+					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
 				else
-					y2 = y1 + 239;
-
-				DrawPartialSprite(0, 0, PSX.gpu.getVramSprite(), x1, y1, x2 - x1, y2 - y1);*/
+					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+				DrawString(0, i * 9, ss.str());
 			}
-
-			if (g_emulationPaused)
-				DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
-
-			if (g_GteInstructionsLogged)
-				DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
-
 			std::stringstream ss;
-			ss << "system clocks: " << PSX.gpu.cpuFrameClocks;
-			DrawString(0, 512 + 4, ss.str(), olc::WHITE);
+			ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
+			DrawString(0, 32 * 9, ss.str());
 			ss.str("\0");
-			ss << "system frames: " << g_systemFrames;
-			DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
+			ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
+			DrawString(0, 33 * 9, ss.str());
 			ss.str("\0");
-			ss << "system seconds: " << g_systemSeconds;
-			DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
+			ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
+			DrawString(0, 34 * 9, ss.str());
 			ss.str("\0");
-			ss << "system minutes: " << g_systemMinutes;
-			DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
+			ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
+			DrawString(0, 35 * 9, ss.str());
+			ss.str("\0");
+			ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
+			DrawString(0, 36 * 9, ss.str());
+		}
 
-		}
-		catch (const std::exception& e) {
-			std::cerr << "ERROR: " << e.what() << std::endl;
-			system("pause");
-			return EXIT_FAILURE;
-		}
+		if (g_emulationPaused)
+			DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
+
+		if (g_GteInstructionsLogged)
+			DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+
+		std::stringstream ss;
+		ss << "system clocks: " << psx.gpu.cpuFrameClocks;
+		DrawString(0, 512 + 4, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system frames: " << g_systemFrames;
+		DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system seconds: " << g_systemSeconds;
+		DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system minutes: " << g_systemMinutes;
+		DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
 		return true;
 	}
 
-	bool OnUserDestroy()
-	{
+	bool OnUserDestroy() override {
 		olc::SOUND::DestroyAudio();
 
 		return true;
 	}
 };
 
-engine* engine::pInstance = nullptr;
+psxEmulator_t* psxEmulator_t::pInstance = nullptr;
 
 int main(int argumentCount, char* argumetVector[]) {
 
@@ -614,8 +662,9 @@ int main(int argumentCount, char* argumetVector[]) {
 		g_sideloadPath = argumetVector[1];
 	}
 
-	engine app;
-	if (app.Construct(1024/*640/2*/, 512 + 160/*480/2*/, 1, 1, false, false))
-		app.Start();
+	psxEmulator_t emulator;
+	if (emulator.Construct(1024/*640 - 2*//*/2*/, 512 + 160/*480 - 2*//*/2*/, 1, 1, false, false))
+		emulator.Start();
+
 	return EXIT_SUCCESS;
 }
