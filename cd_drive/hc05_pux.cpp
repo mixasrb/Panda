@@ -383,7 +383,7 @@ void cdDrive::clock() {
 
 
 	// Doom
-	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 5 / 10) && bSecondResponse &&
+	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 9 / 10) && bSecondResponse &&
 		!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		bSecondResponse = false;
 		clocks = 0;
@@ -395,7 +395,7 @@ void cdDrive::clock() {
 
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-	if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 14 / 10) && bDataResponse &&            //castlevania SOF requires 15/10 or less??
+	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/) && bDataResponse &&            //castlevania SOF requires 15/10 or less??
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 
@@ -405,6 +405,7 @@ void cdDrive::clock() {
 		printStat();
 
 		if (bSendINT1) {
+			stat.elem.seek = 0;
 			if (!bPlay) {
 				uint8_t dataResponse[1] = { stat.data };
 				setDataResponse(INT1, dataResponse, 1);
@@ -456,8 +457,8 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
 		bSendINT1 = false;
-		//bSendINT1 = true;
-		//stat.elem.read = 1;
+		bSendINT1 = true; // used for gran turismo 2
+		stat.elem.read = 1;// used for gran turismo 2
 	}
 	else {
 		bSendINT1 = true;
@@ -583,7 +584,7 @@ void cdDrive::play(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
-	stat.elem.seek = 0;
+	stat.elem.seek = 0; //~ used for gran turismo 2
 	stat.elem.play = 1;
 
 	bDataResponse = true;
@@ -650,7 +651,7 @@ void cdDrive::readN(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
-	stat.elem.seek = 0;
+	//stat.elem.seek = 0; //~ used for gran turismo 2
 
 	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
@@ -1015,7 +1016,7 @@ void cdDrive::readS(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
-	stat.elem.seek = 0;
+	//stat.elem.seek = 0; //~ used for gran turismo 2
 
 	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;

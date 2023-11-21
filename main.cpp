@@ -37,7 +37,7 @@ bool g_sideload = 0;
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-24bit.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-24bit-dma.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlockDecodeCLUT4BPP.exe");
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlockDecodeCLUT8BPP.exe"); // cpu write mdec
+//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlockDecodeCLUT8BPP.exe"); // cpu write mdec
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/hit-green.exe");
@@ -49,7 +49,7 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlock
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gte-fuzz/gte-fuzz.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/texture-overflow/texture-overflow.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/animated-triangle/animated-triangle.exe");
-//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/lines/lines.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/lines/lines.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/quad/quad.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/rectangles/rectangles.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/gpu/texture-flip/texture-flip.exe");
@@ -89,14 +89,14 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem // reads problem, needs spu regs
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tekken 2 (USA) (v1.1)/Tekken 2 (USA) (v1.1) (Track 1).bin"); // DMA 2 linked-list loop 
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tekken 2 (USA) (v1.1)/Tekken 2 (USA) (v1.1) (Track 1).bin"); // DMA 2 linked-list loop 
 
 //working ones
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot?? // crashes if cpu is too fast
-// 
-// 
+
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input// fixed with implemted spu??
-// 
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (USA).bin");//stuck // problem with mem card // like no input// maybe spu regs ?? needs reverb
 
@@ -138,7 +138,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Discworld Noir (Europe) (En,Es,It).bin"); //get stuck mdec sometimes?
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");//gte
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin"); // DMA3 CDROM 0x11400100h (chopped) //~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c7f7f7f Undocumented/Nonsense
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grand Theft Auto 2 (USA).bin");
@@ -161,8 +161,6 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite seems it depends of cpu speed
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");//mdec //no input/gte
 
@@ -182,6 +180,8 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
 
 
@@ -198,7 +198,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin"); //gte //play
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil (Europe).bin");//getlocp and setfilter//CD_init:addr=800ad268 fixed?? //low fps
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil (Europe).bin");//getlocp and setfilter//CD_init:addr=800ad268 fixed?? //low fps
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/resident evil 2/Resident Evil 2 (Disc 1) (Track 1).bin");//gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Resident Evil 3 - Nemesis (USA).bin");
 

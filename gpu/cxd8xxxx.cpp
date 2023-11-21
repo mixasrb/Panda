@@ -97,6 +97,8 @@ gpu_t::gpu_t() {
 		textureCache[i] = new uint16_t[256];
 	}
 
+	fifo.resize(512 * 1024);
+
 	gp0Lookup.resize(0xef);
 	gp0Lookup = {
 		//0x00
@@ -361,9 +363,9 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
 	if (addr == 0x1f801810) {
 		if (gpuStat.elem.readyVramCpu) {
-			data = fifo[0];
-			fifo.erase(fifo.begin());
-			if (fifo.empty())
+			data = buffer[0];
+			buffer.erase(buffer.begin());
+			if (buffer.empty())
 				gpuStat.elem.readyVramCpu = 0;
 			return;
 		}
@@ -378,13 +380,13 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 
 void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		/*if (g_GpuCommandsLogged)
-			std::cout << std::hex << "0x" << data << std::endl;*/
+		if (g_GpuCommandsLogged)
+			std::cout << std::hex << "0x" << data << std::endl;
 			/*if ((int32_t)collectCount < 0)
 				g_emulationPaused = true;*/
 
 		if (collectCount) {
-			fifo.push_back(data);
+			fifo.pushBack(data);
 			collectCount--;
 			if ((collectCount == 0) && (bCollectPolylineParam))
 				if ((data & 0xf000f000) == 0x50005000)
@@ -399,6 +401,9 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 				std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << fifo.size() << std::endl;
 				g_emulationPaused = true;
 			}
+
+			//if (data == 0x5a0c803c) // tekken 2 ???
+			//	return;
 
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
 			/*if (collectCount > 30) {
@@ -424,6 +429,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			//??
 		//	if (pBus->dma.dma2.channelControl.reg.startBusy)
 			fifoCount++;
+			fifo.reset();
 		}
 		return;
 	}
@@ -1348,32 +1354,33 @@ void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_heig
 	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
 	uint32_t y2 = y1 + (width_height >> 16);
 
-	std::vector<uint16_t> buffer(fifo.size() << 1);
-	for (uint32_t i = 0; i < (buffer.size() >> 1); i++) {
-		buffer[i * 2] = fifo[0];
-		buffer[i * 2 + 1] = fifo[0] >> 16;
-		fifo.erase(fifo.begin());
+	//std::vector<uint16_t> buffer(fifo.size() << 1);
+	//for (uint32_t i = 0; i < (buffer.size() >> 1); i++) {
+	//	uint32_t data = fifo.getNext();
+	//	buffer[i * 2] = data;
+	//	buffer[i * 2 + 1] = data >> 16;
+	//}
+	//fifo.reset();
+
+	int i = 0;
+	uint32_t data;
+	for (int16_t y = y1; y < y2; y++) {
+		for (int16_t x = x1; x < x2; x++) {
+			if ((i & 0x1) == 0)
+				data = fifo.getNext();
+
+			vertex_t position(x, y);
+			writeVram(position, ((i & 0x1) == 0) ? (uint16_t)data : uint16_t(data >> 16), true);
+
+			i++;
+		}
 	}
 
-	uint32_t x;
-	uint32_t y = y1;
-	do {
-		x = x1;
-		do {
-			vertex_t position(x, y);
-			writeVram(position, buffer[0], true);
-			buffer.erase(buffer.begin());
-			if (buffer.size() == 0)
-				return;
-			x++;
-		} while (x < x2);
-		y++;
-	} while (y < y2);
 
-	if (!buffer.empty() && !(((width_height << 16 >> 16) * (width_height >> 16)) & 0x1)) {
+	/*if (!buffer.empty() && !(((width_height << 16 >> 16) * (width_height >> 16)) & 0x1)) {
 		std::cout << "[GPU] EMULATION PAUSED! gp0 command 0xa0 buffer not empty 0x" << std::hex << buffer.size() << std::endl;
 		g_emulationPaused = true;
-	}
+	}*/
 }
 
 void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height) {
@@ -1383,7 +1390,7 @@ void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_he
 	const uint16_t y2 = y1 + (width_height >> 16);
 
 	uint16_t data;
-	std::vector<uint16_t> buffer(fifo.size() * 2);
+	std::vector<uint16_t> tempBuffer;
 
 	uint16_t x;
 	uint16_t y = y1;
@@ -1392,7 +1399,7 @@ void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_he
 		do {
 			vertex_t position(x, y);
 			readVram(position, data, true);
-			buffer.push_back(data);
+			tempBuffer.push_back(data);
 			x++;
 		} while (x < x2);
 		y++;
@@ -1400,13 +1407,13 @@ void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_he
 
 	uint32_t temp;
 
-	if (buffer.size() & 1)
-		buffer.push_back(0);
+	if (tempBuffer.size() & 1)
+		tempBuffer.push_back(0);
 
-	for (int i = 0; i < buffer.size(); i += 2) {
-		temp = buffer[i];
-		temp |= (uint32_t)buffer[i + 1] << 16;
-		fifo.push_back(temp);
+	for (int i = 0; i < tempBuffer.size(); i += 2) {
+		temp = tempBuffer[i];
+		temp |= (uint32_t)tempBuffer[i + 1] << 16;
+		buffer.push_back(temp);
 	}
 }
 
@@ -1470,10 +1477,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 	switch (commandColor >> 29) {
 	case 0b000: //Misc commands
 		if ((gp0Command >> 24) == 0x02) {
-			uint32_t size_x_y = fifo.back();
-			fifo.pop_back();
-			param.vert1 = (vertex_t)fifo.back();
-			fifo.pop_back();
+			param.vert1 = (vertex_t)fifo.getNext();
+			uint32_t size_x_y = fifo.getNext();
+
 			param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
 			param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
 			param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
@@ -1500,57 +1506,39 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 		param.modulationType = (commandColor & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
 
-		param.vert4 = (0, 0);
-		if (param.verticesNumber == 4) {
-			if (param.bTextured) {
-				param.texCoord4 = fifo.back();
-				fifo.pop_back();
-			}
-
-			param.vert4 = fifo.back();
-			fifo.pop_back();
-
-			if (param.shadingType == GOURAUD_SHADING) {
-				param.color4 = fifo.back();
-				fifo.pop_back();
-			}
-		}
-
-		if (param.bTextured) {
-			param.texCoord3 = fifo.back();
-			fifo.pop_back();
-		}
-
-		param.vert3 = fifo.back();
-		fifo.pop_back();
-
-		if (param.shadingType == GOURAUD_SHADING) {
-			param.color3 = fifo.back();
-			fifo.pop_back();
-		}
-
-		if (param.bTextured) {
-			param.texCoord2TexPage = fifo.back();
-			fifo.pop_back();
-		}
-
-		param.vert2 = fifo.back();
-		fifo.pop_back();
-
-		if (param.shadingType == GOURAUD_SHADING) {
-			param.color2 = fifo.back();
-			fifo.pop_back();
-		}
-
-		if (param.bTextured) {
-			param.texCoord1Palette = fifo.back();
-			fifo.pop_back();
-		}
-
-		param.vert1 = fifo.back();
-		fifo.pop_back();
-
 		param.commandColor1 = commandColor;
+
+		param.vert1 = fifo.getNext();
+
+		if (param.bTextured)
+			param.texCoord1Palette = fifo.getNext();
+
+		if (param.shadingType == GOURAUD_SHADING)
+			param.color2 = fifo.getNext();
+
+		param.vert2 = fifo.getNext();
+
+		if (param.bTextured)
+			param.texCoord2TexPage = fifo.getNext();
+
+		if (param.shadingType == GOURAUD_SHADING)
+			param.color3 = fifo.getNext();
+
+		param.vert3 = fifo.getNext();
+
+		if (param.bTextured)
+			param.texCoord3 = fifo.getNext();
+
+		param.vert4 = (0, 0);//??
+		if (param.verticesNumber == 4) {
+			if (param.shadingType == GOURAUD_SHADING)
+				param.color4 = fifo.getNext();
+
+			param.vert4 = fifo.getNext();
+
+			if (param.bTextured)
+				param.texCoord4 = fifo.getNext();
+		}
 
 		if (param.bTextured) {
 			gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute & 0x7ff);
@@ -1603,10 +1591,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 
 		if (param.bPolyline)
-			fifo.pop_back(); // pop 0x50005000
+			fifo.popBack(); // pop 0x50005000
 
 		param.commandColor1 = commandColor;
-
 		if (param.shadingType == FLAT_SHADING) {
 			for (int i = 0; i < fifo.size() - 1; i++) {
 				param.vert1 = fifo[i];
@@ -1615,8 +1602,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				drawLine(param);
 			}
 		}
-
-		if (param.shadingType == GOURAUD_SHADING) {
+		else if (param.shadingType == GOURAUD_SHADING) {
 			for (int i = 0; i < fifo.size() - 2; i += 2) {
 				param.vert1 = fifo[i];
 				param.color2 = fifo[i + 1];
@@ -1632,7 +1618,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			}
 		}
 
-		fifo.clear();
+		fifo.reset();
 
 		break;
 
@@ -1644,10 +1630,16 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 		param.modulationType = (commandColor & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
 
+		param.commandColor1 = gp0Command;
+
+		param.vert1 = (vertex_t)fifo.getNext();
+
+		if (param.bTextured)
+			param.texCoord1Palette = (texcoordType_t)fifo.getNext();
+
 		switch (param.rectSize) {
 		case 0b00:
-			param.size_y_x = fifo.back();
-			fifo.pop_back();
+			param.size_y_x = fifo.getNext();
 			break;
 		case 0b01:
 			param.size_y_x = 0x00010001;
@@ -1659,16 +1651,6 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.size_y_x = 0x00100010;
 			break;
 		}
-
-		if (param.bTextured) {
-			param.texCoord1Palette = (texcoordType_t)fifo.back();
-			fifo.pop_back();
-		}
-
-		param.vert1 = (vertex_t)fifo.back();
-		fifo.pop_back();
-
-		param.commandColor1 = gp0Command;
 
 		if (param.bTextured)
 			switch (gpuStat.elem.texPageColors) {
@@ -1692,22 +1674,18 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		break;
 	}
 	case 0b100: { //VRAM-to-VRAM blit
-		uint32_t widthHeight = fifo.back();
-		fifo.pop_back();
-		uint32_t destCoord = fifo.back();
-		fifo.pop_back();
-		uint32_t sourceCoord = fifo.back();
-		fifo.pop_back();
+		uint32_t sourceCoord = fifo.getNext();
+		uint32_t destCoord = fifo.getNext();
+		uint32_t widthHeight = fifo.getNext();
+
 		copyRectVramVram(sourceCoord, destCoord, widthHeight);
 		break;
 	}
 	case 0b101: //CPU-to-VRAM blit
 		if (bCollectCopyCpuVramParam) {
 			bCollectCopyCpuVramParam = false;
-			widthHeight = fifo.back();
-			fifo.pop_back();
-			destCoord = fifo.back();
-			fifo.pop_back();
+			destCoord = fifo.getNext();
+			widthHeight = fifo.getNext();
 			//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height << 16 >> 16) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
 			collectCount = (widthHeight >> 16) * (widthHeight << 16 >> 16) / 2;
 			if ((collectCount * 2) < ((widthHeight >> 16) * (widthHeight << 16 >> 16)))
@@ -1718,10 +1696,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		}
 		break;
 	case 0b110: //VRAM-to-CPU blit
-		widthHeight = fifo.back();
-		fifo.pop_back();
-		sourceCoord = fifo.back();
-		fifo.pop_back();
+		sourceCoord = fifo.getNext();
+		widthHeight = fifo.getNext();
 		copyRectVramCpu(sourceCoord, widthHeight);
 		gpuStat.elem.readyVramCpu = 1;
 		break;

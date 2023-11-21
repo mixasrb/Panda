@@ -191,6 +191,55 @@ public:
 		}
 	};
 
+	template <typename T>
+	struct fifo_t {
+		fifo_t() {
+			ptr = nullptr;
+			currentPossitionWrite = 0;
+			currentPossitionRead = 0;
+		};
+
+		T* ptr;
+		int currentPossitionWrite;
+		int currentPossitionRead;
+
+		void resize(int newSize) {
+			ptr = new T[newSize];
+		}
+
+		void reset() {
+			currentPossitionWrite = 0;
+			currentPossitionRead = 0;
+		}
+
+		void pushBack(T data) {
+			ptr[currentPossitionWrite] = data;
+			currentPossitionWrite++;
+		}
+
+		void popBack() {
+			currentPossitionWrite--;
+		}
+
+		int size() {
+			return currentPossitionWrite;
+		}
+
+		bool empty() {
+			return (currentPossitionRead >= currentPossitionWrite) ? true : false;
+		}
+
+		T getNext() {
+			return ptr[currentPossitionRead++];
+		}
+
+		T operator[](int i) {
+			return ptr[i];
+		}
+	};
+
+	fifo_t<uint32_t> fifo;
+
 	enum primitiveType_t {
 		POLYGON,
 		RECT,
@@ -274,7 +323,7 @@ public:
 
 	uint32_t gp0Command;
 	uint32_t collectCount = 0;
-	std::vector<uint32_t> fifo;
+	//std::vector<uint32_t> fifo;
 
 	void decodeExecuteGp0Command(const uint32_t& commandColor);
 
@@ -307,6 +356,8 @@ public:
 	uint32_t destCoord;
 	uint32_t sourceCoord;
 	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
+	std::vector<uint32_t> buffer;
+
 
 	uint32_t gp1Command;
 
