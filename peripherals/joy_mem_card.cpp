@@ -276,6 +276,12 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
 					g_emulationPaused = true;
 				}
+				if (memCardCommand == 0x58) { //Street Fighter Alpha 3
+					bSendingData = false;
+					bACK = false;
+					sequvenceIndex = 0;
+					break;
+				}
 
 				joyRxData.elem.firstEntry = memCardFlags[joy.slotNumber];
 				sequvenceIndex++;

@@ -499,7 +499,6 @@ void cpu_t::clock() {
 			setBiosCallFlag();
 #endif
 
-
 			//fetch
 			read32(pc, opcodes[0], instructionFetchClocks);
 
@@ -528,6 +527,12 @@ void cpu_t::clock() {
 			printBiosCall();
 #endif
 
+			//skullmonkeys
+			if (cycle0.bWrite) {
+				cycle0.bWrite = false;
+				if (r[cycle0.addr] == cycle0.old)
+					r[cycle0.addr] = cycle0.data;
+			}
 
 			//debug
 			isInstructionExecuted = true;
@@ -544,11 +549,13 @@ void cpu_t::clock() {
 			isPipelineFull = true;
 
 
+			
+
+
 			//debug
 #if DEBUG
 			setBiosCallFlag();
 #endif
-
 
 			//fetch
 			read32(pc, opcodes[1], instructionFetchClocks1);
@@ -573,6 +580,13 @@ void cpu_t::clock() {
 #if DEBUG
 			printBiosCall();
 #endif
+
+			//skullmonkeys
+			if (cycle1.bWrite) {
+				cycle1.bWrite = false;
+				if (r[cycle1.addr] == cycle1.old)
+					r[cycle1.addr] = cycle1.data;
+			}
 
 			//debug
 			isInstructionExecuted = true;
@@ -885,7 +899,26 @@ void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 	uint8_t temp;
 	read8(temp_addr, temp, memoryClocks);
+
 	r[rt] = (int32_t)((int8_t)temp);
+
+	/*uint32_t value = (int32_t)((int8_t)temp);
+	if (cycle == 0) {
+		if (cycle0.bWrite == true)
+			g_emulationPaused = true;
+		cycle0.old = r[rt];
+		cycle0.bWrite = true;
+		cycle0.addr = rt;
+		cycle0.data = value;
+	}
+	else if (cycle == 1) {
+		if (cycle1.bWrite == true)
+			g_emulationPaused = true;
+		cycle1.old = r[rt];
+		cycle1.bWrite = true;
+		cycle1.addr = rt;
+		cycle1.data = value;
+	}*/
 }
 
 void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -896,7 +929,26 @@ void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	else {
 		uint16_t temp;
 		read16(temp_addr, temp, memoryClocks);
+
 		r[rt] = (int32_t)((int16_t)temp);
+
+		/*uint32_t value = (int32_t)((int16_t)temp);
+		if (cycle == 0) {
+			if (cycle0.bWrite == true)
+				g_emulationPaused = true;
+			cycle0.old = r[rt];
+			cycle0.bWrite = true;
+			cycle0.addr = rt;
+			cycle0.data = value;
+		}
+		else if (cycle == 1) {
+			if (cycle1.bWrite == true)
+				g_emulationPaused = true;
+			cycle1.old = r[rt];
+			cycle1.bWrite = true;
+			cycle1.addr = rt;
+			cycle1.data = value;
+		}*/
 	}
 }
 
@@ -934,14 +986,53 @@ void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	else {
 		uint32_t temp;
 		read32(temp_addr, temp, memoryClocks);
+
 		r[rt] = temp;
+
+		/*uint32_t value = temp;
+		if (cycle == 0) {
+			if (cycle0.bWrite == true)
+				g_emulationPaused = true;
+			cycle0.old = r[rt];
+			cycle0.bWrite = true;
+			cycle0.addr = rt;
+			cycle0.data = value;
+		}
+		else if (cycle == 1) {
+			if (cycle1.bWrite == true)
+				g_emulationPaused = true;
+			cycle1.old = r[rt];
+			cycle1.bWrite = true;
+			cycle1.addr = rt;
+			cycle1.data = value;
+		}*/
 	}
 }
 
 void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint8_t temp;
 	read8(r[rs] + (int32_t)imm, temp, memoryClocks);
-	r[rt] = temp;
+
+	//r[rt] = temp;
+
+	//skullmonkeys
+	uint32_t value = temp;
+	if (cycle == 0) {
+		if (cycle0.bWrite == true)
+			g_emulationPaused = true;
+		cycle0.old = r[rt];
+		cycle0.bWrite = true;
+		cycle0.addr = rt;
+		cycle0.data = value;
+	}
+	else if (cycle == 1) {
+		if (cycle1.bWrite == true)
+			g_emulationPaused = true;
+		cycle1.old = r[rt];
+		cycle1.bWrite = true;
+		cycle1.addr = rt;
+		cycle1.data = value;
+	}
 }
 
 void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -952,7 +1043,26 @@ void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	else {
 		uint16_t temp;
 		read16(temp_addr, temp, memoryClocks);
+
 		r[rt] = temp;
+
+		/*uint32_t value = temp;
+		if (cycle == 0) {
+			if (cycle0.bWrite == true)
+				g_emulationPaused = true;
+			cycle0.old = r[rt];
+			cycle0.bWrite = true;
+			cycle0.addr = rt;
+			cycle0.data = value;
+		}
+		else if (cycle == 1) {
+			if (cycle1.bWrite == true)
+				g_emulationPaused = true;
+			cycle1.old = r[rt];
+			cycle1.bWrite = true;
+			cycle1.addr = rt;
+			cycle1.data = value;
+		}*/
 	}
 }
 

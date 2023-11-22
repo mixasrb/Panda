@@ -404,6 +404,11 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 
 			//if (data == 0x5a0c803c) // tekken 2 ???
 			//	return;
+			/*if (data == 0x40000827) {
+				pBus->dma.dma2.endDMATransfer();
+				return;
+			}*/
+			
 
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
 			/*if (collectCount > 30) {
@@ -553,8 +558,8 @@ void gpu_t::videoClock() {
 				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
 			//metal gear solid
-			/*pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;*/
+			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);

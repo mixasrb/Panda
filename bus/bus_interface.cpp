@@ -100,6 +100,11 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 2] << 16;
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 3] << 24;
+
+		//skullmonkeys patch
+	/*	if ((addr & 0x1fffff) == 0x131fc)
+			data = 0;*/
+
 		clocks = 5;
 	}
 	//Expansion 1
@@ -379,6 +384,7 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 
 		data = (uint32_t)ram[addr & 0x1fffff];
 		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
+
 		clocks = 5;
 	}
 	//Expansion 1

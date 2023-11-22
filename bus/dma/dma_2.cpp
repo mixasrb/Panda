@@ -25,7 +25,7 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 		//std::cout << "~[DMA2] (GPU) madr: 0x" << std::hex << memoryAddress.data << std::endl;
 		if (data == 0) {
 			std::cout << "~[DMA2] EMULATION PAUSED! (GPU) madr: 0" << std::endl;
-			g_emulationPaused = true;
+			//g_emulationPaused = true;
 		}
 		break;
 	case 4:
@@ -99,6 +99,7 @@ void dma2_t::endDMATransfer() {
 	pDMAController->isCpuStopped = false;
 	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
 
+	//clocks = 0;
 	triggerIRQ();
 }
 

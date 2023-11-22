@@ -62,9 +62,32 @@ void cp0_t::COP0(uint32_t imm) {
 void cp0_t::RFE() {
 	SR = (SR & 0xfffffff0) | ((SR & 0x3c) >> 2);
 	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
+
+	/*if (pCpu->cycle0.bWrite == true) {
+		pCpu->cycle0.bWrite = false;
+		if (pCpu->r[pCpu->cycle0.addr] == pCpu->cycle0.old)
+			pCpu->r[pCpu->cycle0.addr] = pCpu->cycle0.data;
+	}
+	if (pCpu->cycle1.bWrite == true) {
+		pCpu->cycle1.bWrite = false;
+		if (pCpu->r[pCpu->cycle1.addr] == pCpu->cycle1.old)
+			pCpu->r[pCpu->cycle1.addr] = pCpu->cycle1.data;;
+	}*/
 }
 
 void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
+
+	/*if (pCpu->cycle0.bWrite == true) {
+		pCpu->cycle0.bWrite = false;
+		if (pCpu->r[pCpu->cycle0.addr] == pCpu->cycle0.old)
+			pCpu->r[pCpu->cycle0.addr] = pCpu->cycle0.data;
+	}
+	if (pCpu->cycle1.bWrite == true) {
+		pCpu->cycle1.bWrite = false;
+		if (pCpu->r[pCpu->cycle1.addr] == pCpu->cycle1.old)
+			pCpu->r[pCpu->cycle1.addr] = pCpu->cycle1.data;;
+	}*/
+
 
 	if ((code == _ADEL) || (code == _ADES)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;

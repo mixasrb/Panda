@@ -169,12 +169,16 @@ public:
 		vertex_t() {
 		}
 		vertex_t(uint32_t xt, uint32_t yt) {
-			*(&x) = uint16_t(xt);
-			*(&y) = uint16_t(yt);
+			*(&x) = singned11bit(uint16_t(xt));
+			*(&y) = singned11bit(uint16_t(yt));
 		}
 		vertex_t(uint32_t coord) {
-			*(&x) = uint16_t(coord << 16 >> 16);
-			*(&y) = uint16_t(coord >> 16);
+			*(&x) = singned11bit(uint16_t(coord << 16 >> 16));
+			*(&y) = singned11bit(uint16_t(coord >> 16));
+		}
+
+		uint16_t singned11bit(uint16_t val) {
+			return ((int16_t)(val << 5)) >> 5;
 		}
 
 		int16_t x;

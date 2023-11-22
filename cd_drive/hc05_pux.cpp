@@ -383,7 +383,7 @@ void cdDrive::clock() {
 
 
 	// Doom
-	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 9 / 10) && bSecondResponse &&
+	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 1 / 10) && bSecondResponse &&
 		!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		bSecondResponse = false;
 		clocks = 0;
@@ -845,7 +845,7 @@ void cdDrive::getTD(const uint8_t& command) {
 	uint8_t ass;
 	uint8_t amm;
 
-	
+
 
 	if (track == 0x00) {
 		ass = cdTracks[cdTracks.size() - 1].index1End.ass;
@@ -937,18 +937,18 @@ void cdDrive::seekP(const uint8_t& command) {
 
 void cdDrive::test(const uint8_t& command) {
 	switch (paramFifo.back()) {
-		//case 0x04: {
-		//	stat.elem.spindleMotor = 1;
-		//	std::vector<uint8_t> firstResponse = { stat.data };
-		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		//	break;
-		//}
-		//case 0x05: {
-		//	std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
-		//	//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
-		//	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-		//	break;
-		//}
+	case 0x04: {
+		stat.elem.spindleMotor = 1;
+		std::vector<uint8_t> firstResponse = { stat.data };
+		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		break;
+	}
+	case 0x05: {
+		std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
+		//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
+		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
+		break;
+	}
 	case 0x20: {
 		std::vector<uint8_t> firstResponse = { 0x94, 0x09, 0x19, 0xc0 };
 		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());

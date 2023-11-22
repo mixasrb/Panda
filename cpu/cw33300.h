@@ -245,6 +245,7 @@ public:
 		uint8_t bitness;
 		bool bWrite;
 		bool bExecute;
+		uint32_t old;
 	}cycle0,cycle1;
 
 	bool gteCommandFlag = false;
