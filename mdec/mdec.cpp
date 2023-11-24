@@ -93,7 +93,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 
 		if (i >= dstBlock) {
 			std::cout << "[MDEC] EMULATION PAUSED! data out fifo overun 0x" << i << std::endl;
-			data = rand();
+			data = 0x00000000;
 			return;
 			//g_emulationPaused = true;
 		}

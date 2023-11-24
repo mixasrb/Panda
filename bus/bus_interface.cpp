@@ -96,10 +96,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 
 		//if ((addr & 0x1fffffff) > 0x200000)
 
-		data = (uint32_t)ram[addr & 0x1fffff];
-		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
-		data |= (uint32_t)ram[(addr & 0x1fffff) + 2] << 16;
-		data |= (uint32_t)ram[(addr & 0x1fffff) + 3] << 24;
+		data = *((uint32_t*)(ram + (addr & 0x1fffff)));
 
 		//skullmonkeys patch
 	/*	if ((addr & 0x1fffff) == 0x131fc)
@@ -114,10 +111,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
-		data = (uint32_t)scratchpad[addr & 0x3ff];
-		data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
-		data |= (uint32_t)scratchpad[(addr & 0x3ff) + 2] << 16;
-		data |= (uint32_t)scratchpad[(addr & 0x3ff) + 3] << 24;
+		data = *((uint32_t*)(scratchpad + (addr & 0x1fffff)));
 		clocks = 1;
 	}
 	else if (MEMORY_CONTROL_1) {
@@ -237,21 +231,15 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		}
 
 
-		ram[addr & 0x1fffff] = (uint8_t)data;
-		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
-		ram[(addr & 0x1fffff) + 2] = (uint8_t)(data >> 16);
-		ram[(addr & 0x1fffff) + 3] = (uint8_t)(data >> 24);
+		*((uint32_t*)(ram + (addr & 0x1fffff))) = data;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
 		return;
 	}
-	else if (SCRATCHPAD) {
-		scratchpad[addr & 0x3ff] = (uint8_t)data;
-		scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
-		scratchpad[(addr & 0x3ff) + 2] = (uint8_t)(data >> 16);
-		scratchpad[(addr & 0x3ff) + 3] = (uint8_t)(data >> 24);
-	}
+	else if (SCRATCHPAD)
+		*((uint32_t*)(scratchpad + (addr & 0x1fffff))) = data;
+
 	else if (MEMORY_CONTROL_1) {
 		switch (addr) {
 		case 0x1f801000:
@@ -382,8 +370,7 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 		//	return;
 		//}
 
-		data = (uint32_t)ram[addr & 0x1fffff];
-		data |= (uint32_t)ram[(addr & 0x1fffff) + 1] << 8;
+		data = *((uint16_t*)(ram + (addr & 0x1fffff)));
 
 		clocks = 5;
 	}
@@ -394,8 +381,7 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
-		data = (uint32_t)scratchpad[addr & 0x3ff];
-		data |= (uint32_t)scratchpad[(addr & 0x3ff) + 1] << 8;
+		data = *((uint16_t*)(scratchpad + (addr & 0x1fffff)));
 		clocks = 1;
 	}
 	else if (INTERRUPT_STAT) {
@@ -475,17 +461,15 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 			return;
 		}
 
-		ram[addr & 0x1fffff] = (uint8_t)data;
-		ram[(addr & 0x1fffff) + 1] = (uint8_t)(data >> 8);
+		*((uint16_t*)(ram + (addr & 0x1fffff))) = data;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
 		return;
 	}
-	else if (SCRATCHPAD) {
-		scratchpad[addr & 0x3ff] = (uint8_t)data;
-		scratchpad[(addr & 0x3ff) + 1] = (uint8_t)(data >> 8);
-	}
+	else if (SCRATCHPAD)
+		*((uint16_t*)(scratchpad + (addr & 0x1fffff))) = data;
+
 	/*else if (MEMORY_CONTROL_1)
 		std::cout << "[BUS] unhandled memory control reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	else if (MEMORY_CONTROL_2) {

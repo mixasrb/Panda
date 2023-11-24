@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 
 #undef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
@@ -477,10 +477,10 @@ void cpu_t::clock() {
 		r[0] = 0;
 		irqFlag = true;
 
-		read32(pc - 1 * 4, opcode, clocks, true);
+		pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
 		irqFlag &= !checkForCopOpcode(opcode);
 
-		read32(pc + 1 * 4, opcode, clocks, true);
+		pBus->cpuRead32(pc + 1 * 4, opcode, clocks, true);
 		irqFlag &= !checkForCopOpcode(opcode);
 
 		if (irqFlag && !isCurrentOpcodeBranch && cp0.executeInterrupt) {
@@ -500,7 +500,7 @@ void cpu_t::clock() {
 #endif
 
 			//fetch
-			read32(pc, opcodes[0], instructionFetchClocks);
+			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
 
 			opcode_pc_0 = pc;
 			opcode_pc = opcode_pc_1;
@@ -528,11 +528,11 @@ void cpu_t::clock() {
 #endif
 
 			//skullmonkeys
-			if (cycle0.bWrite) {
+			/*if (cycle0.bWrite) {
 				cycle0.bWrite = false;
 				if (r[cycle0.addr] == cycle0.old)
 					r[cycle0.addr] = cycle0.data;
-			}
+			}*/
 
 			//debug
 			isInstructionExecuted = true;
@@ -558,7 +558,7 @@ void cpu_t::clock() {
 #endif
 
 			//fetch
-			read32(pc, opcodes[1], instructionFetchClocks1);
+			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks1);
 
 			opcode_pc_1 = pc;
 			opcode_pc = opcode_pc_0;
@@ -582,11 +582,11 @@ void cpu_t::clock() {
 #endif
 
 			//skullmonkeys
-			if (cycle1.bWrite) {
+			/*if (cycle1.bWrite) {
 				cycle1.bWrite = false;
 				if (r[cycle1.addr] == cycle1.old)
 					r[cycle1.addr] = cycle1.data;
-			}
+			}*/
 
 			//debug
 			isInstructionExecuted = true;
@@ -641,12 +641,11 @@ void cpu_t::JR(const uint8_t& rs) {
 }
 
 void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
-	uint32_t tempAddr = r[rs];
 	r[rd] = pc;
-	if (tempAddr & 0x3)
-		cp0.exceptionHandler(_ADEL, tempAddr);
+	if (r[rs] & 0x3)
+		cp0.exceptionHandler(_ADEL, r[rs]);
 	else
-		pc = tempAddr;
+		pc = r[rs];
 }
 
 void cpu_t::SYSCALL(const uint32_t& imm) {
@@ -898,7 +897,7 @@ void cpu_t::LUI(const uint8_t& rt, const uint16_t& imm) {
 void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 	uint8_t temp;
-	read8(temp_addr, temp, memoryClocks);
+	pBus->cpuRead8(temp_addr, temp, memoryClocks);
 
 	r[rt] = (int32_t)((int8_t)temp);
 
@@ -928,7 +927,7 @@ void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 		cp0.exceptionHandler(_ADEL, temp_addr);
 	else {
 		uint16_t temp;
-		read16(temp_addr, temp, memoryClocks);
+		pBus->cpuRead16(temp_addr, temp, memoryClocks);
 
 		r[rt] = (int32_t)((int16_t)temp);
 
@@ -958,21 +957,19 @@ void cpu_t::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
+	pBus->cpuRead32(temp_addr, data, memoryClocks);
+
 	switch (offset) {
 	case 0:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] << 8 >> 8) | (data << 24);
 		break;
 	case 1:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] << 16 >> 16) | (data << 16);
 		break;
 	case 2:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] << 24 >> 24) | (data << 8);
 		break;
 	case 3:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = data;
 		break;
 	}
@@ -984,10 +981,7 @@ void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADEL, temp_addr);
 	else {
-		uint32_t temp;
-		read32(temp_addr, temp, memoryClocks);
-
-		r[rt] = temp;
+		pBus->cpuRead32(temp_addr, r[rt], memoryClocks);
 
 		/*uint32_t value = temp;
 		if (cycle == 0) {
@@ -1011,28 +1005,28 @@ void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint8_t temp;
-	read8(r[rs] + (int32_t)imm, temp, memoryClocks);
+	pBus->cpuRead8(r[rs] + (int32_t)imm, temp, memoryClocks);
 
-	//r[rt] = temp;
+	r[rt] = temp;
 
 	//skullmonkeys
-	uint32_t value = temp;
-	if (cycle == 0) {
-		if (cycle0.bWrite == true)
-			g_emulationPaused = true;
-		cycle0.old = r[rt];
-		cycle0.bWrite = true;
-		cycle0.addr = rt;
-		cycle0.data = value;
-	}
-	else if (cycle == 1) {
-		if (cycle1.bWrite == true)
-			g_emulationPaused = true;
-		cycle1.old = r[rt];
-		cycle1.bWrite = true;
-		cycle1.addr = rt;
-		cycle1.data = value;
-	}
+	//uint32_t value = temp;
+	//if (cycle == 0) {
+	//	if (cycle0.bWrite == true)
+	//		g_emulationPaused = true;
+	//	cycle0.old = r[rt];
+	//	cycle0.bWrite = true;
+	//	cycle0.addr = rt;
+	//	cycle0.data = value;
+	//}
+	//else if (cycle == 1) {
+	//	if (cycle1.bWrite == true)
+	//		g_emulationPaused = true;
+	//	cycle1.old = r[rt];
+	//	cycle1.bWrite = true;
+	//	cycle1.addr = rt;
+	//	cycle1.data = value;
+	//}
 }
 
 void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1042,7 +1036,7 @@ void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 		cp0.exceptionHandler(_ADEL, temp_addr);
 	else {
 		uint16_t temp;
-		read16(temp_addr, temp, memoryClocks);
+		pBus->cpuRead16(temp_addr, temp, memoryClocks);
 
 		r[rt] = temp;
 
@@ -1072,21 +1066,19 @@ void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
+	pBus->cpuRead32(temp_addr, data, memoryClocks);
+
 	switch (offset) {
 	case 0:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = data;
 		break;
 	case 1:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] >> 24 << 24) | (data >> 8);
 		break;
 	case 2:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] >> 16 << 16) | (data >> 16);
 		break;
 	case 3:
-		read32(temp_addr, data, memoryClocks);
 		r[rt] = (r[rt] >> 8 << 8) | (data >> 24);
 		break;
 	}
@@ -1110,7 +1102,7 @@ void cpu_t::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 		cp0.exceptionHandler(_ADES, temp_addr);
 	}
 	else
-		write16(temp_addr, r[rt], writeClocks);
+		pBus->cpuWrite16(temp_addr, r[rt], writeClocks);
 }
 
 void cpu_t::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1118,21 +1110,21 @@ void cpu_t::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
+
+	pBus->cpuRead32(temp_addr, data, memoryClocks);
+
 	switch (offset) {
 	case 0:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] >> 24) | (data >> 8 << 8), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] >> 24) | (data >> 8 << 8), writeClocks);
 		break;
 	case 1:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] >> 16) | (data >> 16 << 16), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] >> 16) | (data >> 16 << 16), writeClocks);
 		break;
 	case 2:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] >> 8) | (data >> 24 << 24), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] >> 8) | (data >> 24 << 24), writeClocks);
 		break;
 	case 3:
-		write32(temp_addr, r[rt], writeClocks);
+		pBus->cpuWrite32(temp_addr, r[rt], writeClocks);
 		break;
 	}
 }
@@ -1143,7 +1135,7 @@ void cpu_t::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADES, temp_addr);
 	else
-		write32(temp_addr, r[rt], writeClocks);
+		pBus->cpuWrite32(temp_addr, r[rt], writeClocks);
 }
 
 void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1157,22 +1149,22 @@ void cpu_t::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
+
+	pBus->cpuRead32(temp_addr, data, memoryClocks);
+
 	switch (offset)
 	{
 	case 0:
-		write32(temp_addr, r[rt], memoryClocks);
+		pBus->cpuWrite32(temp_addr, r[rt], memoryClocks);
 		break;
 	case 1:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] << 8) | (data << 24 >> 24), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] << 8) | (data << 24 >> 24), writeClocks);
 		break;
 	case 2:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] << 16) | (data << 16 >> 16), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] << 16) | (data << 16 >> 16), writeClocks);
 		break;
 	case 3:
-		read32(temp_addr, data, memoryClocks);
-		write32(temp_addr, (r[rt] << 24) | (data << 8 >> 8), writeClocks);
+		pBus->cpuWrite32(temp_addr, (r[rt] << 24) | (data << 8 >> 8), writeClocks);
 		break;
 	}
 }

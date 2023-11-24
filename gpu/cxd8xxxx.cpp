@@ -9,6 +9,14 @@
 #include <vector>
 #include <map>
 
+static uint16_t signed11bit(uint16_t val) {
+	return ((int16_t)(val << 5)) >> 5;
+}
+
+static uint16_t signed12bit(uint16_t val) {
+	return ((int16_t)(val << 4)) >> 4;
+}
+
 class Slope
 {
 	float begin, step;
@@ -380,10 +388,10 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 
 void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		if (g_GpuCommandsLogged)
-			std::cout << std::hex << "0x" << data << std::endl;
-			/*if ((int32_t)collectCount < 0)
-				g_emulationPaused = true;*/
+		/*if (g_GpuCommandsLogged)
+			std::cout << std::hex << "0x" << data << std::endl;*/
+		/*if ((int32_t)collectCount < 0)
+			g_emulationPaused = true;*/
 
 		if (collectCount) {
 			fifo.pushBack(data);
@@ -408,7 +416,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 				pBus->dma.dma2.endDMATransfer();
 				return;
 			}*/
-			
+
 
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
 			/*if (collectCount > 30) {
@@ -558,8 +566,8 @@ void gpu_t::videoClock() {
 				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
 			//metal gear solid
-			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+			/*pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;*/
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
@@ -654,14 +662,14 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		return;
 	}
 
-	if (((position.x + (drawOffset.x >> 5)) >= drawAreaTopLeft.x) &&
-		((position.x + (drawOffset.x >> 5)) <= drawAreaBottomRight.x) &&
-		((position.y + (drawOffset.y >> 5)) >= drawAreaTopLeft.y) &&
-		((position.y + (drawOffset.y >> 5)) <= drawAreaBottomRight.y)) {
+	if (((position.x) >= drawAreaTopLeft.x) &&
+		((position.x) <= drawAreaBottomRight.x) &&
+		((position.y) >= drawAreaTopLeft.y) &&
+		((position.y) <= drawAreaBottomRight.y)) {
 
-		if ((position.x + (drawOffset.x >> 5) < 0) || (position.y + (drawOffset.y >> 5)) < 0) {
-			/*std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x + (drawOffset.x >> 5) << "," <<
-				position.y + (drawOffset.y >> 5) << ")" << "\n";
+		if ((position.x < 0) || (position.y) < 0) {
+			/*std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
+				position.y << ")" << "\n";
 			g_emulationPaused = true;*/
 			return;
 		}
@@ -670,12 +678,12 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		readVram(position, temp, bIgnoreDrawingArea);
 
 		if (((gpuStat.elem.drawPixels == 1) && ((temp & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = data << 8 >> 8;
-			vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
+			vram[((position.x) & 1023) * 2 + ((position.y) & 511) * size_x] = data << 8 >> 8;
+			vram[(((position.x) & 1023) * 2 + 1) + ((position.y) & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
 
 			vertex_t p = { 0, 0 };
-			p.x = position.x + (drawOffset.x >> 5);
-			p.y = position.y + (drawOffset.y >> 5);
+			p.x = position.x;
+			p.y = position.y;
 			updateVramView(p, data);
 		}
 	}
@@ -703,7 +711,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 
 void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea) {
 	if (bIgnoreDrawingArea) {
-		if ((position.x < 0) || (position.y) < 0) {
+		if ((position.x < 0) || (position.y < 0)) {
 			std::cout << "~[GPU] EMULATION PAUSED! Read Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
 				position.y << ")" << "\n";
 			//g_emulationPaused = true;
@@ -715,20 +723,20 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 		return;
 	}
 
-	if (((position.x + (drawOffset.x >> 5)) >= drawAreaTopLeft.x) &&
-		((position.x + (drawOffset.x >> 5)) <= drawAreaBottomRight.x) &&
-		((position.y + (drawOffset.y >> 5)) >= drawAreaTopLeft.y) &&
-		((position.y + (drawOffset.y >> 5)) <= drawAreaBottomRight.y)) {
+	if ((position.x >= drawAreaTopLeft.x) &&
+		(position.x <= drawAreaBottomRight.x) &&
+		(position.y >= drawAreaTopLeft.y) &&
+		(position.y <= drawAreaBottomRight.y)) {
 
-		if ((position.x + (drawOffset.x >> 5) < 0) || (position.y + (drawOffset.y >> 5)) < 0) {
+		if ((position.x < 0) || (position.y < 0)) {
 			/*std::cout << "~[GPU] EMULATION PAUSED! Read Vram out of bounds!" << std::dec << " (x,y) (" << position.x + (drawOffset.x >> 5) << "," <<
 				position.y + (drawOffset.y >> 5) << ")" << "\n";
 			g_emulationPaused = true;*/
 			return;
 		}
 
-		data = vram[((position.x + (drawOffset.x >> 5)) & 1023) * 2 + ((position.y + (drawOffset.y >> 5)) & 511) * size_x];
-		data |= vram[(((position.x + (drawOffset.x >> 5)) & 1023) * 2 + 1) + ((position.y + (drawOffset.y >> 5)) & 511) * size_x] << 8;
+		data = vram[(position.x & 1023) * 2 + (position.y & 511) * size_x];
+		data |= vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] << 8;
 	}
 }
 
@@ -1514,7 +1522,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.commandColor1 = commandColor;
 
 		param.vert1 = fifo.getNext();
-
+		param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
+		param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
+	
 		if (param.bTextured)
 			param.texCoord1Palette = fifo.getNext();
 
@@ -1522,6 +1532,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.color2 = fifo.getNext();
 
 		param.vert2 = fifo.getNext();
+		param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
+		param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
 
 		if (param.bTextured)
 			param.texCoord2TexPage = fifo.getNext();
@@ -1530,6 +1542,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.color3 = fifo.getNext();
 
 		param.vert3 = fifo.getNext();
+		param.vert3.x = signed11bit(param.vert3.x) + drawOffset.x;
+		param.vert3.y = signed11bit(param.vert3.y) + drawOffset.y;
 
 		if (param.bTextured)
 			param.texCoord3 = fifo.getNext();
@@ -1540,6 +1554,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				param.color4 = fifo.getNext();
 
 			param.vert4 = fifo.getNext();
+			param.vert4.x = signed11bit(param.vert4.x) + drawOffset.x;
+			param.vert4.y = signed11bit(param.vert4.y) + drawOffset.y;
 
 			if (param.bTextured)
 				param.texCoord4 = fifo.getNext();
@@ -1602,7 +1618,11 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		if (param.shadingType == FLAT_SHADING) {
 			for (int i = 0; i < fifo.size() - 1; i++) {
 				param.vert1 = fifo[i];
+				param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
+				param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
 				param.vert2 = fifo[i + 1];
+				param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
+				param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
 				//fifo.clear();
 				drawLine(param);
 			}
@@ -1610,8 +1630,12 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		else if (param.shadingType == GOURAUD_SHADING) {
 			for (int i = 0; i < fifo.size() - 2; i += 2) {
 				param.vert1 = fifo[i];
+				param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
+				param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
 				param.color2 = fifo[i + 1];
 				param.vert2 = fifo[i + 2];
+				param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
+				param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
 
 				if (fifo[0] == fifo[i + 2]) //!!?????
 					param.color2 = commandColor & 0x00ffffff;
@@ -1637,7 +1661,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 
 		param.commandColor1 = gp0Command;
 
-		param.vert1 = (vertex_t)fifo.getNext();
+		param.vert1 = fifo.getNext();
+		param.vert1.x = signed11bit(param.vert1.x + drawOffset.x); //??
+		param.vert1.y = signed11bit(param.vert1.y + drawOffset.y); //??
 
 		if (param.bTextured)
 			param.texCoord1Palette = (texcoordType_t)fifo.getNext();
@@ -1731,8 +1757,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			gp1BottomRight = commandColor & 0x0007ffff;
 			break;
 		case 0xe5:
-			drawOffset.x = (commandColor & 0x7ff) << 5;
-			drawOffset.y = ((commandColor >> 11) & 0x7ff) << 5;
+			drawOffset.x = signed11bit(uint16_t(commandColor & 0x7ff));
+			drawOffset.y = signed11bit(uint16_t((commandColor >> 11) & 0x7ff));
 			gp1DrawOffset = commandColor & 0x003fffff;;
 			break;
 		case 0xe6:

@@ -307,6 +307,7 @@ void cdDrive::setFirstResponse(const uint32_t& waitClocks, const responseINT_t& 
 	waitClocksFirstResponse = waitClocks;
 
 	//debug
+	std::cout << "~[CD_DRIVE] first response" << std::endl;
 	printStat();
 
 	tempFirstResponseVector.clear();
@@ -322,6 +323,7 @@ void cdDrive::setSecondResponse(const uint32_t& waitClocks, const responseINT_t&
 	waitClocksSecondResponse = waitClocks;
 
 	//debug
+	std::cout << "~[CD_DRIVE] second response" << std::endl;
 	printStat();
 
 	tempSecondResponseVector.clear();
@@ -340,6 +342,14 @@ void cdDrive::setDataResponse(const responseINT_t& responseINT, uint8_t* pRespon
 	}
 
 	dataResponseINT = responseINT;
+}
+
+static uint8_t fromBCDToHex8(const uint8_t& dec) {
+	return (dec >> 4) * 10 + (dec & 0x0f);
+}
+
+static uint8_t fromHex8ToBCD(const uint8_t& hex) {
+	return (hex / 10) * 16 + (hex % 10);
 }
 
 void cdDrive::clock() {
@@ -395,13 +405,14 @@ void cdDrive::clock() {
 
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/) && bDataResponse &&            //castlevania SOF requires 15/10 or less??
+	if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 14 / 10) && bDataResponse &&            //castlevania SOF requires 15/10 or less??
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 
 		readSector(amm, ass, asect);
 
 		//debug
+		std::cout << "~[CD_DRIVE] data response" << std::endl;
 		printStat();
 
 		if (bSendINT1) {
@@ -410,9 +421,12 @@ void cdDrive::clock() {
 				uint8_t dataResponse[1] = { stat.data };
 				setDataResponse(INT1, dataResponse, 1);
 			}
-			else {
-				uint8_t dataResponse[8] = { stat.data, 0x2, 0x1, stored_amm, stored_ass, stored_asect, 0x8fff, 0x1000 };//??
-				setDataResponse(INT1, dataResponse, 8);
+			else { // Play Report	                                                                                        
+				uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm),
+					fromHex8ToBCD(stored_ass), fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
+				                                                        //peaklo,peakhi??
+
+				setDataResponse(INT1, dataResponse, 8);                 
 			}
 			sendResponseINT(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
 		}
@@ -454,16 +468,17 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	bufferCounter = sectorSize;
 
+
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
 		bSendINT1 = false;
 		bSendINT1 = true; // used for gran turismo 2
 		stat.elem.read = 1;// used for gran turismo 2
 	}
-	else {
+	else if (!bPlay) {
 		bSendINT1 = true;
 
-		if (stat.elem.play == 0)
+		if (stat.elem.play == 0) //??
 			stat.elem.read = 1;
 
 		pBuffer = (uint8_t*)fileDataVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + (mode.elem.sectorSize ? 0x0c : 0x18));
@@ -497,10 +512,65 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		std::cout << "~[CD_DRIVE] data sector" << std::endl;
 		break;
 	default:
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
-			std::hex << " 0x" << (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) << std::endl;
-		//g_emulationPaused = true;
+		if (!bPlay) {
+			std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
+				std::hex << " 0x" << (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) << std::endl;
+			//g_emulationPaused = true;
+		}
+		else
+			std::cout << "~[CD_DRIVE] CD DA sector" << std::endl;
 		break;
+	}
+
+	for (int i = 0; i < cdTracks.size(); i++) {
+		if ((amm == cdTracks[i].index1End.amm) &&
+			(ass == cdTracks[i].index1End.ass) &&
+			(asect == cdTracks[i].index1End.asect)) {
+
+			if (mode.elem.autoPause) { //Pause
+				bDataResponse = false;
+				bPlay = false;
+
+				if (stat.elem.read)
+					stat.elem.read = 0;
+				if (stat.elem.play)
+					stat.elem.play = 0;
+
+				uint8_t secondResponse[1] = { stat.data };
+				uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 : 0x21181c;
+				setSecondResponse(secondWaitClocks, INT4, secondResponse, 1);
+
+				std::cout << "~[CD_DRIVE] auto pause" << std::endl;
+			}
+			else if (i == cdTracks.size() - 1) { //Stop
+				bDataResponse = false;//??
+				bPlay = false; //??
+
+				if (stat.elem.read)
+					stat.elem.read = 0;
+				if (stat.elem.play)
+					stat.elem.play = 0;
+
+				stat.elem.spindleMotor = 0;
+				uint8_t secondResponse[1] = { stat.data };
+				uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 : 0x21181c;
+				setSecondResponse(secondWaitClocks, INT4, secondResponse, 1);
+
+				std::cout << "~[CD_DRIVE] auto stop end of the disc" << std::endl;
+			}
+
+		}
+	}
+
+	for (int i = 0; i < cdTracks.size(); i++) {
+		if (((amm * 60 * 75 + ass * 75 + asect) >=
+			(cdTracks[i].index1Start.amm * 60 * 75 + cdTracks[i].index1Start.ass * 75 + cdTracks[i].index1Start.asect)) &&
+			((amm * 60 * 75 + ass * 75 + asect) <=
+				(cdTracks[i].index1End.amm * 60 * 75 + cdTracks[i].index1End.ass * 75 + cdTracks[i].index1End.asect))) {
+
+			track = i + 1;
+			break;
+		}
 	}
 
 	asect++;
@@ -529,14 +599,6 @@ void cdDrive::setDriveMode() {
 	std::cout << std::hex << "~[CD_DRIVE] Report: " << (uint16_t)mode.elem.report << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] AutoPause: " << (uint16_t)mode.elem.autoPause << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] CDDA: " << (uint16_t)mode.elem.cdda << std::endl;
-}
-
-static uint8_t fromBCDToHex8(const uint8_t& dec) {
-	return (dec >> 4) * 10 + (dec & 0x0f);
-}
-
-static uint8_t fromHex8ToBCD(const uint8_t& hex) {
-	return (hex / 10) * 16 + (hex % 10);
 }
 
 //Cd Drive Commands
@@ -570,16 +632,20 @@ void cdDrive::play(const uint8_t& command) {
 
 		stat.elem.seek = 1;
 	}
-	else
-		stat.elem.play = 1;
-
-	//parameter track
-	if (!paramFifo.empty()) {
+	else if (!paramFifo.empty()) { //parameter track
 		track = paramFifo.back();
 		paramFifo.pop_back();
+
+		amm = cdTracks[track - 1].index1Start.amm;
+		ass = cdTracks[track - 1].index1Start.ass;
+		asect = cdTracks[track - 1].index1Start.asect;
+
+		stat.elem.seek = 1;
 	}
-	else
+	else {
+		stat.elem.play = 1;
 		track = 0x00;
+	}
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
