@@ -291,6 +291,7 @@ public:
 
 		void decodeCompressedSample(voiceRegister_t& currentVoiceRegisters);
 		int16_t output(const uint8_t& voice);
+		int16_t reverb(const uint8_t& voice);
 	};
 
 	voices_t voices;

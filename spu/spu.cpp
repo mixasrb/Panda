@@ -195,8 +195,7 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfc)) {
-		reverb[addr - 0x1f801dc0] = (uint16_t)data;
-		reverb[addr + 1 - 0x1f801dc0] = (uint16_t)(data >> 16);
+		*((uint32_t*)(reverb + addr - 0x1f801dc0)) = data;
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -302,6 +301,10 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			data = dramReverbWorkAreaStartAddress.data;
 			break;
 
+		case 0x1f801da4:
+			data = dram_IRQ_Address.data;
+			break;
+
 		case 0x1f801da6:
 			data = dramDataTransferAddress.data;
 			break;
@@ -354,7 +357,7 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
-		data = reverb[addr - 0x1f801dc0];
+		data = *((uint16_t*)(reverb + addr - 0x1f801dc0));
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		uint8_t voiceIndex = (addr - 0x1f801e00) >> 2;
@@ -558,6 +561,9 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d9e:
 			break;
 
+		case 0x1f801da0: //Unknown
+			break;
+
 		case 0x1f801da2:
 			dramReverbWorkAreaStartAddress.data = data;
 			break;
@@ -651,7 +657,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
-		reverb[addr - 0x1f801dc0] = data;
+		*((uint16_t*)(reverb + addr - 0x1f801dc0)) = data;
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -661,18 +667,6 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;
 	}
-}
-
-float spu_t::clock() {
-	output_t out;
-	out.channel1 = 0.0f;
-	out.channel2 = 0.0f;
-	for (int i = 0; i < 24; i++) {
-		out = out + voices.voiceRegisters[i].envelope(voices.output(i));
-	}
-	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f;
-	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f;
-	return out.channel1 / 2.0f + out.channel2 / 2.0f;
 }
 
 void spu_t::readDram16(const uint32_t& addr, uint16_t& data) {
@@ -728,7 +722,6 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 
 		if (currentVoiceRegisters.startSampleBlockProcesing) {
 			currentVoiceRegisters.startSampleBlockProcesing = false;
-
 			currentVoiceRegisters.counter = 0;
 
 			for (int i = 0; i < 16; i++) {
@@ -789,7 +782,7 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 
 		currentVoiceRegisters.step = currentVoiceRegisters.adpcmSampleRate.data;
 		if (((channel_FM_Mode.data >> voice) & 0x1) && (voice > 1)) {
-			int16_t factor = (int16_t)voiceRegisters[voice - 1].adsrLevel;
+			int16_t factor = (int16_t)voiceRegisters[voice - 1].adsrLevel; //??
 			factor = factor + 0x8000;
 			int32_t tempStep = (int32_t)(currentVoiceRegisters.step);
 			tempStep = (tempStep * (uint16_t)factor) >> 15;
@@ -798,10 +791,11 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 
 		if (currentVoiceRegisters.step > 0x3fff)
 			currentVoiceRegisters.step = 0x4000;
+
 		currentVoiceRegisters.counter += currentVoiceRegisters.step;
 
-		if (currentSampleNumber > 27) {
-			currentVoiceRegisters.counter = 0;
+		if (currentSampleNumber >= 27) {
+			//currentVoiceRegisters.counter = 0;
 			currentSampleNumber = 27;
 			currentVoiceRegisters.startSampleBlockProcesing = true;
 		}
@@ -809,10 +803,10 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 		currentVoiceRegisters.sample = currentVoiceRegisters.samples[currentSampleNumber];
 		currentVoiceRegisters.pushSample(currentVoiceRegisters.sample);
 
-		currentVoiceRegisters.out = ((int32_t)(p_spu->gauss[0x0ff - i] * currentVoiceRegisters.oldest) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)((int32_t)(p_spu->gauss[0x1ff - i] * currentVoiceRegisters.older) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)((int32_t)(p_spu->gauss[0x100 + i] * currentVoiceRegisters.old) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)((int32_t)(p_spu->gauss[0x000 + i] * currentVoiceRegisters.newest) >> 15);
+		currentVoiceRegisters.out = (((int32_t)p_spu->gauss[0x0ff - i] * currentVoiceRegisters.oldest) >> 15);
+		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x1ff - i] * currentVoiceRegisters.older) >> 15);
+		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x100 + i] * currentVoiceRegisters.old) >> 15);
+		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x000 + i] * currentVoiceRegisters.newest) >> 15);
 
 		voiceRegisters[voice] = currentVoiceRegisters;
 
@@ -851,7 +845,7 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
 			if (adsrLevel == 0) {
-				//release = false;
+				release = false;
 				adsrCycles = 1;
 			}
 		}
@@ -932,4 +926,65 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	currentVolumeLeftRight.hw.h = uint32_t(output.channel2 * 32767.0f);//??
 
 	return output;
+}
+
+int16_t spu_t::voices_t::reverb(const uint8_t& voice) {
+#define vLOUT p_spu->reverbOutputVolumeLeftRight.hw.l
+#define vROUT p_spu->reverbOutputVolumeLeftRight.hw.h
+#define mBASE p_spu->dramReverbWorkAreaStartAddress.data
+#define dAPF1 *((uint16_t*)(p_spu->reverb + 0x1f801dc0 - 0x1f801dc0))
+#define dAPF2 *((uint16_t*)(p_spu->reverb + 0x1f801dc2 - 0x1f801dc0))
+#define vIIR *((uint16_t*)(p_spu->reverb + 0x1f801dc4 - 0x1f801dc0))
+#define vCOMB1 *((uint16_t*)(p_spu->reverb + 0x1f801dc6 - 0x1f801dc0))
+#define vCOMB2 *((uint16_t*)(p_spu->reverb + 0x1f801dc8 - 0x1f801dc0))
+#define vCOMB3 *((uint16_t*)(p_spu->reverb + 0x1f801dca - 0x1f801dc0))
+#define vCOMB4 *((uint16_t*)(p_spu->reverb + 0x1f801dcc - 0x1f801dc0))
+#define vWALL *((uint16_t*)(p_spu->reverb + 0x1f801dce - 0x1f801dc0))
+#define vAPF1 *((uint16_t*)(p_spu->reverb + 0x1f801dd0 - 0x1f801dc0))
+#define vAPF2 *((uint16_t*)(p_spu->reverb + 0x1f801dd2 - 0x1f801dc0))
+#define mLSAME *((uint16_t*)(p_spu->reverb + 0x1f801dd4 - 0x1f801dc0))
+#define mRSAME *((uint16_t*)(p_spu->reverb + 0x1f801dd6 - 0x1f801dc0))
+#define mLCOMB1 *((uint16_t*)(p_spu->reverb + 0x1f801dd8 - 0x1f801dc0))
+#define mRCOMB1 *((uint16_t*)(p_spu->reverb + 0x1f801dda - 0x1f801dc0))
+#define mLCOMB2 *((uint16_t*)(p_spu->reverb + 0x1f801ddc - 0x1f801dc0))
+#define mRCOMB2 *((uint16_t*)(p_spu->reverb + 0x1f801dde - 0x1f801dc0))
+#define dLSAME *((uint16_t*)(p_spu->reverb + 0x1f801de0 - 0x1f801dc0))
+#define dRSAME *((uint16_t*)(p_spu->reverb + 0x1f801de2 - 0x1f801dc0))
+#define mLDIFF *((uint16_t*)(p_spu->reverb + 0x1f801de4 - 0x1f801dc0))
+#define mRDIFF *((uint16_t*)(p_spu->reverb + 0x1f801de6 - 0x1f801dc0))
+#define mLCOMB3 *((uint16_t*)(p_spu->reverb + 0x1f801de8 - 0x1f801dc0))
+#define mRCOMB3 *((uint16_t*)(p_spu->reverb + 0x1f801dea - 0x1f801dc0))
+#define mLCOMB4 *((uint16_t*)(p_spu->reverb + 0x1f801dec - 0x1f801dc0))
+#define mRCOMB4 *((uint16_t*)(p_spu->reverb + 0x1f801dee - 0x1f801dc0))
+#define dLDIFF *((uint16_t*)(p_spu->reverb + 0x1f801df0 - 0x1f801dc0))
+#define dRDIFF *((uint16_t*)(p_spu->reverb + 0x1f801df2 - 0x1f801dc0))
+#define mLAPF1 *((uint16_t*)(p_spu->reverb + 0x1f801df4 - 0x1f801dc0))
+#define mRAPF1 *((uint16_t*)(p_spu->reverb + 0x1f801df6 - 0x1f801dc0))
+#define mLAPF2 *((uint16_t*)(p_spu->reverb + 0x1f801df8 - 0x1f801dc0))
+#define mRAPF2 *((uint16_t*)(p_spu->reverb + 0x1f801dfa - 0x1f801dc0))
+#define vLIN *((uint16_t*)(p_spu->reverb + 0x1f801dfc - 0x1f801dc0))
+#define vRIL *((uint16_t*)(p_spu->reverb + 0x1f801dfe - 0x1f801dc0))
+
+
+
+
+
+
+
+
+
+
+}
+
+
+float spu_t::clock() {
+	output_t out;
+	out.channel1 = 0.0f;
+	out.channel2 = 0.0f;
+	for (int i = 0; i < 24; i++) {
+		out = out + voices.voiceRegisters[i].envelope(voices.output(i));
+	}
+	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f;
+	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f;
+	return out.channel1 / 2.0f + out.channel2 / 2.0f;
 }

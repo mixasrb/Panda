@@ -565,9 +565,11 @@ void gpu_t::videoClock() {
 			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
 				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
-			//metal gear solid
-			/*pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;*/
+			
+			if (pBus->spu.spuControlRegister.elem.irq9Enable) { //metal gear solid
+				pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+				pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+			}
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
