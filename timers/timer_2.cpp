@@ -47,7 +47,7 @@ void timer2_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	}
 }
 
-void timer2_t::clock(uint8_t source) {
+void timer2_t::clock(const uint8_t& source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
 			counterMode.elem.resetCounterTo) {

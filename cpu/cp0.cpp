@@ -25,6 +25,21 @@ void cp0_t::set(const uint8_t& reg, const uint32_t& value) {
 	}
 
 	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
+
+	//irqFlag = true;
+	//uint8_t clocks;
+	//uint32_t opcode;
+
+	///*pCpu->pBus->cpuRead32(pCpu->pc - 1 * 4, pCpu->opcode, clocks, true);
+	//irqFlag &= !pCpu->checkForCopOpcode(opcode);
+
+	//pCpu->pBus->cpuRead32(pCpu->pc + 1 * 4, opcode, clocks, true);
+	//irqFlag &= !pCpu->checkForCopOpcode(opcode);*/
+
+	//if (irqFlag/* && !pCpu->isCurrentOpcodeBranch*/ && executeInterrupt) {
+	//	executeInterrupt = false;
+	//	exceptionHandler(_INT);
+	//}
 }
 
 void cp0_t::MFC0(const uint8_t& rt, const uint8_t& rd) {
@@ -122,9 +137,9 @@ void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 		}
 		else
 			//if (!pCpu->gteCommand)
-				EPC = pCpu->pc - 4;
-			//else
-			//	EPC = pCpu->opcode_pc;//??
+			EPC = pCpu->pc - 4;
+	//else
+	//	EPC = pCpu->opcode_pc;//??
 
 	pCpu->isPipelineFull = false;
 
@@ -138,6 +153,21 @@ void cp0_t::updateInterruptMaskStat() {
 		CAUSE &= 0xfffffbff;
 
 	executeInterrupt = (SR & 0x1) && (SR & 0x400) && (CAUSE & 0x400);
+
+	//irqFlag = true;
+	//uint8_t clocks;
+	//uint32_t opcode;
+
+	///*pCpu->pBus->cpuRead32(pCpu->pc - 1 * 4, pCpu->opcode, clocks, true);
+	//irqFlag &= !pCpu->checkForCopOpcode(opcode);
+
+	//pCpu->pBus->cpuRead32(pCpu->pc + 1 * 4, opcode, clocks, true);
+	//irqFlag &= !pCpu->checkForCopOpcode(opcode);*/
+
+	//if (irqFlag /*&& !pCpu->isCurrentOpcodeBranch*/ && executeInterrupt) {
+	//	executeInterrupt = false;
+	//	exceptionHandler(_INT);
+	//}
 }
 
 void cp0_t::interruptHandler(const uint32_t& irq) {

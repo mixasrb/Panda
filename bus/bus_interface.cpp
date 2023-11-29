@@ -181,8 +181,10 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	}
 	//BIOS ROM
 	else if (BIOS) {
-		if ((addr & 0x000fffff) + 3 > BIOS_SIZE)
-			throw std::runtime_error("bus_controller adress overflow\n");
+		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
+			std::cout << "bus_controller adress overflow\n";
+			g_emulationPaused = true;
+		}
 
 		data = biosChip.biosData[(addr & 0x000fffff) + 3] << (6 * 4) | biosChip.biosData[(addr & 0x000fffff) + 2] << (4 * 4) |
 			biosChip.biosData[(addr & 0x000fffff) + 1] << (2 * 4) | biosChip.biosData[addr & 0x000fffff];
@@ -417,8 +419,10 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 	}
 	//BIOS ROM
 	else if (BIOS) {
-		if ((addr & 0x000fffff) + 3 > BIOS_SIZE)
-			throw std::runtime_error("[BUS] bus_controller adress overflow\n");
+		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
+			std::cout << "[BUS] bus_controller adress overflow\n";
+			g_emulationPaused = false;
+		}
 
 		data = biosChip.biosData[(addr & 0x000fffff) + 1] << (2 * 4) | biosChip.biosData[addr & 0x000fffff];
 		clocks = 13;

@@ -9,32 +9,6 @@ psxConsole_t::psxConsole_t() {
 	connectDebugger();
 }
 
-void psxConsole_t::reset() {
-	cpuSOC.reset();
-	for (int i = 0; i < 2 * 1024 * 1024; i++) {
-		bus.ram[i] = 0;
-	}
-}
-
-void psxConsole_t::clock() {
-	if (!bus.dma.isCpuStopped)
-		cpuSOC.clock();
-
-	bus.dma.clock();
-
-	mdec.clock();
-
-	gpu.videoClock();
-
-	cdDrive.clock();
-
-	bus.timer0.clock(_SYSTEM_CLOCK);
-	bus.timer1.clock(_SYSTEM_CLOCK);
-	bus.timer2.clock(_SYSTEM_CLOCK);
-
-	joyMemCard.clock();
-}
-
 void psxConsole_t::connectComponents() {
 	bus.dma.connectBus(&bus);
 
@@ -67,4 +41,30 @@ void psxConsole_t::connectDebugger() {
 	gpu.p_debugger = &debugger;
 	cdDrive.p_debugger = &debugger;
 	joyMemCard.p_debugger = &debugger;
+}
+
+void psxConsole_t::reset() {
+	cpuSOC.reset();
+	for (int i = 0; i < 2 * 1024 * 1024; i++) {
+		bus.ram[i] = 0;
+	}
+}
+
+void psxConsole_t::clock() {
+	if (!bus.dma.isCpuStopped)
+		cpuSOC.clock();
+
+	bus.dma.clock();
+
+	mdec.clock();
+
+	gpu.videoClock();
+
+	cdDrive.clock();
+
+	bus.timer0.clock(_SYSTEM_CLOCK);
+	bus.timer1.clock(_SYSTEM_CLOCK);
+	bus.timer2.clock(_SYSTEM_CLOCK);
+
+	joyMemCard.clock();
 }

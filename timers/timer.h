@@ -14,7 +14,7 @@ public:
 	virtual void ReadTimer32(const uint32_t& addr, uint16_t* data) = 0;
 	virtual void WriteTimer32(const uint32_t& addr, const uint16_t& data) = 0;
 
-	virtual void clock(uint8_t source) = 0;
+	virtual void clock(const uint8_t& source) = 0;
 	uint16_t clocks;
 
 	union currentValue_t {

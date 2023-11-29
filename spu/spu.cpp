@@ -973,7 +973,7 @@ int16_t spu_t::voices_t::reverb(const uint8_t& voice) {
 
 
 
-
+	return 0;
 }
 
 

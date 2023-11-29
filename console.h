@@ -8,6 +8,7 @@
 #include "peripherals/joy_mem_card.h"
 #include "debug_utilities/debug_utilities.h"
 
+
 class psxConsole_t {
 public:
 
@@ -24,10 +25,12 @@ public:
 	uint64_t cpuClocks = 0;
 	uint64_t videoClocks = 0;
 
-	void reset();
-	void clock();
+
 	void connectComponents();
 	void connectDebugger();
+
+	void reset();
+	void clock();
 
 	//debug
 	debugUtilities debugger;

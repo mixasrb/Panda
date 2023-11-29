@@ -25,8 +25,10 @@ cdDrive::cdDrive() {
 	std::string path = g_cdPath;
 
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	if (!file.is_open())
-		throw std::runtime_error("Failed to open rom!\n");
+	if (!file.is_open()) {
+		std::cout << "Failed to open rom!\n";
+		g_emulationPaused = true;
+	}
 
 	size_t fileSize = file.tellg();
 	file.seekg(0);
@@ -392,7 +394,7 @@ void cdDrive::clock() {
 	}
 
 
-	// Doom
+	                                       // Doom
 	if (clocks >= (waitClocksSecondResponse + 0x36cd2 * 1 / 10) && bSecondResponse &&
 		!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		bSecondResponse = false;
@@ -471,9 +473,10 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
-		bSendINT1 = false;
-		bSendINT1 = true; // used for gran turismo 2
-		stat.elem.read = 1;// used for gran turismo 2
+		/*bSendINT1 = false;
+		stat.elem.seek = 0;*/
+		bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
+		stat.elem.read = 1; // -//-
 	}
 	else if (!bPlay) {
 		bSendINT1 = true;

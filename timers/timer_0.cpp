@@ -45,7 +45,7 @@ void timer0_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	}
 }
 
-void timer0_t::clock(uint8_t source) {
+void timer0_t::clock(const uint8_t& source) {
 	if ((static_cast<clockSource_t>(source) == HBLANK_CLOCK) && (counterMode.elem.synchronizationEnable) &&
 		(counterMode.elem.synchronizationMode == 1)) {
 		currentValue.elem.currentCounterValue = 0;

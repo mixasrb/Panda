@@ -6,7 +6,7 @@ biosChip_t::biosChip_t() {
 	std::ifstream file(g_biosPath, std::ios::binary);
 
 	if (!file.is_open())
-		throw std::runtime_error("failed to open BIOS\n");
+		std::cout << "failed to open BIOS\n";
 
 	file.read((char*)biosData, BIOS_SIZE);
 

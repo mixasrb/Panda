@@ -36,6 +36,8 @@ public:
 
 	bool isolateDataCache = false;
 
+	bool irqFlag = false;
+
 	//debug
 	debugUtilities* pDebugger;
 };

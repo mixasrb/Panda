@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 
 #undef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
@@ -218,6 +218,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//		loggedOpcodes.clear();
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
 	//}
+
 #if DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
@@ -229,13 +230,13 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	if (prim_opcode == 0) { // special
 		uint8_t sec_opcode = opcode << 26 >> 26;
 
-		if (sec_opcode >= 0 && sec_opcode <= 0x3) //shift-imm
+		if (sec_opcode <= 0x3) //shift-imm
 			(this->*shift_imm[sec_opcode].instr)(
 				opcode << 11 >> 27,
 				opcode << 16 >> 27, opcode << 21 >> 27);
 
-		else if (sec_opcode >= 0x4 && sec_opcode < 0x8) //shift-reg
-			(this->*shift_reg[sec_opcode - 0x04].instr)(
+		else if (sec_opcode >= 0x4 && sec_opcode <= 0x7) //shift-reg
+			(this->*shift_reg[sec_opcode ^ 0x04].instr)(
 				opcode << 6 >> 27,
 				opcode << 11 >> 27, opcode << 16 >> 27);
 
@@ -250,7 +251,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 		}
 
 		else if (sec_opcode >= 0xc && sec_opcode <= 0xd) //sys/brk
-			(this->*sys_brk[sec_opcode - 0xc].instr)(opcode >> 6);
+			(this->*sys_brk[sec_opcode ^ 0x0c].instr)(opcode >> 6);
 
 		else if (sec_opcode == 0x10 || sec_opcode == 0x12) //mfhi/mflo
 			(this->*mfhi_mflo[(sec_opcode >> 1) & 0x01].instr)(
@@ -266,7 +267,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 				opcode << 11 >> 27);
 
 		else if (sec_opcode >= 0x20 && sec_opcode <= 0x2f) //alu_reg
-			(this->*alu_reg[sec_opcode - 0x20].instr)(
+			(this->*alu_reg[sec_opcode ^ 0x20].instr)(
 				opcode << 6 >> 27,
 				opcode << 11 >> 27, opcode << 16 >> 27);
 
@@ -282,26 +283,26 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 		switch (opcode << 11 >> 27) {
 		case 0x10:
 			(this->*b_cond_z[2].instr)(
-				opcode << 6 >> 27, opcode & 0x0000ffff); //bltzal
+				opcode << 6 >> 27, opcode); //bltzal
 			break;
 		case 0x11:
 			(this->*b_cond_z[3].instr)(
-				opcode << 6 >> 27, opcode & 0x0000ffff); //bgezal
+				opcode << 6 >> 27, opcode); //bgezal
 			break;
 		default:
-			if (!((opcode << 11 >> 27) & 0x1))
+			if (((opcode << 11 >> 27) & 0x01) == 0)
 				(this->*b_cond_z[0].instr)(
-					opcode << 6 >> 27, opcode & 0x0000ffff); //bltz
+					opcode << 6 >> 27, opcode); //bltz
 			else
 				(this->*b_cond_z[1].instr)(
-					opcode << 6 >> 27, opcode & 0x0000ffff); //bgez
+					opcode << 6 >> 27, opcode); //bgez
 			break;
 		}
 	}
 
-	else if (prim_opcode >= 0x2 && prim_opcode <= 0x3) { //j_jal
+	else if (prim_opcode >= 0x02 && prim_opcode <= 0x03) { //j_jal
 		isCurrentOpcodeBranch = true;
-		(this->*j_jal[prim_opcode - 0x2].instr)(
+		(this->*j_jal[prim_opcode ^ 0x02].instr)(
 			opcode << 6 >> 6);
 	}
 
@@ -314,34 +315,33 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 
 	else if (prim_opcode == 0x06 || prim_opcode == 0x07) { //blez/bgtz
 		isCurrentOpcodeBranch = true;
-		(this->*blez_bgtz[prim_opcode - 0x06].instr)(
+		(this->*blez_bgtz[prim_opcode ^ 0x06].instr)(
 			opcode << 6 >> 27, opcode & 0x0000ffff);
 	}
 
 	else if (prim_opcode >= 0x08 && prim_opcode < 0x0f) //alu-imm
-		(this->*alu_imm[prim_opcode - 0x08].instr)(
+		(this->*alu_imm[prim_opcode ^ 0x08].instr)(
 			opcode << 6 >> 27,
-			opcode << 11 >> 27, opcode & 0x0000ffff);
+			opcode << 11 >> 27, opcode);
 
 	else if (prim_opcode == 0x0f) //lui-imm
-		LUI(opcode << 11 >> 27, opcode & 0x0000ffff);
+		LUI(opcode << 11 >> 27, opcode);
 
 	else if (prim_opcode >= 0x20 && prim_opcode <= 0x27) //load rt,[rs+imm]
-		(this->*load_rt[prim_opcode - 0x20].instr)(
+		(this->*load_rt[prim_opcode ^ 0x20].instr)(
 			opcode << 6 >> 27,
-			opcode << 11 >> 27, opcode & 0x0000ffff);
+			opcode << 11 >> 27, opcode);
 
 	else if (prim_opcode >= 0x28 && prim_opcode <= 0x2f) //store rt,[rs+imm]
-		(this->*store_rt[prim_opcode - 0x28].instr)(
+		(this->*store_rt[prim_opcode ^ 0x28].instr)(
 			opcode << 6 >> 27,
-			opcode << 11 >> 27, opcode & 0x0000ffff);
+			opcode << 11 >> 27, opcode);
 
 	else if (prim_opcode & 0x10) { //coprocessors
 		switch (prim_opcode & 0x03) {
 		case 0: //cp0
 			if ((prim_opcode & 0x20) == 0) {
-				switch (opcode << 6 >> 27)
-				{
+				switch (opcode << 6 >> 27) {
 				case 0x0:
 					cp0.MFC0(opcode << 11 >> 27, opcode << 16 >> 27);
 					break;
@@ -376,7 +376,6 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 			}
 			break;
 		case 2: //cp2
-			gteCommandFlag = true;
 			if ((prim_opcode & 0x20) == 0)
 				if (((opcode << 6 >> 27) & 0x10) == 0)
 					switch (opcode << 7 >> 28)
@@ -395,9 +394,9 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 						break;
 					case 0x8:
 						if ((opcode << 11 >> 27) == 0)
-							cp2.BC2F(opcode & 0x0000ffff);
+							cp2.BC2F(opcode);
 						else
-							cp2.BC2T(opcode & 0x0000ffff);
+							cp2.BC2T(opcode);
 						break;
 					default:
 						std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop2 opcode " << primLookup[prim_opcode].name
@@ -405,18 +404,15 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 						g_emulationPaused = true;
 						break;
 					}
-				else {
+				else
 					cp2.COP2(opcode << 7 >> 7);
-				}
 			else
-				if ((prim_opcode & 0x08) == 0) { //LWC2
+				if ((prim_opcode & 0x08) == 0) //LWC2
 					cp2.LWC2(opcode << 6 >> 27,
-						opcode << 11 >> 27, opcode & 0x0000ffff);
-				}
-				else { //SWC2
+						opcode << 11 >> 27, opcode);
+				else //SWC2
 					cp2.SWC2(opcode << 6 >> 27,
-						opcode << 11 >> 27, opcode & 0x0000ffff);
-				}
+						opcode << 11 >> 27, opcode);
 			break;
 		default:
 			std::cout << "[CPU] EMULATION PAUSED! unhandled cop " << (uint16_t)(prim_opcode & 0x03) << " op 0x"
@@ -469,27 +465,27 @@ void cpu_t::clock() {
 		}
 	}*/
 
-
-	//debug
-	isInstructionExecuted = false;
-
 	if (clocks == 0) {
+
 		r[0] = 0;
-		irqFlag = true;
 
-		pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
-		irqFlag &= !checkForCopOpcode(opcode);
+		if (cp0.executeInterrupt) {
+			irqFlag = true;
+			pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
+			irqFlag &= !checkForCopOpcode(opcode);
 
-		pBus->cpuRead32(pc + 1 * 4, opcode, clocks, true);
-		irqFlag &= !checkForCopOpcode(opcode);
-
-		if (irqFlag && !isCurrentOpcodeBranch && cp0.executeInterrupt) {
-			cp0.executeInterrupt = false;
-			cp0.exceptionHandler(_INT);
+			if (irqFlag) {
+				cp0.executeInterrupt = false;
+				cp0.exceptionHandler(_INT);
+			}
 		}
 
-		switch (cycle) {
-		case 0:
+		//debug
+#if DEBUG
+		isInstructionExecuted = false;
+#endif
+
+		if (cycle == 0) {
 		label0:
 			cycle = 1;
 
@@ -508,7 +504,9 @@ void cpu_t::clock() {
 			opcode = opcodes[1];
 
 			//debug
+#if DEBUG
 			pc_old = pc;
+#endif
 
 			pc += 4;
 
@@ -535,11 +533,13 @@ void cpu_t::clock() {
 			}*/
 
 			//debug
+#if DEBUG
 			isInstructionExecuted = true;
+#endif
 
-			break;
+		}
 
-		case 1:
+		else {
 			if (!isPipelineFull)
 				goto label0;
 
@@ -548,8 +548,6 @@ void cpu_t::clock() {
 			cycle = 0;
 			isPipelineFull = true;
 
-
-			
 
 
 			//debug
@@ -566,7 +564,9 @@ void cpu_t::clock() {
 			opcode = opcodes[0];
 
 			//debug
+#if DEBUG
 			pc_old = pc;
+#endif
 
 			pc += 4;
 			memoryClocks = 0;
@@ -588,12 +588,13 @@ void cpu_t::clock() {
 					r[cycle1.addr] = cycle1.data;
 			}*/
 
-			//debug
+#if DEBUG
 			isInstructionExecuted = true;
+#endif
 
-			break;
 		}
 	}
+
 
 	/*if (clocks > 16)
 		g_emulationPaused = true;
@@ -641,11 +642,12 @@ void cpu_t::JR(const uint8_t& rs) {
 }
 
 void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
+	uint32_t tempAddr = r[rs];
 	r[rd] = pc;
-	if (r[rs] & 0x3)
-		cp0.exceptionHandler(_ADEL, r[rs]);
+	if (tempAddr & 0x3)
+		cp0.exceptionHandler(_ADEL, tempAddr);
 	else
-		pc = r[rs];
+		pc = tempAddr;
 }
 
 void cpu_t::SYSCALL(const uint32_t& imm) {
@@ -1519,8 +1521,10 @@ std::string cpu_t::getDecodedInstructionStr(const uint32_t& opcode, const uint32
 void cpu_t::sideLoad() {
 	g_sideload = false;
 	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
-	if (!file.is_open())
-		throw std::runtime_error("failed to open sideload!\n");
+	if (!file.is_open()) {
+		std::cout << "failed to open sideload!\n";
+		g_emulationPaused = true;
+	}
 
 	size_t lenght = (size_t)file.tellg();
 	std::vector<uint8_t> buffer(lenght);
@@ -1549,8 +1553,10 @@ void cpu_t::sideLoad() {
 
 	uint32_t initialSpFpOffset = (((uint32_t)buffer[0x37]) << 24) | (((uint32_t)buffer[0x36]) << 16)
 		| (((uint32_t)buffer[0x35]) << 8) | (uint32_t)buffer[0x34];
-	if (initialSpFpOffset)
-		std::runtime_error("Unhandled Initial SP/R29 & FP/R30 Offs in PSX.EXE (sideload)\n");
+	if (initialSpFpOffset) {
+		std::cout << "Unhandled Initial SP/R29 & FP/R30 Offs in PSX.EXE (sideload)\n";
+		g_emulationPaused = true;
+	}
 
 	uint8_t cycles;
 	for (uint32_t i = 0; i < size; i++) {

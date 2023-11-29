@@ -48,7 +48,7 @@ void timer1_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 	}
 }
 
-void timer1_t::clock(uint8_t source) {
+void timer1_t::clock(const uint8_t& source) {
 	if (bSynchronize) {
 		if (static_cast<clockSource_t>(source) == VBLANK_CLOCK) {
 			bSynchronize = false;
