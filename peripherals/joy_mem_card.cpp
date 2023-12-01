@@ -846,7 +846,7 @@ void joyMemCard_t::readMemCardFiles() {
 	std::ifstream memCardFile1("D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", std::ios::binary);
 	if (!memCardFile1.is_open()) {
 		std::cout << "failed to open memory card files\n";
-		g_buttonPressed = true;
+		g_emulationPaused = true;
 	}
 	else {
 		memCardFile1.read((char*)memCards[0], memCardSize);
@@ -856,7 +856,7 @@ void joyMemCard_t::readMemCardFiles() {
 	std::ifstream memCardFile2("D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin", std::ios::binary);
 	if (!memCardFile2.is_open()) {
 		std::cout << "failed to open memory card files\n";
-		g_buttonPressed = true;
+		g_emulationPaused = true;
 	}
 	else {
 		memCardFile2.read((char*)memCards[1], memCardSize);
@@ -870,7 +870,7 @@ void joyMemCard_t::writeMemCardFiles() {
 	std::ofstream memCardFile1("D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", std::ios::binary);
 	if (!memCardFile1.is_open()) {
 		std::cout << "failed to open memory card files\n";
-		g_buttonPressed = true;
+		g_emulationPaused = true;
 	}
 	else {
 		memCardFile1.write((char*)memCards[0], memCardSize);
@@ -880,7 +880,7 @@ void joyMemCard_t::writeMemCardFiles() {
 	std::ofstream memCardFile2("D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin", std::ios::binary);
 	if (!memCardFile2.is_open()) {
 		std::cout << "failed to open memory card files\n";
-		g_buttonPressed = true;
+		g_emulationPaused = true;
 	}
 	else {
 		memCardFile2.write((char*)memCards[1], memCardSize);

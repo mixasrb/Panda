@@ -473,10 +473,10 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
-		/*bSendINT1 = false;
-		stat.elem.seek = 0;*/
-		bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
-		stat.elem.read = 1; // -//-
+		bSendINT1 = false;
+		stat.elem.seek = 0;
+		//bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
+		//stat.elem.read = 1; // -//-
 	}
 	else if (!bPlay) {
 		bSendINT1 = true;

@@ -22,14 +22,14 @@ class Slope
 	float begin, step;
 public:
 	Slope() {}
-	Slope(float from, float to, int num_steps)
+	Slope(float from, float to, float num_steps)
 	{
 		float inv_step = 1.f / num_steps;
 		begin = from;                   // Begin here
 		step = (to - from) * inv_step; // Stepsize = (end-begin) / num_steps
 	}
 	float get() const { return begin; }
-	void advance() { begin += step; }
+	void advance(float n = 1) { begin += step * n; }
 };
 
 template<typename PlotFunc, typename T, std::size_t Size = std::tuple_size_v<T>>
@@ -64,16 +64,18 @@ void DrawPolygonInterpolated(
 		// Scanline function
 		[&](int y, SlopeData& left, SlopeData& right)
 		{
-			int x = left[0].get(), endx = right[0].get();
+			float leftx = left[0].get(), endx = right[0].get();
+			auto intleftx = std::floor(leftx + .5f), rounding_error = intleftx - leftx + .5f;
 
 			// Number of steps = number of pixels on this scanline = endx-x
 			std::array<Slope, Size - 2> props;
 			for (unsigned p = 0; p < Size - 2; ++p)
 			{
-				props[p] = Slope(left[p + 1].get(), right[p + 1].get(), endx - x);
+				props[p] = Slope(left[p + 1].get(), right[p + 1].get(), endx - leftx);
+				props[p].advance(rounding_error);
 			}
 
-			for (; x < endx; ++x) // Render each pixel
+			for (int x = intleftx, e = endx + .5f; x < e; ++x) // Render each pixel
 			{
 				std::apply([&](auto... args) { Plot(x, y, args.get()...); }, props);
 
@@ -390,8 +392,8 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
 		/*if (g_GpuCommandsLogged)
 			std::cout << std::hex << "0x" << data << std::endl;*/
-		/*if ((int32_t)collectCount < 0)
-			g_emulationPaused = true;*/
+			/*if ((int32_t)collectCount < 0)
+				g_emulationPaused = true;*/
 
 		if (collectCount) {
 			fifo.pushBack(data);
@@ -565,7 +567,7 @@ void gpu_t::videoClock() {
 			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
 				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
-			
+
 			if (pBus->spu.spuControlRegister.elem.irq9Enable) { //metal gear solid
 				pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
 				pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
@@ -646,27 +648,26 @@ void gpu_t::updateVramView(const vertex_t& possition, const psxColor16_t& color1
 
 void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea) {
 	if (bIgnoreDrawingArea) {
-		if ((position.x < 0) || (position.y) < 0) {
+		if ((position.x < 0) || (position.y < 0)) {
 			std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
 				position.y << ")" << "\n";
 			//g_emulationPaused = true;
 			return;
 		}
 
-		uint16_t temp;
-		readVram(position, temp, bIgnoreDrawingArea);
+		uint16_t backPixel;
+		readVram(position, backPixel, bIgnoreDrawingArea);
 
-		if (((gpuStat.elem.drawPixels == 1) && ((temp & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			vram[(position.x & 1023) * 2 + (position.y & 511) * size_x] = data << 8 >> 8;
-			vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
+		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
+			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			updateVramView(position, data);
 		}
 		return;
 	}
 
 	if (((position.x) >= drawAreaTopLeft.x) &&
-		((position.x) <= drawAreaBottomRight.x) &&
 		((position.y) >= drawAreaTopLeft.y) &&
+		((position.x) <= drawAreaBottomRight.x) &&
 		((position.y) <= drawAreaBottomRight.y)) {
 
 		if ((position.x < 0) || (position.y) < 0) {
@@ -676,17 +677,12 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			return;
 		}
 
-		uint16_t temp;
-		readVram(position, temp, bIgnoreDrawingArea);
+		uint16_t backPixel;
+		readVram(position, backPixel, bIgnoreDrawingArea);
 
-		if (((gpuStat.elem.drawPixels == 1) && ((temp & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			vram[((position.x) & 1023) * 2 + ((position.y) & 511) * size_x] = data << 8 >> 8;
-			vram[(((position.x) & 1023) * 2 + 1) + ((position.y) & 511) * size_x] = (data >> 8) | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x80 : 0);
-
-			vertex_t p = { 0, 0 };
-			p.x = position.x;
-			p.y = position.y;
-			updateVramView(p, data);
+		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
+			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
+			updateVramView(position, data);
 		}
 	}
 
@@ -720,14 +716,13 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = vram[(position.x & 1023) * 2 + (position.y & 511) * size_x];
-		data |= vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] << 8;
+		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x));
 		return;
 	}
 
 	if ((position.x >= drawAreaTopLeft.x) &&
-		(position.x <= drawAreaBottomRight.x) &&
 		(position.y >= drawAreaTopLeft.y) &&
+		(position.x <= drawAreaBottomRight.x) &&
 		(position.y <= drawAreaBottomRight.y)) {
 
 		if ((position.x < 0) || (position.y < 0)) {
@@ -737,8 +732,7 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = vram[(position.x & 1023) * 2 + (position.y & 511) * size_x];
-		data |= vram[((position.x & 1023) * 2 + 1) + (position.y & 511) * size_x] << 8;
+		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x));
 	}
 }
 
@@ -1234,7 +1228,7 @@ void gpu_t::drawTexRect15Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-	}
+}
 }
 
 void gpu_t::drawTexRect8Bit(param_t param) {
@@ -1297,7 +1291,7 @@ void gpu_t::drawTexRect8Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-	}
+}
 }
 
 void gpu_t::drawTexRect4Bit(param_t param) {
@@ -1360,7 +1354,7 @@ void gpu_t::drawTexRect4Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-	}
+}
 }
 
 void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height) {
@@ -1526,7 +1520,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.vert1 = fifo.getNext();
 		param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
 		param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
-	
+
 		if (param.bTextured)
 			param.texCoord1Palette = fifo.getNext();
 

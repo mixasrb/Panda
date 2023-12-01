@@ -11,7 +11,7 @@
 
 #define DRAM_SIZE 512 * 1024 
 
-struct output_t{
+struct output_t {
 	float channel1;
 	float channel2;
 
@@ -41,7 +41,7 @@ public:
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
 	uint8_t* reverb = new uint8_t[64];
 
-	void readDram16(const uint32_t& addr, uint16_t& data);
+	uint16_t readDram16(const uint32_t& addr);
 	void writeDram16(const uint32_t& addr, const uint16_t& data);
 
 	void readDram8(const uint32_t& addr, uint8_t& data);
@@ -291,8 +291,10 @@ public:
 
 		void decodeCompressedSample(voiceRegister_t& currentVoiceRegisters);
 		int16_t output(const uint8_t& voice);
-		int16_t reverb(const uint8_t& voice);
 	};
+
+	int32_t reverbCurrentAddress;
+	int16_t reverbVoice(const uint16_t& input, const uint8_t& cycle);
 
 	voices_t voices;
 
@@ -389,9 +391,7 @@ public:
 
 	std::vector<int16_t> gauss;
 
-
-
-	int i = 0;
+	uint8_t cycle = 0;
 	//debug
 	debugUtilities* pDebugger = nullptr;
 };
