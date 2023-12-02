@@ -407,7 +407,8 @@ void cdDrive::clock() {
 
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/) && bDataResponse &&            //castlevania SOF requires 15/10 or less??
+	                                                                 //bugs bunny games also 
+	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/+ 0x36cd2 * 14 / 10) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 

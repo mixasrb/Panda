@@ -13,14 +13,11 @@
 #include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
 
-#define size_x 2048
-#define size_x_hw 1024
+#define size_x_b 2048
+#define size_x 1024 //in half words
 #define size_y 512
 
 class busInterface_t;
-
-
-
 
 class gpu_t {
 public:
@@ -173,11 +170,11 @@ public:
 			*(&y) = uint16_t(yt);
 		}
 		vertex_t(uint32_t coord) {
-			*(&x) = signed11bit(uint16_t(coord << 16 >> 16));
-			*(&y) = signed11bit(uint16_t(coord >> 16));
+			*(&x) = signed11bit(uint16_t(coord & 0x7ff));
+			*(&y) = signed11bit(uint16_t((coord >> 16) & 0x7ff));
 		}
 
-		uint16_t signed11bit(uint16_t val) {
+		int16_t signed11bit(int16_t val) {
 			return ((int16_t)(val << 5)) >> 5;
 		}
 
@@ -196,7 +193,7 @@ public:
 	};
 
 	template <typename T>
-	struct fifo_t {
+	struct fifo_t { //have some bugs and unintuitives
 		fifo_t() {
 			ptr = nullptr;
 			currentPossitionWrite = 0;
@@ -204,10 +201,10 @@ public:
 		};
 
 		T* ptr;
-		int currentPossitionWrite;
-		int currentPossitionRead;
+		uint32_t currentPossitionWrite;
+		uint32_t currentPossitionRead;
 
-		void resize(int newSize) {
+		void resize(uint32_t newSize) {
 			ptr = new T[newSize];
 		}
 
@@ -225,7 +222,7 @@ public:
 			currentPossitionWrite--;
 		}
 
-		int size() {
+		uint32_t size() {
 			return currentPossitionWrite;
 		}
 
@@ -237,7 +234,7 @@ public:
 			return ptr[currentPossitionRead++];
 		}
 
-		T operator[](int i) {
+		T operator[](uint32_t i) {
 			return ptr[i];
 		}
 	};
@@ -360,7 +357,7 @@ public:
 	uint32_t destCoord;
 	uint32_t sourceCoord;
 	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
-	std::vector<uint32_t> buffer;
+	fifo_t<uint32_t> outputFifo;
 
 
 	uint32_t gp1Command;
@@ -371,7 +368,7 @@ public:
 	uint32_t gp1BottomRight = 0;
 	uint32_t gp1DrawOffset = 0;
 
-	uint8_t* vram = new uint8_t[size_x * size_y];
+	uint8_t* vram = new uint8_t[size_x_b * size_y];
 
 	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false);
 	void readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
@@ -382,10 +379,6 @@ public:
 
 	uint32_t fifoCount = 0;
 	uint64_t fifoClocks = 0;
-
-	uint16_t** textureCache = NULL;
-
-	int konstant;
 
 	//debug
 	debugUtilities* p_debugger;

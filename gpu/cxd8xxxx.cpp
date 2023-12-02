@@ -5,16 +5,13 @@
 #include "limits"
 
 #include "rasterize.hh"
+
 #include <array>
 #include <vector>
 #include <map>
 
-static uint16_t signed11bit(uint16_t val) {
+static int16_t signed11bit(int16_t val) {
 	return ((int16_t)(val << 5)) >> 5;
-}
-
-static uint16_t signed12bit(uint16_t val) {
-	return ((int16_t)(val << 4)) >> 4;
 }
 
 class Slope
@@ -102,12 +99,9 @@ extern bool g_logPixel;
 gpu_t::gpu_t() {
 	gpuStat.data = 0x14000000;
 
-	textureCache = new uint16_t * [256];
-	for (int i = 0; i < 256; i++) {
-		textureCache[i] = new uint16_t[256];
-	}
+	fifo.resize(size_x * size_y);
 
-	fifo.resize(512 * 1024);
+	outputFifo.resize(size_x * size_y);
 
 	gp0Lookup.resize(0xef);
 	gp0Lookup = {
@@ -371,12 +365,14 @@ gpu_t::gpu_t() {
 
 void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
+
 	if (addr == 0x1f801810) {
 		if (gpuStat.elem.readyVramCpu) {
-			data = buffer[0];
-			buffer.erase(buffer.begin());
-			if (buffer.empty())
+			data = outputFifo.getNext();
+			if (outputFifo.empty()) {
 				gpuStat.elem.readyVramCpu = 0;
+				outputFifo.reset();
+			}
 			return;
 		}
 
@@ -659,7 +655,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		readVram(position, backPixel, bIgnoreDrawingArea);
 
 		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
+			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x_b)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			updateVramView(position, data);
 		}
 		return;
@@ -681,7 +677,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		readVram(position, backPixel, bIgnoreDrawingArea);
 
 		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
+			*((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x_b)) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			updateVramView(position, data);
 		}
 	}
@@ -716,7 +712,7 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x));
+		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x_b));
 		return;
 	}
 
@@ -732,7 +728,7 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 			return;
 		}
 
-		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x));
+		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x_b));
 	}
 }
 
@@ -1228,7 +1224,7 @@ void gpu_t::drawTexRect15Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-}
+	}
 }
 
 void gpu_t::drawTexRect8Bit(param_t param) {
@@ -1291,7 +1287,7 @@ void gpu_t::drawTexRect8Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-}
+	}
 }
 
 void gpu_t::drawTexRect4Bit(param_t param) {
@@ -1354,12 +1350,12 @@ void gpu_t::drawTexRect4Bit(param_t param) {
 				writeVram(p, frontPixelColor.data);
 			}
 		}
-}
+	}
 }
 
 void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height) {
-	const uint32_t x1 = (dest_coord << 16 >> 16) & 0x3ff;
-	uint32_t x2 = x1 + (width_height << 16 >> 16);
+	const uint32_t x1 = (dest_coord & 0xffff) & 0x3ff;
+	uint32_t x2 = x1 + (width_height & 0xffff);
 	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
 	uint32_t y2 = y1 + (width_height >> 16);
 
@@ -1371,7 +1367,7 @@ void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_heig
 	//}
 	//fifo.reset();
 
-	int i = 0;
+	uint32_t i = 0;
 	uint32_t data;
 	for (int16_t y = y1; y < y2; y++) {
 		for (int16_t x = x1; x < x2; x++) {
@@ -1386,54 +1382,45 @@ void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_heig
 	}
 
 
-	/*if (!buffer.empty() && !(((width_height << 16 >> 16) * (width_height >> 16)) & 0x1)) {
+	/*if (!buffer.empty() && !(((width_height &0xffff) * (width_height >> 16)) & 0x1)) {
 		std::cout << "[GPU] EMULATION PAUSED! gp0 command 0xa0 buffer not empty 0x" << std::hex << buffer.size() << std::endl;
 		g_emulationPaused = true;
 	}*/
 }
 
 void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height) {
-	const uint16_t x1 = source_coord << 16 >> 16;
-	const uint16_t x2 = x1 + (width_height << 16 >> 16);
+	const uint16_t x1 = source_coord & 0xffff;
+	const uint16_t x2 = x1 + (width_height & 0xffff);
 	const uint16_t y1 = source_coord >> 16;
 	const uint16_t y2 = y1 + (width_height >> 16);
 
-	uint16_t data;
-	std::vector<uint16_t> tempBuffer;
-
-	uint16_t x;
-	uint16_t y = y1;
-	do {
-		x = x1;
-		do {
+	uint16_t data16;
+	uint32_t data32;
+	uint32_t i = 0;
+	for (uint16_t y = y1; y < y2; y++) {
+		for (uint16_t x = x1; x < x2; x++) {
 			vertex_t position(x, y);
-			readVram(position, data, true);
-			tempBuffer.push_back(data);
-			x++;
-		} while (x < x2);
-		y++;
-	} while (y < y2);
+			readVram(position, data16, true);
 
-	uint32_t temp;
-
-	if (tempBuffer.size() & 1)
-		tempBuffer.push_back(0);
-
-	for (int i = 0; i < tempBuffer.size(); i += 2) {
-		temp = tempBuffer[i];
-		temp |= (uint32_t)tempBuffer[i + 1] << 16;
-		buffer.push_back(temp);
+			if ((i & 0x1) == 0)
+				data32 = 0x00000000 | (uint32_t)data16;
+			else {
+				data32 |= (uint32_t)data16 << 16;
+				outputFifo.pushBack(data32);
+			}
+			i++;
+		}
 	}
 }
 
 void gpu_t::copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight) {
-	const uint16_t sourceX1 = sourceCoord << 16 >> 16;
+	const uint16_t sourceX1 = sourceCoord & 0xffff;
 	const uint16_t sourceY1 = sourceCoord >> 16;
 
-	const uint16_t destX1 = destCoord << 16 >> 16;
+	const uint16_t destX1 = destCoord & 0xffff;
 	const uint16_t destY1 = destCoord >> 16;
 
-	const uint16_t width = widthHeight << 16 >> 16;
+	const uint16_t width = widthHeight & 0xffff;
 	const uint16_t height = widthHeight >> 16;
 
 
@@ -1489,9 +1476,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.vert1 = (vertex_t)fifo.getNext();
 			uint32_t size_x_y = fifo.getNext();
 
-			param.vert4 = param.vert1 + vertex_t(size_x_y << 16 >> 16, size_x_y >> 16);
+			param.vert4 = param.vert1 + vertex_t(size_x_y & 0xffff, size_x_y >> 16);
 			param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
-			param.vert2 = param.vert1 + vertex_t(size_x_y << 16 >> 16, 0);
+			param.vert2 = param.vert1 + vertex_t(size_x_y & 0xffff, 0);
 			param.commandColor1 = gp0Command;
 
 			fillRectVram(param);
@@ -1518,8 +1505,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		param.commandColor1 = commandColor;
 
 		param.vert1 = fifo.getNext();
-		param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
-		param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
+		param.vert1.x = (param.vert1.x + drawOffset.x);
+		param.vert1.y = (param.vert1.y + drawOffset.y);
 
 		if (param.bTextured)
 			param.texCoord1Palette = fifo.getNext();
@@ -1528,8 +1515,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.color2 = fifo.getNext();
 
 		param.vert2 = fifo.getNext();
-		param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
-		param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
+		param.vert2.x = (param.vert2.x + drawOffset.x);
+		param.vert2.y = (param.vert2.y + drawOffset.y);
 
 		if (param.bTextured)
 			param.texCoord2TexPage = fifo.getNext();
@@ -1538,8 +1525,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			param.color3 = fifo.getNext();
 
 		param.vert3 = fifo.getNext();
-		param.vert3.x = signed11bit(param.vert3.x) + drawOffset.x;
-		param.vert3.y = signed11bit(param.vert3.y) + drawOffset.y;
+		param.vert3.x = (param.vert3.x + drawOffset.x);
+		param.vert3.y = (param.vert3.y + drawOffset.y);
 
 		if (param.bTextured)
 			param.texCoord3 = fifo.getNext();
@@ -1550,8 +1537,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				param.color4 = fifo.getNext();
 
 			param.vert4 = fifo.getNext();
-			param.vert4.x = signed11bit(param.vert4.x) + drawOffset.x;
-			param.vert4.y = signed11bit(param.vert4.y) + drawOffset.y;
+			param.vert4.x = (param.vert4.x + drawOffset.x);
+			param.vert4.y = (param.vert4.y + drawOffset.y);
 
 			if (param.bTextured)
 				param.texCoord4 = fifo.getNext();
@@ -1569,29 +1556,20 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 				param.color4 = param.commandColor1 & 0x00ffffff;
 		}
 
-		//if ((param.bTextured)/* && (param.verticesNumber == 4)*/) {
-		//	/*if (param.vert1.x > param.vert2.x)
-		//		param.bFlipHorizontally = true;
-		//	if (param.vert1.y > param.vert4.y)
-		//		param.bFlipVertically = true;*/
+		if ((abs(param.vert1.x - param.vert2.x) > 1024) ||
+			(abs(param.vert1.x - param.vert3.x) > 1024) ||
+			((param.verticesNumber == 4) && (abs(param.vert1.x - param.vert4.x) > 1024)) ||
+			(abs(param.vert2.x - param.vert3.x) > 1024) ||
+			((param.verticesNumber == 4) && (abs(param.vert2.x - param.vert4.x) > 1024)) ||
+			((param.verticesNumber == 4) && (abs(param.vert3.x - param.vert4.x) > 1024)) ||
+			(abs(param.vert1.y - param.vert2.y) > 512) ||
+			(abs(param.vert1.y - param.vert3.y) > 512) ||
+			((param.verticesNumber == 4) && (abs(param.vert1.y - param.vert4.y) > 512)) ||
+			(abs(param.vert2.y - param.vert3.y) > 512) ||
+			((param.verticesNumber == 4) && (abs(param.vert2.y - param.vert4.y) > 512)) ||
+			((param.verticesNumber == 4) && (abs(param.vert3.y - param.vert4.y) > 512)))
+			return;
 
-		//	switch (gpuStat.elem.texPageColors) {
-		//	case 0:
-		//		drawTexPolygon4Bit(&param);
-		//		break;
-		//	case 1:
-		//		drawTexPolygon8Bit(&param);
-		//		break;
-		//	case 2:
-		//		drawTexPolygon15Bit(&param);
-		//		break;
-		//	case 3:
-		//		throw std::runtime_error("texture page color mode RESERVED!");
-		//		break;
-		//	}
-		//}
-		//else
-		//	drawPolygon(&param);
 
 		if (param.bTextured)
 			drawTexPolygon(&param);
@@ -1614,24 +1592,23 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 		if (param.shadingType == FLAT_SHADING) {
 			for (int i = 0; i < fifo.size() - 1; i++) {
 				param.vert1 = fifo[i];
-				param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
-				param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
+				param.vert1.x = (param.vert1.x + drawOffset.x);
+				param.vert1.y = (param.vert1.y + drawOffset.y);
 				param.vert2 = fifo[i + 1];
-				param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
-				param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
-				//fifo.clear();
+				param.vert2.x = (param.vert2.x + drawOffset.x);
+				param.vert2.y = (param.vert2.y + drawOffset.y);
 				drawLine(param);
 			}
 		}
 		else if (param.shadingType == GOURAUD_SHADING) {
 			for (int i = 0; i < fifo.size() - 2; i += 2) {
 				param.vert1 = fifo[i];
-				param.vert1.x = signed11bit(param.vert1.x) + drawOffset.x;
-				param.vert1.y = signed11bit(param.vert1.y) + drawOffset.y;
+				param.vert1.x = (param.vert1.x + drawOffset.x);
+				param.vert1.y = (param.vert1.y + drawOffset.y);
 				param.color2 = fifo[i + 1];
 				param.vert2 = fifo[i + 2];
-				param.vert2.x = signed11bit(param.vert2.x) + drawOffset.x;
-				param.vert2.y = signed11bit(param.vert2.y) + drawOffset.y;
+				param.vert2.x = (param.vert2.x + drawOffset.x);
+				param.vert2.y = (param.vert2.y + drawOffset.y);
 
 				if (fifo[0] == fifo[i + 2]) //!!?????
 					param.color2 = commandColor & 0x00ffffff;
@@ -1713,9 +1690,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
 			bCollectCopyCpuVramParam = false;
 			destCoord = fifo.getNext();
 			widthHeight = fifo.getNext();
-			//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height << 16 >> 16) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
-			collectCount = (widthHeight >> 16) * (widthHeight << 16 >> 16) / 2;
-			if ((collectCount * 2) < ((widthHeight >> 16) * (widthHeight << 16 >> 16)))
+			//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height &0xffff) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
+			collectCount = (widthHeight >> 16) * (widthHeight & 0xffff) / 2;
+			if ((collectCount * 2) < ((widthHeight >> 16) * (widthHeight & 0xffff)))
 				collectCount++;
 		}
 		else {
