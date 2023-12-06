@@ -138,7 +138,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			switch (command >> 29) {
 			case 1:
 				recievedData32Count = command & 0x0000ffff;
-				clocks = 3000000/1000;
+				clocks = 3000000 / 1000;
 				break;
 			case 2:
 				if (command & 0x1)
@@ -319,7 +319,8 @@ static uint16_t singned10bit(uint16_t val) {
 	return ((int16_t)(val << 6)) >> 6;
 }
 
-static uint16_t minmax(int16_t val, int16_t min, int16_t max) {
+template<typename T>
+static T minMax(T min, T max, T val) {
 	if (val < min) return min;
 	if (val > max) return max;
 	return val;
@@ -430,15 +431,15 @@ skip:
 		if (i == 0)
 			/* The DC coefficient is not multiplied
 			   by the quantization scale */
-			dequantizedMatrix[i] = minmax(coefficientMatrix[i] * qt[i],
-				-0x400, 0x3ff);
+			dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+				coefficientMatrix[i] * qt[i]);
 		else
 			if (quantizationScale > 0)
-				dequantizedMatrix[i] = minmax((coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8,
-					-0x400, 0x3ff);
+				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+					(coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8);
 			else
-				dequantizedMatrix[i] = minmax(coefficientMatrix[i] * 2,
-					-0x400, 0x3ff);
+				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+					coefficientMatrix[i] * 2);
 	}
 
 	for (int i = 0; i < 64; i++) {
@@ -505,13 +506,6 @@ void mdec_t::real_idct_core(uint16_t* blk) {
 	}
 }
 
-template<typename T>
-static T MinMax(T min, T max, T val) {
-	if (val < min) return min;
-	if (val > max) return max;
-	return val;
-}
-
 void mdec_t::yuv_to_rgb(int xx, int yy) {
 	//if (src >= recievedData16.data() + recievedData16.size())
 	//	return;
@@ -527,14 +521,14 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 			B = Y + 1.772 * B;
 
 			if (statusRegister.elem.dataOutputSigned == 0) {
-				R = MinMax(0.0f, 255.0f, R + 128.0f);
-				G = MinMax(0.0f, 255.0f, G + 128.0f);
-				B = MinMax(0.0f, 255.0f, B + 128.0f);
+				R = minMax(0.0f, 255.0f, R + 128.0f);
+				G = minMax(0.0f, 255.0f, G + 128.0f);
+				B = minMax(0.0f, 255.0f, B + 128.0f);
 			}
 			else {
-				R = MinMax(-128.0f, 127.0f, R);
-				G = MinMax(-128.0f, 127.0f, G);
-				B = MinMax(-128.0f, 127.0f, B);
+				R = minMax(-128.0f, 127.0f, R);
+				G = minMax(-128.0f, 127.0f, G);
+				B = minMax(-128.0f, 127.0f, B);
 			}
 
 			if (statusRegister.elem.dataOutputDepth == 3) {
@@ -595,7 +589,7 @@ void mdec_t::y_to_mono() {
 	for (int i = 0; i < 64; i++) {
 		int16_t Y = *(Yblk + i);
 		//Y = Y & 0x1ff; //??
-		Y = MinMax((int16_t)-128, (int16_t)127, Y);
+		Y = minMax((int16_t)-128, (int16_t)127, Y);
 		//Y >>= 1; //??
 		if (statusRegister.elem.dataOutputSigned == 0)
 			Y = Y ^ 0x80;

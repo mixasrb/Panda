@@ -526,18 +526,25 @@ void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cloc
 	clocks = 6;
 
 	if (RAM) {
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
+		/*if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
 			g_emulationPaused = true;
 			return;
-		}
+		}*/
 
 		//if (cacheControl != 0x0001e988) {
 		//	/*data = scratchpad[addr & 0x3ff];*/
 		//	clocks = 1;
 		//	return;
 		//}
+
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
+				<< std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
+			g_emulationPaused = true;
+			return;
+		}
 
 		data = ram[addr & 0x1fffff];
 		clocks = 5;

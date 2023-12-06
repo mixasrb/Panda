@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 
 #undef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
@@ -225,6 +225,9 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 #endif
 
 	isCurrentOpcodeBranch = false;
+	//if (opcode == 0)
+	//	return;
+
 	uint8_t prim_opcode = opcode >> 26;
 
 	if (prim_opcode == 0) { // special
