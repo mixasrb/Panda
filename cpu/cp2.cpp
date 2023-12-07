@@ -256,6 +256,13 @@ cp2_t::cp2_t() {
 #define GTE_CV(op) ((op >> 13) & 0x3) 
 #define GTE_LM(op) ((op >> 10) & 0x1) 
 
+void cp2_t::clock() {
+	if (clocks) 
+		clocks--;
+	else
+		commandBusy = false;
+}
+
 uint32_t cp2_t::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {
 	if (value < min) {
 		FLAG |= flag;
@@ -267,6 +274,7 @@ uint32_t cp2_t::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag)
 	}
 	return value;
 }
+
 
 void cp2_t::MFC2(uint8_t rt, uint8_t rd) {
 	switch (rd) {
@@ -293,15 +301,24 @@ void cp2_t::MFC2(uint8_t rt, uint8_t rd) {
 		break;
 	case 28:
 	case 29:
+		if (commandBusy)
+			clocks++;
+
 		gteRegisters.cp2Data.p[rd].w = saturate(IR1 >> 7, 0, 0x1f, 0) |
 			(saturate(IR2 >> 7, 0, 0x1f, 0) << 5) | (saturate(IR3 >> 7, 0, 0x1f, 0) << 10);
 		break;
 	}
 
+	if (commandBusy)
+		pCpu->gteClocks = clocks;
+
 	pCpu->set(rt, gteRegisters.cp2Data.p[rd].w);
 }
 
 void cp2_t::CFC2(uint8_t rt, uint8_t rd) {
+	if (commandBusy)
+		pCpu->gteClocks = clocks;
+
 	pCpu->set(rt, gteRegisters.cp2Ctrl.p[rd].w);
 }
 
@@ -369,7 +386,13 @@ void cp2_t::BC2T(uint16_t imm) {
 void cp2_t::COP2(uint32_t imm) {
 	FLAG = 0;
 	(this->*opcodeLookup[imm & 0x3f].opcode)(imm);
-	pCpu->gteClocks = opcodeLookup[imm & 0x3f].clocks;
+
+	clocks += opcodeLookup[imm & 0x3f].clocks - 1;
+
+	if (commandBusy)
+		pCpu->gteClocks = clocks;
+
+	commandBusy = true;
 
 	if (g_GteInstructionsLogged)
 		std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[imm & 0x3f].name
@@ -420,12 +443,19 @@ void cp2_t::SWC2(uint8_t rs, uint8_t rt, int16_t imm) {
 		break;
 	case 28:
 	case 29:
+		if (commandBusy)
+			clocks++;
+
 		gteRegisters.cp2Data.p[rt].w = saturate(IR1 >> 7, 0, 0x1f, 0) |
 			(saturate(IR2 >> 7, 0, 0x1f, 0) << 5) | (saturate(IR3 >> 7, 0, 0x1f, 0) << 10);
 		break;
 	}
 	uint32_t value = gteRegisters.cp2Data.p[rt].w;
 	uint8_t cycles;
+
+	if (commandBusy)
+		pCpu->gteClocks = clocks;
+
 	pCpu->write32(pCpu->get(rs) + (int32_t)imm, value, cycles);
 }
 

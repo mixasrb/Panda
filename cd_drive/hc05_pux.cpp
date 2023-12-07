@@ -408,7 +408,7 @@ void cdDrive::clock() {
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
 	                                                                 //bugs bunny games also 
-	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/+ 0x36cd2 * 14 / 10) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/+ 0x36cd2 * 7 / 10) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 
@@ -474,10 +474,10 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
-		bSendINT1 = false;
-		stat.elem.seek = 0;
-		//bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
-		//stat.elem.read = 1; // -//-
+		/*bSendINT1 = false;
+		stat.elem.seek = 0;*/
+		bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
+		stat.elem.read = 1; // -//-
 	}
 	else if (!bPlay) {
 		bSendINT1 = true;

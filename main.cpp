@@ -29,7 +29,7 @@ uint32_t g_systemMinutes = 0;
 
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
 
-bool g_sideload = 1;
+bool g_sideload = 0;
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/rectangles.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/8bit.exe"); //dma write mdec
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-15bit.exe");
@@ -66,7 +66,7 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/access-t
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem // reads problem, needs spu regs
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem // reads problem, needs spu regs
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Polaris SnoCross (USA).bin");
 
@@ -89,8 +89,8 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs fixed??
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash2.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash2.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 
 
@@ -255,7 +255,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Next Tetris, The (USA)/Next Tetris, The (USA) (Track 01).bin");//hangs
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Medal of Honor (USA).bin");//gte //stuck
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crusader - No Remorse.bin"); //cd drive out of sync // cutscenes need to be skipped 
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crusader - No Remorse.bin"); //cd drive out of sync // cutscenes need to be skipped 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VII (USA) (Disc 1).bin"); //mdec//~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x10000002
 

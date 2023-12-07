@@ -15,6 +15,10 @@ public:
 	cp2_t();
 	cpu_t* pCpu;
 
+	void clock();
+	uint8_t clocks = 0;
+	bool commandBusy = false;
+
 	void MFC2(uint8_t rt, uint8_t rd);
 	void CFC2(uint8_t rt, uint8_t rd);
 	void MTC2(uint8_t rt, uint8_t rd);

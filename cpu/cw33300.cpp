@@ -442,6 +442,8 @@ void cpu_t::reset() {
 
 void cpu_t::clock() {
 
+	cp2.clock();
+
 	//SIDELOAD debug
 #if DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
@@ -501,6 +503,9 @@ void cpu_t::clock() {
 			//fetch
 			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
 
+			if (pc >= 0xa0000000)
+				clocks += instructionFetchClocks;
+
 			opcode_pc_0 = pc;
 			opcode_pc = opcode_pc_1;
 
@@ -520,7 +525,10 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[1]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
+
+			//assumes that all instructions are cached in cached area
+			clocks += (/*instructionFetchClocks + */memoryClocks + gteClocks/* - 1*/)/* / 2*/;
+			
 			//clocks = 1;
 
 			//debug
@@ -561,6 +569,9 @@ void cpu_t::clock() {
 			//fetch
 			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks1);
 
+			if (pc >= 0xa0000000)
+				clocks += instructionFetchClocks;
+
 			opcode_pc_1 = pc;
 			opcode_pc = opcode_pc_0;
 
@@ -576,7 +587,9 @@ void cpu_t::clock() {
 			gteClocks = 0;
 
 			decodeExecuteOpcode(opcodes[0]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
+
+			//assumes that all instructions are cached in cached area
+			clocks += (/*instructionFetchClocks +*/ memoryClocks + gteClocks/* - 1*/)/* / 2*/;
 			//clocks = 1;
 
 			//debug
@@ -598,11 +611,14 @@ void cpu_t::clock() {
 		}
 	}
 
+	if (clocks)
+		clocks--;
+
 
 	/*if (clocks > 16)
 		g_emulationPaused = true;
 	else*/
-	clocks--;
+	//clocks--;
 }
 
 //instructions
