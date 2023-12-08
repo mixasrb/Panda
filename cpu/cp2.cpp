@@ -257,10 +257,11 @@ cp2_t::cp2_t() {
 #define GTE_LM(op) ((op >> 10) & 0x1) 
 
 void cp2_t::clock() {
-	if (clocks) 
+	if (clocks) {
 		clocks--;
-	else
-		commandBusy = false;
+		if (clocks == 0)
+			commandBusy = false;
+	}
 }
 
 uint32_t cp2_t::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {

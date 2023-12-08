@@ -346,6 +346,17 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		pJoyMemCard->cpuWrite32(addr, data);
 	else if (CACHE_CONTROL) {
 		cacheControl = data;
+
+	/*	if (cacheControl != 0x0001e988)
+			pCpu->iCacheEnabled = false;
+		else 
+			pCpu->iCacheEnabled = true;
+
+
+		for (uint16_t i = 0; i < 16; i++) {
+			pCpu->iCache[i].pc = 0xffffffff;
+		}*/
+
 		std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 	}
 	else {

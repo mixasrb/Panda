@@ -53,7 +53,9 @@ public:
 		uint32_t opcode;
 	};
 
-	iCache_t iCache[1024];
+	iCache_t iCache[16];
+	bool iCacheEnabled = true;
+	uint16_t iCacheCounter = 0;
 
 
 	bool isPipelineFull = false;

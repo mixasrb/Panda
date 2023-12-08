@@ -110,6 +110,11 @@ cpu_t::cpu_t() {
 		{&cpu_t::SB}, {&cpu_t::SH}, {&cpu_t::SWL}, {&cpu_t::SW}, {&cpu_t::XXX1}, {&cpu_t::XXX1}, {&cpu_t::SWR}, {&cpu_t::XXX1}
 	};
 
+
+	/*for (uint16_t i = 0; i < 16; i++) {
+		iCache[i].pc = 0xffffffff;
+	}*/
+
 	//debug
 	executedOpcodes.resize(32);
 }
@@ -442,8 +447,6 @@ void cpu_t::reset() {
 
 void cpu_t::clock() {
 
-	cp2.clock();
-
 	//SIDELOAD debug
 #if DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
@@ -502,9 +505,31 @@ void cpu_t::clock() {
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
-
 			if (pc >= 0xa0000000)
 				clocks += instructionFetchClocks;
+
+
+		//	if ((pc >= 0xa0000000) || (!iCacheEnabled)) {
+		//		//fetch
+		//		pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
+		//		clocks += instructionFetchClocks;
+		//	}
+		//	else {
+		//		for (uint16_t i = 0; i < 16; i++) {
+		//			if (iCache[(iCacheCounter + i) & 0xf].pc == pc) {
+		//				opcodes[0] = iCache[(iCacheCounter + i) & 0xf].opcode;
+		//				goto skipFetch0;
+		//			}
+		//		}
+		//		iCache[iCacheCounter].pc = pc;
+		//		//fetch
+		//		pBus->cpuRead32(pc, iCache[iCacheCounter].opcode, instructionFetchClocks);
+		//		opcodes[0] = iCache[iCacheCounter].opcode;
+		//		iCacheCounter = ++iCacheCounter & 0xf;
+		//		clocks += instructionFetchClocks;
+		//	}
+
+		//skipFetch0:
 
 			opcode_pc_0 = pc;
 			opcode_pc = opcode_pc_1;
@@ -527,9 +552,7 @@ void cpu_t::clock() {
 			decodeExecuteOpcode(opcodes[1]);
 
 			//assumes that all instructions are cached in cached area
-			clocks += (/*instructionFetchClocks + */memoryClocks + gteClocks/* - 1*/)/* / 2*/;
-			
-			//clocks = 1;
+			clocks += memoryClocks + gteClocks;
 
 			//debug
 #if DEBUG
@@ -567,10 +590,31 @@ void cpu_t::clock() {
 #endif
 
 			//fetch
-			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks1);
-
+			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
 			if (pc >= 0xa0000000)
 				clocks += instructionFetchClocks;
+
+		//	if ((pc >= 0xa0000000) || (!iCacheEnabled)) {
+		//		//fetch
+		//		pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
+		//		clocks += instructionFetchClocks;
+		//	}
+		//	else {
+		//		for (uint16_t i = 0; i < 16; i++) {
+		//			if (iCache[(iCacheCounter + i) & 0xf].pc == pc) {
+		//				opcodes[1] = iCache[(iCacheCounter + i) & 0xf].opcode;
+		//				goto skipFetch1;
+		//			}
+		//		}
+		//		iCache[iCacheCounter].pc = pc;
+		//		//fetch
+		//		pBus->cpuRead32(pc, iCache[iCacheCounter].opcode, instructionFetchClocks);
+		//		opcodes[1] = iCache[iCacheCounter].opcode;
+		//		iCacheCounter = ++iCacheCounter & 0xf;
+		//		clocks += instructionFetchClocks;
+		//	}
+
+		//skipFetch1:
 
 			opcode_pc_1 = pc;
 			opcode_pc = opcode_pc_0;
@@ -589,8 +633,7 @@ void cpu_t::clock() {
 			decodeExecuteOpcode(opcodes[0]);
 
 			//assumes that all instructions are cached in cached area
-			clocks += (/*instructionFetchClocks +*/ memoryClocks + gteClocks/* - 1*/)/* / 2*/;
-			//clocks = 1;
+			clocks += memoryClocks + gteClocks;
 
 			//debug
 #if DEBUG
@@ -614,11 +657,7 @@ void cpu_t::clock() {
 	if (clocks)
 		clocks--;
 
-
-	/*if (clocks > 16)
-		g_emulationPaused = true;
-	else*/
-	//clocks--;
+	cp2.clock();
 }
 
 //instructions

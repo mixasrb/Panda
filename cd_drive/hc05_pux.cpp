@@ -474,15 +474,15 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
 		|| (stat.elem.play && (mode.elem.report == 0))) {
-		/*bSendINT1 = false;
-		stat.elem.seek = 0;*/
-		bSendINT1 = true; // used for gran turismo 1 and 2 !? breaks bugs bunny
+		bSendINT1 = false;
+		stat.elem.seek = 0;
+		//bSendINT1 = true; //???! // used for gran turismo 1 and 2 !? breaks bugs bunny
 		stat.elem.read = 1; // -//-
 	}
 	else if (!bPlay) {
 		bSendINT1 = true;
 
-		if (stat.elem.play == 0) //??
+		if (stat.elem.play == 0) //??!
 			stat.elem.read = 1;
 
 		pBuffer = (uint8_t*)fileDataVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + (mode.elem.sectorSize ? 0x0c : 0x18));
@@ -881,7 +881,6 @@ void cdDrive::getLocP(const uint8_t& command) {
 void cdDrive::getTN(const uint8_t& command) {
 	uint8_t firstTrack = 1;
 	uint8_t lastTrack = (uint8_t)cdTracks.size();
-	//std::vector<uint8_t> firstResponse = { stat.data, 0x1, 0x1 };
 	std::vector<uint8_t> firstResponse = { stat.data, fromHex8ToBCD(firstTrack), fromHex8ToBCD(lastTrack) };
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 
@@ -1128,6 +1127,6 @@ void cdDrive::printStat() {
 		(stat.elem.read && stat.elem.play) ||
 		(stat.elem.seek && stat.elem.play)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! Play/Seek/Read status bits set at the same time!\n";
-		//g_emulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
