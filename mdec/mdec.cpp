@@ -31,7 +31,6 @@ mdec_t::mdec_t() {
 	for (int i = 0; i < 64; i++) {
 		zagzig[zigzag[i]] = i;
 	}
-
 }
 
 union psxColor16_t {
@@ -208,8 +207,6 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 
 void mdec_t::clock() {
 	if (clocks) {
-
-
 		clocks--;
 
 		if ((statusRegister.elem.dataOutputDepth == 2) ||
@@ -577,6 +574,8 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 
 	if (xx + yy == 16)
 		blockCount++;
+
+	//clocks += 33868800 / 900;
 }
 
 void mdec_t::y_to_mono() {
@@ -599,4 +598,6 @@ void mdec_t::y_to_mono() {
 	dstBlock += 8 / 4 * 8;
 	statusRegister.elem.dataOutFifoEmpty = 0;
 	blockCount++;
+
+	//clocks += 33868800 / 900;
 }

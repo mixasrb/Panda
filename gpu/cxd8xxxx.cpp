@@ -389,9 +389,6 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		/*	if (g_GpuCommandsLogged)
 				std::cout << std::hex << "0x" << data << std::endl;*/
 
-				/*if ((int32_t)collectCount < 0)
-					g_emulationPaused = true;*/
-
 		if (collectCount) {
 			fifo.pushBack(data);
 			collectCount--;
@@ -403,31 +400,14 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		}
 		else {
 			gp0Command = data;
-			//fifo.clear();//!!!!
 			if (!fifo.empty()) {
 				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << fifo.size() << std::endl;
 				g_emulationPaused = true;
 			}
 			fifo.reset();
 
-			//if (data == 0x5a0c803c) // tekken 2 ???
-			//	return;
-			/*if (data == 0x40000827) {
-				pBus->dma.dma2.endDMATransfer();
-				return;
-			}*/
-
-
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
 
-			/*if (collectCount > 30) {
-				gp0Command = 0;
-				collectCount = 0;
-				g_emulationPaused = true;
-			}*/
-			/*if (gp0Command == 0x40000827) {
-				collectCount = 368-1;
-			}*/
 
 			if (((gp0Command >> 24) >= 0xa0) && ((gp0Command >> 24) < 0xc0))
 				bCollectCopyCpuVramParam = true;
@@ -437,14 +417,16 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 
 		if (collectCount == 0) {
 
-			if (g_GpuCommandsLogged)
+			if (g_GpuCommandsLogged) {
 				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command << " " << gp0Lookup[gp0Command >> 24].name << std::endl;
+				std::cout << "~[GPU] memAdrTemp: 0x" << std::hex << pBus->dma.dma2.memAddrTemp << std::endl;
+			}
 
 			decodeExecuteGp0Command(gp0Command);
 
 			//??
-		//	if (pBus->dma.dma2.channelControl.reg.startBusy)
-			fifoCount++;
+			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
+				fifoCount++;*/
 		}
 		return;
 	}
@@ -833,7 +815,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += ((((int)round(u) & 255) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3)) / texBittnesVar.devider;
+			pTex.x += ((((int)round(u) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider))) | ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 			uint16_t data;
 			readVram(pTex, data, true);
@@ -1156,7 +1138,7 @@ void gpu_t::drawTexRect8Bit(const param_t& param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 1) + ((int16_t)((float)x * ratioX) >> 1)) & (255 >> 1) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
+			pTex.x += (((u1 >> 1) + ((int16_t)((float)x * ratioX) >> 1)) & (255 >> 1) & (~(texWinMask.x << 2))) | ((texWinOffset.x & texWinMask.x) << 2);
 
 			p.x = x1 + x;
 
@@ -1219,7 +1201,7 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 2) + ((int16_t)((float)x * ratioX) >> 2)) & (255 >> 2) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
+			pTex.x += (((u1 >> 2) + ((int16_t)((float)x * ratioX) >> 2)) & (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
 
 			p.x = x1 + x;
 

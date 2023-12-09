@@ -313,14 +313,50 @@ void cp2_t::MFC2(uint8_t rt, uint8_t rd) {
 	if (commandBusy)
 		pCpu->gteClocks = clocks;
 
-	pCpu->set(rt, gteRegisters.cp2Data.p[rd].w);
+	uint32_t value = gteRegisters.cp2Data.p[rd].w;
+		if (pCpu->cycle == 0) {
+			if (pCpu->cycle0.bWrite == true)
+				g_emulationPaused = true;
+			pCpu->cycle0.old = pCpu->r[rt];
+			pCpu->cycle0.bWrite = true;
+			pCpu->cycle0.addr = rt;
+			pCpu->cycle0.data = value;
+		}
+		else if (pCpu->cycle == 1) {
+			if (pCpu->cycle1.bWrite == true)
+				g_emulationPaused = true;
+			pCpu->cycle1.old = pCpu->r[rt];
+			pCpu->cycle1.bWrite = true;
+			pCpu->cycle1.addr = rt;
+			pCpu->cycle1.data = value;
+		}
+
+	//pCpu->set(rt, gteRegisters.cp2Data.p[rd].w);
 }
 
 void cp2_t::CFC2(uint8_t rt, uint8_t rd) {
 	if (commandBusy)
 		pCpu->gteClocks = clocks;
 
-	pCpu->set(rt, gteRegisters.cp2Ctrl.p[rd].w);
+	uint32_t value = gteRegisters.cp2Ctrl.p[rd].w;
+	if (pCpu->cycle == 0) {
+		if (pCpu->cycle0.bWrite == true)
+			g_emulationPaused = true;
+		pCpu->cycle0.old = pCpu->r[rt];
+		pCpu->cycle0.bWrite = true;
+		pCpu->cycle0.addr = rt;
+		pCpu->cycle0.data = value;
+	}
+	else if (pCpu->cycle == 1) {
+		if (pCpu->cycle1.bWrite == true)
+			g_emulationPaused = true;
+		pCpu->cycle1.old = pCpu->r[rt];
+		pCpu->cycle1.bWrite = true;
+		pCpu->cycle1.addr = rt;
+		pCpu->cycle1.data = value;
+	}
+
+	//pCpu->set(rt, gteRegisters.cp2Ctrl.p[rd].w);
 }
 
 void cp2_t::MTC2(uint8_t rt, uint8_t rd) {

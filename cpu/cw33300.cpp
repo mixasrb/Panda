@@ -560,11 +560,11 @@ void cpu_t::clock() {
 #endif
 
 			//skullmonkeys
-			/*if (cycle0.bWrite) {
+			if (cycle0.bWrite) {
 				cycle0.bWrite = false;
 				if (r[cycle0.addr] == cycle0.old)
 					r[cycle0.addr] = cycle0.data;
-			}*/
+			}
 
 			//debug
 #if DEBUG
@@ -641,11 +641,11 @@ void cpu_t::clock() {
 #endif
 
 			//skullmonkeys
-			/*if (cycle1.bWrite) {
+			if (cycle1.bWrite) {
 				cycle1.bWrite = false;
 				if (r[cycle1.addr] == cycle1.old)
 					r[cycle1.addr] = cycle1.data;
-			}*/
+			}
 
 #if DEBUG
 			isInstructionExecuted = true;
