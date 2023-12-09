@@ -100,7 +100,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vagrant Story (USA).bin");
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VIII (USA) (Disc 1).bin"); //mdec timing issues // graphic issues due to texture window seems fixed //[BUS] EMULATION PASUED! unhandled read8 0x1f801d68
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VIII (USA) (Disc 1).bin"); //mdec timing issues // graphic issues due to texture window seems fixed //[BUS] EMULATION PASUED! unhandled read8 0x1f801d68
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/C - The Contra Adventure (USA)/C - The Contra Adventure (USA) (Track 01).bin");
 
@@ -198,7 +198,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy V
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/crash bash.bin"); //GetTN ?! //cdrom probably 1F801803h.Index1 read stuck fixed // pause screen missing textures
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (Europe) (En,Fr,De,Es,It).bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (USA).bin");//no input//trows an exeption
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro 2 - Ripto's Rage! (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (USA) (v1.1).bin");
