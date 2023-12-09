@@ -100,7 +100,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vagrant Story (USA).bin");
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VIII (USA) (Disc 1).bin"); //mdec timing issues, ang graphic issues ////[BUS] EMULATION PASUED! unhandled read8 0x1f801d68
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy VIII (USA) (Disc 1).bin"); //mdec timing issues // graphic issues due to texture window seems fixed //[BUS] EMULATION PASUED! unhandled read8 0x1f801d68
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/C - The Contra Adventure (USA)/C - The Contra Adventure (USA) (Track 01).bin");
 
