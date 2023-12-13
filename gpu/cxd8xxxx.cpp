@@ -10,10 +10,6 @@
 #include <vector>
 #include <map>
 
-static uint16_t signed11bit(uint16_t val) {
-	return ((int16_t)(val << 5)) >> 5;
-}
-
 class Slope
 {
 	float begin, step;
@@ -95,6 +91,10 @@ extern bool g_logPixel;
 
 #undef DISABLE_SCALING
 #define DISABLE_SCALING 0
+
+static uint16_t signed11bit(uint16_t val) {
+	return ((int16_t)(val << 5)) >> 5;
+}
 
 gpu_t::gpu_t() {
 	gpuStat.data = 0x14000000;
@@ -444,6 +444,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 void gpu_t::videoClock() {
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
 		cpuScanlineClocks = 0;
+
 		if (!gpuStat.elem.verticalRes)
 			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
@@ -451,10 +452,12 @@ void gpu_t::videoClock() {
 		pBus->timer1.clock(_HBLANK_CLOCK);
 		pBus->timer0.clock(_HBLANK_CLOCK);
 
-
+		if (scanlineCount == 0)
+			if (gpuStat.elem.verticalRes)
+				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
 		scanlineCount++;
-		if (scanlineCount == SCANLINE_NUMBER_PAL) {
+		if (scanlineCount == SCANLINE_NUMBER_NTSC) {
 			scanlineCount = -1;
 
 			//fifoCount = 0;
@@ -464,18 +467,21 @@ void gpu_t::videoClock() {
 			//V-Sync interrupt is naturally edge trigered
 			pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
 
-			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
-				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
-
-			if (pBus->spu.spuControlRegister.elem.irq9Enable) { //metal gear solid
-				pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-				pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+			if (pBus->spu.spuControlRegister.elem.irq9Enable) {
+				if ((pBus->spu.irqAddress < 0x1000) ||
+					(pBus->spu.irqAddress >= pBus->spu.reverbCurrentAddress)) {
+					pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+					pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+				}
 			}
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
 		}
+
+		if (scanlineCount >= 240)
+			gpuStat.elem.drawingEvenOddLines = 0;
 	}
 
 	if ((cpuScanlineClocks & 0xf) == 0)
@@ -489,10 +495,10 @@ void gpu_t::videoClock() {
 	//	}
 	//}
 
-	//if (cpuClocks == CPU_CLOCK)
-	//	cpuClocks = 0;
-
-	//cpuClocks++;
+	if (cpuClocks == CPU_CLOCK)
+		cpuClocks = 0;
+	else
+		cpuClocks++;
 
 
 	cpuScanlineClocks++;
@@ -763,6 +769,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	case 2: //15bit
 		texBittnesVar.bit15 = true;
 		texBittnesVar.devider = 1;
+		texBittnesVar.firstAnder = 0x0;
 		break;
 	case 3: //Reserved
 		g_emulationPaused = true;
@@ -806,8 +813,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 
 	DrawPolygonInterpolated(
 		p0, p1, p2,
-		[&](int x, int y, int b, int g, int r, int u, int v)
-		{
+		[&](int x, int y, int b, int g, int r, int u, int v) {
 			vertex_t p((int16_t)x, (int16_t)y);
 
 			vertex_t pTex;
@@ -815,7 +821,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += ((((int)round(u) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider))) | ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
+			pTex.x += (((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+				| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 			uint16_t data;
 			readVram(pTex, data, true);
@@ -825,7 +832,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			else {
 				vertex_t pClut;
 				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> (((int)round(u) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+					((data >> ((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 				pClut.y = clut.elem.yCoord;
 				readVram(pClut, frontPixelColor.data, true);
 			}
@@ -863,8 +870,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 
 		DrawPolygonInterpolated(
 			p0, p1, p2,
-			[&](int x, int y, int b, int g, int r, int u, int v)
-			{
+			[&](int x, int y, int b, int g, int r, int u, int v) {
 				vertex_t p((int16_t)x, (int16_t)y);
 
 				vertex_t pTex;
@@ -872,7 +878,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 				pTex.x = gpuStat.elem.texPageXBase << 6;
-				pTex.x += ((((int)round(u) & 255) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3)) / texBittnesVar.devider;
+				pTex.x += (((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+					| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 				uint16_t data;
 				readVram(pTex, data, true);
@@ -882,7 +889,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				else {
 					vertex_t pClut;
 					pClut.x = (clut.elem.xCoord << 4) +
-						((data >> (((int)round(u) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+						((data >> ((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 					pClut.y = clut.elem.yCoord;
 					readVram(pClut, frontPixelColor.data, true);
 				}
@@ -1138,13 +1145,13 @@ void gpu_t::drawTexRect8Bit(const param_t& param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 1) + ((int16_t)((float)x * ratioX) >> 1)) & (255 >> 1) & (~(texWinMask.x << 2))) | ((texWinOffset.x & texWinMask.x) << 2);
+			pTex.x += (((u1 >> 1) + (((int16_t)((float)x * ratioX) + (u1 & 0x1)) >> 1)) & (255 >> 1) & (~(texWinMask.x << 2))) | ((texWinOffset.x & texWinMask.x) << 2);
 
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
 			pClut.x = clut.elem.xCoord * 16 +
-				(texData >> (((int16_t)((float)x * ratioX) & 0x1) * 8) & 0xff);
+				(texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x1)) & 0x1) * 8) & 0xff);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, frontPixelColor.data, true);
 
@@ -1183,6 +1190,7 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 	int16_t y2 = y1 + ((param.size_y_x >> 16) & 0xffff);
 
 	psxColor16_t frontPixelColor;
+	psxColor16_t randa = rand() & 0x7fff;
 	vertex_t p;
 
 	float ratioX = ((float)(u2 - u1) / (float)(x2 - x1));
@@ -1201,13 +1209,13 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 2) + ((int16_t)((float)x * ratioX) >> 2)) & (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
+			pTex.x += (((u1 >> 2) + (((int16_t)((float)x * ratioX) + (u1 & 0x3)) >> 2)) & (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
 
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
 			pClut.x = (clut.elem.xCoord << 4) +
-				(texData >> (((int16_t)((float)x * ratioX) & 0x3) << 2) & 0xf);
+				((texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x3)) & 0x3) << 2)) & 0xf);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, frontPixelColor.data, true);
 
@@ -1225,6 +1233,8 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 					calculateTransparency(p, frontPixelColor);
 				writeVram(p, frontPixelColor.data);
 			}
+			/*else
+				writeVram(p, randa.data);*/
 		}
 	}
 }

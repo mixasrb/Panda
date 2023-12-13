@@ -1,4 +1,5 @@
 #include "spu.h"
+#include "../bus/bus_interface.h"
 
 extern bool g_emulationPaused;
 extern uint32_t g_systemClocks;
@@ -88,8 +89,22 @@ spu_t::spu_t() {
 
 void spu_t::read32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
-	std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-	g_emulationPaused = true;
+	if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbc)) {
+		switch (addr) {
+		case 0x1f801d9c:
+			data = voices.channelOnOff.data;
+			break;
+
+		default:
+			std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
+			g_emulationPaused = true;
+			break;
+		}
+	}
+	else {
+		std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
+		g_emulationPaused = true;
+	}
 }
 
 void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
@@ -123,8 +138,9 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		case 0x1f801d88:
-			/*	std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-					<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+			/*std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOn.data |= data;
 			voices.tempKeyOn.data = data;
 			for (int voice = 0; voice < 24; voice++) {
@@ -149,6 +165,7 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 		case 0x1f801d8c:
 			/*std::cout << "[SPU] Key Off 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOff.data |= data;
 			voices.tempKeyOff.data = data;
 			for (uint32_t voice = 0; voice < 24; voice++) {
@@ -234,7 +251,7 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		case 0xc:
-			data = voices.voiceRegisters[voiceIndex].adsrCurrentVolume.data;
+			data = voices.voiceRegisters[voiceIndex].adsrLevel;
 			break;
 
 		case 0xe:
@@ -416,7 +433,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0xc:
-			voices.voiceRegisters[voiceIndex].adsrCurrentVolume.data = data;
+			voices.voiceRegisters[voiceIndex].adsrLevel = (int32_t)(int16_t)data;
 			break;
 
 		case 0xe:
@@ -450,9 +467,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d88:
 			/*std::cout << "[SPU] Key On8 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOn.hw.l |= data;
 			voices.tempKeyOn.hw.l = data;
-			for (int voice = 0; voice < 24; voice++) {
+			for (int voice = 0; voice < 16; voice++) {
 				if (((uint32_t)data >> voice) & 0x1) {
 					voices.voiceRegisters[voice].adpcmRepeatAddress.data =
 						voices.voiceRegisters[voice].adpcmStartAddress.data;
@@ -474,9 +492,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d8a:
 			/*std::cout << "[SPU] Key Ona 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOn.hw.h |= data;
 			voices.tempKeyOn.hw.h = data;
-			for (int voice = 0; voice < 24; voice++) {
+			for (int voice = 16; voice < 24; voice++) {
 				if ((((uint32_t)data << 16) >> voice) & 0x1) {
 					voices.voiceRegisters[voice].adpcmRepeatAddress.data =
 						voices.voiceRegisters[voice].adpcmStartAddress.data;
@@ -498,9 +517,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d8c:
 			/*std::cout << "[SPU] Key Offc 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOff.hw.l |= data;
 			voices.tempKeyOff.hw.l = data;
-			for (uint32_t voice = 0; voice < 24; voice++) {
+			for (uint32_t voice = 0; voice < 16; voice++) {
 				if (((uint32_t)data >> voice) & 0x1) {
 					//if (voices.voiceRegisters[voice].sustain) {
 					voices.voiceRegisters[voice].attack = false;
@@ -516,9 +536,10 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d8e:
 			/*std::cout << "[SPU] Key Offe 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
+
 			voices.keyOff.hw.h |= data;
 			voices.tempKeyOff.hw.h = data;
-			for (uint32_t voice = 0; voice < 24; voice++) {
+			for (uint32_t voice = 16; voice < 24; voice++) {
 				if ((((uint32_t)data << 16) >> voice) & 0x1) {
 					//if (voices.voiceRegisters[voice].sustain) {
 					voices.voiceRegisters[voice].attack = false;
@@ -566,16 +587,17 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x1f801da2:
 			dramReverbWorkAreaStartAddress.data = data;
-			reverbCurrentAddress = dramReverbWorkAreaStartAddress.data * 8;
+			reverbCurrentAddress = dramReverbWorkAreaStartAddress.data << 3;
 			break;
 
 		case 0x1f801da4:
 			dram_IRQ_Address.data = data;
+			irqAddress = data << 3;
 			break;
 
 		case 0x1f801da6:
 			dramDataTransferAddress.data = data;
-			currentAddress = dramDataTransferAddress.data * 8;
+			currentAddress = dramDataTransferAddress.data << 3;
 			//if (currentAddress >= DRAM_SIZE) {
 			/*	std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
 					<< std::hex << currentAddress << "\n";*/
@@ -670,19 +692,38 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 	}
 }
 
+void spu_t::irqSend() {
+	if (spuControlRegister.elem.irq9Enable) { //metal gear solid
+		pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+		spuStatusRegister.elem.irq9Flag = 1;
+	}
+}
+
 uint16_t spu_t::readDram16(const uint32_t& addr) {
+	if (irqAddress == addr)
+		irqSend();
+
 	return *(uint16_t*)(dram + addr);
 }
 
 void spu_t::writeDram16(const uint32_t& addr, const uint16_t& data) {
+	if (irqAddress == addr)
+		irqSend();
+
 	*(uint16_t*)(dram + addr) = data;
 }
 
 void spu_t::readDram8(const uint32_t& addr, uint8_t& data) {
+	if (irqAddress == addr)
+		irqSend();
+
 	data = dram[addr];
 }
 
 void spu_t::writeDram8(const uint32_t& addr, const uint8_t& data) {
+	if (irqAddress == addr)
+		irqSend();
+
 	dram[addr] = data;
 }
 
@@ -832,10 +873,10 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	if (release) {
 		if (adsrCycles == 0) {
 			uint32_t shiftValue = adsr.elem.releaseShift;
-			adsrCycles = 1 << max(0, shiftValue - 11);
+			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
 			//adsrCycles *= 4000;
 			int32_t stepValue = -8;
-			adsrStep = stepValue << max(0, 11 - shiftValue);
+			adsrStep = stepValue << max(0, 11 - (int32_t)shiftValue);
 
 			bool exponential = adsr.elem.releaseMode;
 			if (exponential)
@@ -854,10 +895,10 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	if (attack) {
 		if (adsrCycles == 0) {
 			uint32_t shiftValue = adsr.elem.attackShift;
-			adsrCycles = 1 << max(0, shiftValue - 11);
+			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
 
 			int32_t stepValue = 7 - adsr.elem.attackStep;
-			adsrStep = stepValue << max(0, 11 - adsr.elem.attackShift);
+			adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.attackShift);
 
 			bool exponential = adsr.elem.attackMode;
 			if (exponential && (adsrLevel > 0x6000))
@@ -876,10 +917,10 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	else if (decay) {
 		if (adsrCycles == 0) {
 			uint32_t shiftValue = adsr.elem.decayShift;
-			adsrCycles = 1 << max(0, shiftValue - 11);
+			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
 
 			int32_t stepValue = -8;
-			adsrStep = stepValue << max(0, 11 - adsr.elem.decayShift);
+			adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.decayShift);
 
 			adsrStep = adsrStep * adsrLevel / 0x8000;
 
@@ -896,13 +937,13 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 
 	}
 	else if (sustain) {
-		if (adsrCycles == 0) {
+		/*if (adsrCycles == 0) {
 			uint32_t shiftValue = adsr.elem.sustainShift;
 			adsrCycles = 1 << max(0, shiftValue - 11);
 
 			bool increase = !adsr.elem.sustainDirection;
 			int32_t stepValue =
-				(increase) ? -8 + adsr.elem.sustainStep : 7 - adsr.elem.sustainStep;
+				increase ? 7 - adsr.elem.sustainStep : -8 + adsr.elem.sustainStep;
 			adsrStep = stepValue << max(0, 11 - shiftValue);
 
 
@@ -911,10 +952,12 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 				adsrCycles *= 4;
 			else if (exponential && !increase)
 				adsrStep = adsrStep * adsrLevel / 0x8000;
-
-			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 		}
-		adsrCycles--;
+		else
+			adsrCycles--;
+
+		if (adsrCycles == 0)
+			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);*/
 	}
 
 	output_t output;
@@ -926,166 +969,167 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 
 	return output;
 }
-template<typename T>
-static T max(T a, T b) {
-	return (a > b) ? a : b;
-}
 
-int16_t spu_t::reverbVoice(const uint16_t& input, const uint8_t& cycle) {
-
-#undef vLOUT
-#undef vROUT
-#undef mBASE
-#undef dAPF1
-#undef dAPF2
-#undef vIIR
-#undef vCOMB1
-#undef vCOMB2
-#undef vCOMB3
-#undef vCOMB4
-#undef vWALL
-#undef vAPF1
-#undef vAPF2
-#undef mLSAME
-#undef mRSAME
-#undef mLCOMB1
-#undef mRCOMB1
-#undef mLCOMB2
-#undef mRCOMB2
-#undef dLSAME
-#undef dRSAME
-#undef mLDIFF
-#undef mRDIFF
-#undef mLCOMB3
-#undef mRCOMB3
-#undef mLCOMB4
-#undef mRCOMB4
-#undef dLDIFF
-#undef dRDIFF
-#undef mLAPF1
-#undef mRAPF1
-#undef mLAPF2
-#undef mRAPF2
-#undef vLIN
-#undef vRIL
-
-#define vLOUT (int16_t)reverbOutputVolumeLeftRight.hw.l
-#define vROUT (int16_t)reverbOutputVolumeLeftRight.hw.h
-#define mBASE dramReverbWorkAreaStartAddress.data
-#define dAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dc0 - 0x1f801dc0)) << 3
-#define dAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dc2 - 0x1f801dc0)) << 3
-#define vIIR (int32_t)*((int16_t*)(reverb + 0x1f801dc4 - 0x1f801dc0))
-#define vCOMB1 (int32_t)*((int16_t*)(reverb + 0x1f801dc6 - 0x1f801dc0))
-#define vCOMB2 (int32_t)*((int16_t*)(reverb + 0x1f801dc8 - 0x1f801dc0))
-#define vCOMB3 (int32_t)*((int16_t*)(reverb + 0x1f801dca - 0x1f801dc0))
-#define vCOMB4 (int32_t)*((int16_t*)(reverb + 0x1f801dcc - 0x1f801dc0))
-#define vWALL (int32_t)*((int16_t*)(reverb + 0x1f801dce - 0x1f801dc0))
-#define vAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dd0 - 0x1f801dc0))
-#define vAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dd2 - 0x1f801dc0))
-
-#define mLSAME max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd4 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRSAME max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd6 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLCOMB1 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd8 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRCOMB1 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dda - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLCOMB2 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801ddc - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRCOMB2 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dde - 0x1f801dc0)) << 3) & 0x7fffe)
-#define dLSAME max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de0 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define dRSAME max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de2 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLDIFF max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de4 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRDIFF max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de6 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLCOMB3 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de8 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRCOMB3 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dea - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLCOMB4 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dec - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRCOMB4 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dee - 0x1f801dc0)) << 3) & 0x7fffe)
-#define dLDIFF max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df0 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define dRDIFF max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df2 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLAPF1 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df4 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRAPF1 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df6 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mLAPF2 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df8 - 0x1f801dc0)) << 3) & 0x7fffe)
-#define mRAPF2 max(reverbCurrentAddress, \
-	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dfa - 0x1f801dc0)) << 3) & 0x7fffe)
-
-#define vLIN (int32_t)*((int16_t*)(reverb + 0x1f801dfc - 0x1f801dc0))
-#define vRIN (int32_t)*((int16_t*)(reverb + 0x1f801dfe - 0x1f801dc0))
-
-
-
-	if (cycle == 0) { //left
-
-		uint16_t Lin = (vLIN * input) >> 15;
-
-		writeDram16(mLSAME,
-			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dLSAME) >> 15) - readDram16(dLSAME - 2)) >> 15) +
-			readDram16(dLSAME - 2));
-
-		writeDram16(mLDIFF,
-			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dRDIFF) >> 15) - readDram16(mLDIFF - 2)) >> 15) +
-			readDram16(mLDIFF - 2));
-
-		uint16_t Lout = (uint16_t)(vCOMB1 * readDram16(mLCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mLCOMB2) >> 15) +
-			(uint16_t)(vCOMB3 * readDram16(mLCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mLCOMB4) >> 15);
-
-		Lout = Lout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe)));
-		writeDram16(mLAPF1, Lout);
-		Lout = (uint16_t)(vAPF1 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe));
-
-		Lout = Lout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe)));
-		writeDram16(mLAPF2, Lout);
-		Lout = (uint16_t)(vAPF2 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe));
-
-		return vLOUT * Lout >> 15;
-	}
-	else { //right
-
-		uint16_t Rin = (vRIN * input) >> 15;
-
-		writeDram16(mRSAME,
-			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dRSAME) >> 15) - readDram16(dRSAME - 2)) >> 15) +
-			readDram16(dRSAME - 2));
-
-		writeDram16(mRDIFF,
-			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dLDIFF) >> 15) - readDram16(mRDIFF - 2)) >> 15) +
-			readDram16(mRDIFF - 2));
-
-		uint16_t Rout = (uint16_t)(vCOMB1 * readDram16(mRCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mRCOMB2) >> 15) +
-			(uint16_t)(vCOMB3 * readDram16(mRCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mRCOMB4) >> 15);
-
-		Rout = Rout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe)));
-		writeDram16(mRAPF1, Rout);
-		Rout = (uint16_t)(vAPF1 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe));
-
-		Rout = Rout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe)));
-		writeDram16(mRAPF2, Rout);
-		Rout = (uint16_t)(vAPF2 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe));
-
-
-		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
-
-		return vROUT * Rout >> 15;
-	}
-
-
-	//return 0;
-}
+//template<typename T>
+//static T max(T a, T b) {
+//	return (a > b) ? a : b;
+//}
+//
+//int16_t spu_t::reverbVoice(const uint16_t& input, const uint8_t& cycle) {
+//
+//#undef vLOUT
+//#undef vROUT
+//#undef mBASE
+//#undef dAPF1
+//#undef dAPF2
+//#undef vIIR
+//#undef vCOMB1
+//#undef vCOMB2
+//#undef vCOMB3
+//#undef vCOMB4
+//#undef vWALL
+//#undef vAPF1
+//#undef vAPF2
+//#undef mLSAME
+//#undef mRSAME
+//#undef mLCOMB1
+//#undef mRCOMB1
+//#undef mLCOMB2
+//#undef mRCOMB2
+//#undef dLSAME
+//#undef dRSAME
+//#undef mLDIFF
+//#undef mRDIFF
+//#undef mLCOMB3
+//#undef mRCOMB3
+//#undef mLCOMB4
+//#undef mRCOMB4
+//#undef dLDIFF
+//#undef dRDIFF
+//#undef mLAPF1
+//#undef mRAPF1
+//#undef mLAPF2
+//#undef mRAPF2
+//#undef vLIN
+//#undef vRIL
+//
+//#define vLOUT (int16_t)reverbOutputVolumeLeftRight.hw.l
+//#define vROUT (int16_t)reverbOutputVolumeLeftRight.hw.h
+//#define mBASE dramReverbWorkAreaStartAddress.data
+//#define dAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dc0 - 0x1f801dc0)) << 3
+//#define dAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dc2 - 0x1f801dc0)) << 3
+//#define vIIR (int32_t)*((int16_t*)(reverb + 0x1f801dc4 - 0x1f801dc0))
+//#define vCOMB1 (int32_t)*((int16_t*)(reverb + 0x1f801dc6 - 0x1f801dc0))
+//#define vCOMB2 (int32_t)*((int16_t*)(reverb + 0x1f801dc8 - 0x1f801dc0))
+//#define vCOMB3 (int32_t)*((int16_t*)(reverb + 0x1f801dca - 0x1f801dc0))
+//#define vCOMB4 (int32_t)*((int16_t*)(reverb + 0x1f801dcc - 0x1f801dc0))
+//#define vWALL (int32_t)*((int16_t*)(reverb + 0x1f801dce - 0x1f801dc0))
+//#define vAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dd0 - 0x1f801dc0))
+//#define vAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dd2 - 0x1f801dc0))
+//
+//#define mLSAME max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd4 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRSAME max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd6 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLCOMB1 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd8 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRCOMB1 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dda - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLCOMB2 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801ddc - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRCOMB2 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dde - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define dLSAME max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de0 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define dRSAME max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de2 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLDIFF max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de4 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRDIFF max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de6 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLCOMB3 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de8 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRCOMB3 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dea - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLCOMB4 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dec - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRCOMB4 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dee - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define dLDIFF max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df0 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define dRDIFF max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df2 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLAPF1 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df4 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRAPF1 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df6 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mLAPF2 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df8 - 0x1f801dc0)) << 3) & 0x7fffe)
+//#define mRAPF2 max(reverbCurrentAddress, \
+//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dfa - 0x1f801dc0)) << 3) & 0x7fffe)
+//
+//#define vLIN (int32_t)*((int16_t*)(reverb + 0x1f801dfc - 0x1f801dc0))
+//#define vRIN (int32_t)*((int16_t*)(reverb + 0x1f801dfe - 0x1f801dc0))
+//
+//
+//
+//	if (cycle == 0) { //left
+//
+//		uint16_t Lin = (vLIN * input) >> 15;
+//
+//		writeDram16(mLSAME,
+//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dLSAME) >> 15) - readDram16(dLSAME - 2)) >> 15) +
+//			readDram16(dLSAME - 2));
+//
+//		writeDram16(mLDIFF,
+//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dRDIFF) >> 15) - readDram16(mLDIFF - 2)) >> 15) +
+//			readDram16(mLDIFF - 2));
+//
+//		uint16_t Lout = (uint16_t)(vCOMB1 * readDram16(mLCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mLCOMB2) >> 15) +
+//			(uint16_t)(vCOMB3 * readDram16(mLCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mLCOMB4) >> 15);
+//
+//		Lout = Lout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe)));
+//		writeDram16(mLAPF1, Lout);
+//		Lout = (uint16_t)(vAPF1 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe));
+//
+//		Lout = Lout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe)));
+//		writeDram16(mLAPF2, Lout);
+//		Lout = (uint16_t)(vAPF2 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe));
+//
+//		return vLOUT * Lout >> 15;
+//	}
+//	else { //right
+//
+//		uint16_t Rin = (vRIN * input) >> 15;
+//
+//		writeDram16(mRSAME,
+//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dRSAME) >> 15) - readDram16(dRSAME - 2)) >> 15) +
+//			readDram16(dRSAME - 2));
+//
+//		writeDram16(mRDIFF,
+//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dLDIFF) >> 15) - readDram16(mRDIFF - 2)) >> 15) +
+//			readDram16(mRDIFF - 2));
+//
+//		uint16_t Rout = (uint16_t)(vCOMB1 * readDram16(mRCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mRCOMB2) >> 15) +
+//			(uint16_t)(vCOMB3 * readDram16(mRCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mRCOMB4) >> 15);
+//
+//		Rout = Rout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe)));
+//		writeDram16(mRAPF1, Rout);
+//		Rout = (uint16_t)(vAPF1 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe));
+//
+//		Rout = Rout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe)));
+//		writeDram16(mRAPF2, Rout);
+//		Rout = (uint16_t)(vAPF2 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe));
+//
+//
+//		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
+//
+//		return vROUT * Rout >> 15;
+//	}
+//
+//
+//	//return 0;
+//}
 
 
 float spu_t::clock() {
@@ -1093,8 +1137,12 @@ float spu_t::clock() {
 	out.channel1 = 0.0f;
 	out.channel2 = 0.0f;
 
+	i = 0;
 	for (int voice = 0; voice < 24; voice++) {
+		outTemp = out.channel1;
 		out = out + voices.voiceRegisters[voice].envelope(voices.output(voice));
+		if (out.channel1 != outTemp)
+			i++;
 
 		//if ((((uint32_t)voices.channelReverbMode.data << 16) >> voice) & 0x1)
 		//	if (cycle == 0)
@@ -1103,8 +1151,11 @@ float spu_t::clock() {
 		//		out.channel1 = reverbVoice(out.channel2, 1);
 	}
 
-	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f;
-	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f;
+	if (i == 0)
+		i++;
+
+	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f /*/ (float)i*/;
+	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f /*/ (float)i*/;
 
 	cycle = !cycle;
 

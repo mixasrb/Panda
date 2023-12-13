@@ -150,19 +150,19 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		clocks = 3;//?? no doc
 	}
 	else if (TIMERS) {
-		uint16_t datum;
-		switch (addr << 24 >> 28) {
+		uint32_t temp;
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, &datum);
-			data = datum;
+			timer0.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, &datum);
-			data = datum;
+			timer1.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, &datum);
-			data = datum;
+			timer2.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read32 0x" << std::hex << addr << "\n";
@@ -178,6 +178,10 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	else if (MDEC) {
 		pMdec->readMdec32(addr, data);
 		clocks = 3;
+	}
+	else if (SPU) {
+		spu.read32(addr, data);
+		clocks = 39;
 	}
 	//BIOS ROM
 	else if (BIOS) {
@@ -205,7 +209,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	}
 	else if (CACHE_CONTROL) {
 		data = cacheControl;
-		std::cout << "[BUS] unhandled cache control reg read32 0x" << std::hex << addr << "\n";
+		//std::cout << "[BUS] unhandled cache control reg read32 0x" << std::hex << addr << "\n";
 		//g_emulationPaused = true;
 		clocks = 2;
 	}
@@ -287,6 +291,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 				g_emulationPaused = true;
 			}
+
 			delayRegisters[(addr - 0x1f801000 - 0x8) >> 2].data = data;
 			registerDelays[(addr - 0x1f801000 - 0x8) >> 2] = calculateDelays(delayRegisters[(addr - 0x1f801000 - 0x8) >> 2]);
 			break;
@@ -318,7 +323,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		pCpu->cp0.updateInterruptMaskStat();
 	}
 	else if (TIMERS) {
-		switch (addr << 24 >> 28) {
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
 			timer0.WriteTimer32(addr, data);
 			break;
@@ -347,17 +352,20 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 	else if (CACHE_CONTROL) {
 		cacheControl = data;
 
-	/*	if (cacheControl != 0x0001e988)
-			pCpu->iCacheEnabled = false;
-		else 
-			pCpu->iCacheEnabled = true;
+		/*	if (cacheControl != 0x0001e988)
+				pCpu->iCacheEnabled = false;
+			else
+				pCpu->iCacheEnabled = true;
 
 
-		for (uint16_t i = 0; i < 16; i++) {
-			pCpu->iCache[i].pc = 0xffffffff;
-		}*/
+			for (uint16_t i = 0; i < 16; i++) {
+				pCpu->iCache[i].pc = 0xffffffff;
+			}*/
 
-		std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+		if ((data != 0x0001e988) && (data != 0x00000804) && (data != 0x00000800)) {
+			std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
 	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -408,19 +416,19 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 	}
 	//Ussed only in shell??
 	else if (TIMERS) {
-		uint16_t datum;
-		switch (addr << 24 >> 28) {
+		uint32_t temp;
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, &datum);
-			data = datum;
+			timer0.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, &datum);
-			data = datum;
+			timer1.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, &datum);
-			data = datum;
+			timer2.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read16 0x" << std::hex << addr << "\n";
@@ -501,7 +509,7 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 		pCpu->cp0.updateInterruptMaskStat();
 	}
 	else if (TIMERS) {
-		switch (addr << 24 >> 28) {
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
 			timer0.WriteTimer32(addr, data);
 			break;

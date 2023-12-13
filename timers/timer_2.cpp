@@ -3,37 +3,39 @@
 
 extern bool g_emulationPaused;
 
-void timer2_t::ReadTimer32(const uint32_t& addr, uint16_t* data) {
-	switch (addr << 28 >> 28)
-	{
+void timer2_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
+	switch (addr & 0xf) {
 	case 0:
-		*data = currentValue.data;
+		data = currentValue.data;
 		break;
+
 	case 4:
-		*data = counterMode.data;
+		data = counterMode.data;
+
 		counterMode.elem.reachedTarget = 0;
 		counterMode.elem.reachedFFFF = 0;
 		break;
+
 	case 8:
-		*data = targetValue.data;
+		data = targetValue.data;
 		break;
 	}
 }
 
-void timer2_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
-	switch (addr << 28 >> 28) {
+void timer2_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
+	switch (addr & 0xf) {
 	case 0:
-		currentValue.data = data;
+		currentValue.data = 0;
 		break;
+
 	case 4:
-		counterMode.data = data;
+		counterMode.data = data & 0x3ff;
 		mode = counterMode.data & 0x3ff;
+
+		counterMode.elem.irq = 1;
 
 		clockSource = (counterMode.elem.clockSource & 0x2) ?
 			SYSTEM_CLOCK : SYSTEM_CLOCK;
-
-		if (counterMode.elem.synchronizationMode == 3)
-			bSynchronize = true;
 
 		if ((mode != 0x000) && (mode != 0x248) &&
 			(mode != 0x258)) {
@@ -41,50 +43,61 @@ void timer2_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
 			g_emulationPaused = true;
 		}
 		break;
+
 	case 8:
 		targetValue.data = data;
+		break;
+
+	default:
+		std::cout << "[TIMER2] EMULATION PAUSED! unhandled timer addr 0x" << std::hex << addr << std::endl;
+		g_emulationPaused = true;
 		break;
 	}
 }
 
 void timer2_t::clock(const uint8_t& source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
-		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
-			counterMode.elem.resetCounterTo) {
-			currentValue.elem.currentCounterValue = 0;
+		uint8_t irqOld = counterMode.elem.irq;
+
+		if (currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) {
+
 			counterMode.elem.reachedTarget = 1;
 
-			if (counterMode.elem.irqWhenTarget) {
-				if (counterMode.elem.irq == 1)
-					pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_2);
-				counterMode.elem.irq = 0;
-			}
-			return;
-		}
+			if (counterMode.elem.resetCounterTo0AfterTarget)
+				currentValue.elem.currentCounterValue = 0;
 
-		if ((currentValue.elem.currentCounterValue == 0xffff) &&
-			!counterMode.elem.resetCounterTo) {
-			currentValue.elem.currentCounterValue = 0;
+			if (counterMode.elem.irqWhenTarget) {
+				counterMode.elem.irq = 0;
+				pulsingTime = 0;
+			}
+		}
+		else if (currentValue.elem.currentCounterValue == 0xffff) {
+
 			counterMode.elem.reachedFFFF = 1;
-			return;
+
+			currentValue.elem.currentCounterValue = 0;
 		}
 
 		//pulsing
 		if ((!counterMode.elem.irqPulseToggle) &&
-			(counterMode.elem.irq == 0) &&
-			(currentValue.elem.currentCounterValue == 32))
-			counterMode.elem.irq = 1;
+			(counterMode.elem.irq == 0))
+			if (pulsingTime == 8)
+				counterMode.elem.irq = 1;
+			else
+				pulsingTime++;
+
+		if ((irqOld == 1) && (counterMode.elem.irq == 0))
+			pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_2);
 
 		if (counterMode.elem.clockSource & 0x2) {
 			if (clocks == 8) {
 				clocks = 0;
 				currentValue.elem.currentCounterValue++;
-				return;
 			}
-			clocks++;
-			return;
+			else
+				clocks++;
 		}
-
-		currentValue.elem.currentCounterValue++;
+		else
+			currentValue.elem.currentCounterValue++;
 	}
 }

@@ -33,9 +33,9 @@ public:
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 	const uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
-	const uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / 263;
 	const uint32_t SCANLINE_NUMBER_NTSC = 263;
 	const uint32_t SCANLINE_NUMBER_PAL = 314;
+	const uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / SCANLINE_NUMBER_NTSC;
 
 	uint32_t cpuClocks = 0;
 	uint32_t cpuFrameClocks = 0;

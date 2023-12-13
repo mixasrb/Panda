@@ -11,6 +11,8 @@
 
 #define DRAM_SIZE 512 * 1024 
 
+class busInterface_t;
+
 struct output_t {
 	float channel1;
 	float channel2;
@@ -37,6 +39,7 @@ public:
 
 	float clock();
 
+	busInterface_t* pBus;
 
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
 	uint8_t* reverb = new uint8_t[64];
@@ -293,7 +296,7 @@ public:
 		int16_t output(const uint8_t& voice);
 	};
 
-	int32_t reverbCurrentAddress;
+	uint32_t reverbCurrentAddress;
 	int16_t reverbVoice(const uint16_t& input, const uint8_t& cycle);
 
 	voices_t voices;
@@ -392,6 +395,11 @@ public:
 	std::vector<int16_t> gauss;
 
 	uint8_t cycle = 0;
+	int i = 0;
+	float outTemp = 0;
+	uint32_t irqAddress = 0;
+	void irqSend();
+
 	//debug
 	debugUtilities* pDebugger = nullptr;
 };

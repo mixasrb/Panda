@@ -3,30 +3,33 @@
 
 extern bool g_emulationPaused;
 
-void timer0_t::ReadTimer32(const uint32_t& addr, uint16_t* data) {
+void timer0_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
-		*data = currentValue.data;
+		data = currentValue.data;
 		break;
 	case 4:
-		*data = counterMode.data;
+		data = counterMode.data;
+
 		counterMode.elem.reachedTarget = 0;
 		counterMode.elem.reachedFFFF = 0;
 		break;
 	case 8:
-		*data = targetValue.data;
+		data = targetValue.data;
 		break;
 	}
 }
 
-void timer0_t::WriteTimer32(const uint32_t& addr, const uint16_t& data) {
+void timer0_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		currentValue.data = data;
 		break;
 	case 4:
-		counterMode.data = data;
+		counterMode.data = data & 0x3ff;
 		mode = counterMode.data & 0x3ff;
+
+		counterMode.elem.irq = 1;
 
 		clockSource = (counterMode.elem.clockSource & 1) ?
 			DOT_CLOCK : SYSTEM_CLOCK;
@@ -54,20 +57,20 @@ void timer0_t::clock(const uint8_t& source) {
 
 	if (clockSource == static_cast<clockSource_t>(source)) {
 
-		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
-			counterMode.elem.resetCounterTo) {
-			currentValue.elem.currentCounterValue = 0;
+		if (currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue)  {
+
 			counterMode.elem.reachedTarget = 1;
-			return;
-		}
 
-		if ((currentValue.elem.currentCounterValue == 0xffff) &&
-			!counterMode.elem.resetCounterTo) {
-			currentValue.elem.currentCounterValue = 0;
+			if (counterMode.elem.resetCounterTo0AfterTarget)
+				currentValue.elem.currentCounterValue = 0;
+		}
+		else if (currentValue.elem.currentCounterValue == 0xffff) {
+
 			counterMode.elem.reachedFFFF = 1;
-			return;
-		}
 
-		currentValue.elem.currentCounterValue++;
+			currentValue.elem.currentCounterValue = 0;
+		}
+		else 
+			currentValue.elem.currentCounterValue++;
 	}
 }
