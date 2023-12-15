@@ -804,6 +804,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	int u4 = pParam->texCoord4.elem.x;
 	int v4 = pParam->texCoord4.elem.y;
 
+
 	psxColor24_t blendingColor;
 	psxColor16_t frontPixelColor;
 
@@ -821,7 +822,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+			pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
 				| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 			uint16_t data;
@@ -832,7 +833,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			else {
 				vertex_t pClut;
 				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> ((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+					((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 				pClut.y = clut.elem.yCoord;
 				readVram(pClut, frontPixelColor.data, true);
 			}
@@ -878,7 +879,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 				pTex.x = gpuStat.elem.texPageXBase << 6;
-				pTex.x += (((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+				pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
 					| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 				uint16_t data;
@@ -889,7 +890,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				else {
 					vertex_t pClut;
 					pClut.x = (clut.elem.xCoord << 4) +
-						((data >> ((((int)round(u) + ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+						((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 					pClut.y = clut.elem.yCoord;
 					readVram(pClut, frontPixelColor.data, true);
 				}

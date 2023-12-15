@@ -82,15 +82,28 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout (USA)/WipEout (USA) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ape Escape (USA).bin"); //require dualshock controller
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/hello_cd.bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Demolition (USA)/Star Wars - Demolition (USA) (Track 01).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Formula One 99 (Europe) (En,Fr,De,It).bin");
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin");
+
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy IX (USA) (Disc 1) (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 //Working ones
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter (USA) (v1.1).bin");// DMA 2 linked-list loop
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve II (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Treasure Planet (USA).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vib-Ribbon/Vib-Ribbon (Europe) (En,Fr,De,Es,It) (Track 1).bin");//getlocp loop or gte // problem with tracks // no level generation
 
@@ -139,7 +152,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Castlevania - Symphony of the Night (USA) (Track 1).bin"); //mdec //getstat loop // mem card reading problem?? //setfilter
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin"); //gte // np input //changeThreadHandle
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin"); //gte // np input //changeThreadHandle
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout 2097 (Europe)/WipEout 2097 (Europe) (Track 01).bin"); //DMA2 LOOP???// something goes wrong with gpu fifo //GetTN,
@@ -214,7 +227,10 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Soli
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro the Dragon (USA).bin");//no input//trows an exeption
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro 2 - Ripto's Rage! (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro 2 - Gateway to Glimmer (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (USA) (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE
@@ -224,12 +240,13 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Soli
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
 
 
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input!!! if cpu is too fast //spu irq problem
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It).bin");
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ridge Racer (USA) (Track 01).bin"); //gte //play
@@ -277,6 +294,9 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Soli
 //demos
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Euro Demo 67 (Europe).bin"); //Ms pacman problem seems working now
+
+//tests
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/hello_cd.bin");
 
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 

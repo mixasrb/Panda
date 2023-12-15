@@ -9,7 +9,7 @@ cdDrive::cdDrive() {
 	//probably badly implemented commands Stop,GetTN,GetTD,Play,Setfilter,GetlocL,GetlocP,SeekP,Mute,ReadTOC
 	commandLookup.resize(20);
 	commandLookup = {
-		{"Sync?    ",&cdDrive::xxxxx},{"Getstat"    ,&cdDrive::getStat},{"Setloc   ",&cdDrive::setLoc},{"Play     ",&cdDrive::play},
+		{"Sync      ",&cdDrive::sync},{"Getstat"    ,&cdDrive::getStat},{"Setloc   ",&cdDrive::setLoc},{"Play     ",&cdDrive::play},
 		{"Forward  ",&cdDrive::xxxxx},{"Backward     ",&cdDrive::xxxxx},{"ReadN     ",&cdDrive::readN},{"MotorOn ",&cdDrive::xxxxx},
 		{"Stop      ",&cdDrive::stop},{"Pause        ",&cdDrive::pause},{"Init       ",&cdDrive::init},{"Mute     ",&cdDrive::mute},
 		{"Demute  ",&cdDrive::demute},{"Setfilter",&cdDrive::setFilter},{"Setmode ",&cdDrive::setMode},{"Getparam",&cdDrive::getParam},
@@ -407,8 +407,8 @@ void cdDrive::clock() {
 
 	//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 		//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-																	 //bugs bunny games also 
-	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/ + 0x36cd2 * 0 / 10) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+																	 //bugs bunny games also  resident evil 1
+	if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/ + 0x36cd2 * 8 / 10) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 		!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 		dataClocks = 0;
 
@@ -606,6 +606,11 @@ void cdDrive::setDriveMode() {
 }
 
 //Cd Drive Commands
+
+void cdDrive::sync(const uint8_t& command) {
+	uint8_t response[2] = { stat.data | STAT_ERROR, 0x40 };
+	setFirstResponse(0xc4e1, INT5, response, 2);
+}
 
 void cdDrive::xxxxx(const uint8_t& command) {
 	std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled command!" << std::endl;

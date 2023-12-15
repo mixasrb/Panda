@@ -105,7 +105,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//	}
 	}
 	else if (addr == 0x1f801824) {
-		//std::cout << "[MDEC] read32 addr 0x" << addr << std::endl;
+		std::cout << "[MDEC] read32 addr 0x" << addr << std::endl;
 		data = statusRegister.data;
 	}
 	else {
@@ -137,7 +137,6 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			switch (command >> 29) {
 			case 1:
 				recievedData32Count = command & 0x0000ffff;
-				clocks = 3000000 / 1000;
 				break;
 			case 2:
 				if (command & 0x1)
@@ -167,6 +166,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			statusRegister.elem.dataOutRequest = 0;//??
 
 			statusRegister.elem.commandBusy = 1;
+
+			statusRegister.elem.dataOutFifoEmpty = 0;
 		}
 
 		if (recievedData32Count == 0) {
@@ -175,20 +176,20 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			(this->*commandLookup[command >> 29].command)(command);
 
 
-			/*	std::cout << "~[MDEC] recievedData16 count: 0x"
-					<< std::hex << recievedData16.size() << std::endl;
-				std::cout << "~[MDEC] recievedData32 count: 0x"
-					<< std::hex << recievedData32.size() << std::endl;
-				std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;*/
-				//g_emulationPaused = true;
+			std::cout << "~[MDEC] recievedData16 count: 0x"
+				<< std::hex << recievedData16.size() << std::endl;
+			std::cout << "~[MDEC] recievedData32 count: 0x"
+				<< std::hex << recievedData32.size() << std::endl;
+			std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;
+			//g_emulationPaused = true;
 
 			recievedData16.clear();
 			recievedData32.clear();
 		}
 	}
 	else if (addr == 0x1f801824) {
-		/*	std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
-				<< " data 0x" << data << std::endl;*/
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
+			<< " data 0x" << data << std::endl;
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
@@ -572,8 +573,10 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 
 	statusRegister.elem.dataOutFifoEmpty = 0;
 
-	if (xx + yy == 16)
+	if (xx + yy == 16) {
 		blockCount++;
+		clocks += 3750;
+	}
 
 	//clocks += 33868800 / 900;
 }

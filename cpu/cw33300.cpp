@@ -559,7 +559,7 @@ void cpu_t::clock() {
 			printBiosCall();
 #endif
 
-			//skullmonkeys
+
 			if (cycle0.bWrite) {
 				cycle0.bWrite = false;
 				if (r[cycle0.addr] == cycle0.old)
@@ -640,7 +640,7 @@ void cpu_t::clock() {
 			printBiosCall();
 #endif
 
-			//skullmonkeys
+
 			if (cycle1.bWrite) {
 				cycle1.bWrite = false;
 				if (r[cycle1.addr] == cycle1.old)

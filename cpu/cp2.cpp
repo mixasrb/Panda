@@ -258,9 +258,9 @@ cp2_t::cp2_t() {
 
 void cp2_t::clock() {
 	if (clocks) {
-		clocks--;
 		if (clocks == 0)
 			commandBusy = false;
+		clocks--;
 	}
 }
 
@@ -424,7 +424,7 @@ void cp2_t::COP2(uint32_t imm) {
 	FLAG = 0;
 	(this->*opcodeLookup[imm & 0x3f].opcode)(imm);
 
-	clocks += opcodeLookup[imm & 0x3f].clocks - 1;
+	clocks += opcodeLookup[imm & 0x3f].clocks;
 
 	if (commandBusy)
 		pCpu->gteClocks = clocks;

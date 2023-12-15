@@ -137,6 +137,7 @@ public:
 
 	void executeCommand(const uint8_t& command);
 
+	void sync(const uint8_t& command);
 	void xxxxx(const uint8_t& command);
 	void getStat(const uint8_t& command);
 	void play(const uint8_t& command);
@@ -160,6 +161,18 @@ public:
 	void getID(const uint8_t& command);
 	void readS(const uint8_t& command);
 	void readTOC(const uint8_t& command);
+
+	enum : uint8_t {
+		STAT_PLAY = 0x80,
+		STAT_SEEK = 0x40,
+		STAT_READ = 0x20,
+		STAT_SHELL_OPEN = 0x10,
+		STAT_ID_ERROR = 0x08,
+		STAT_SEEK_ERROR = 0x04,
+		STAT_SPINDLE_MOTOR = 0x02,
+		STAT_ERROR = 0x01,
+		STAT_NULL = 0x0
+	};
 
 	union stat_t {
 		uint8_t data;
