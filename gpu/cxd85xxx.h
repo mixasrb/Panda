@@ -192,7 +192,7 @@ public:
 	};
 
 	template <typename T>
-	struct fifo_t { //have some bugs and unintuities
+	struct fifo_t { //have some bugs and unintuitives
 		fifo_t() {
 			ptr = nullptr;
 			currentPossitionWrite = 0;
@@ -239,10 +239,6 @@ public:
 	};
 
 	fifo_t<uint32_t> fifo;
-	uint32_t fifoCount = 0;
-	//uint32_t fifoClocks = 0;
-	uint32_t fifoClocks[4];
-	uint8_t fifoIndex = 0;
 
 	enum primitiveType_t {
 		POLYGON,
@@ -308,7 +304,6 @@ public:
 		bool bFlipHorizontally = false;
 		bool bFlipVertically = false;
 	};
-
 	param_t param;
 
 	union clut_t {
@@ -383,6 +378,9 @@ public:
 	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
+
+	uint32_t fifoCount = 0;
+	uint32_t fifoClocks = 0;
 
 	//debug
 	debugUtilities* p_debugger;

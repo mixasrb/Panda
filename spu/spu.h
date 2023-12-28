@@ -10,7 +10,6 @@
 #include "../debug_utilities/debug_utilities.h"
 
 #define DRAM_SIZE 512 * 1024 
-#define XA_ADPCM_SECTOR_SIZE 0x930
 
 class busInterface_t;
 
@@ -25,6 +24,7 @@ struct output_t {
 		return output;
 	}
 };
+
 class spu_t {
 public:
 
@@ -55,7 +55,6 @@ public:
 		spu_t* p_spu;
 
 		struct voiceRegister_t {
-
 			union voiceVolumeLeftRight_t {
 				uint32_t data;
 				struct {
@@ -109,19 +108,16 @@ public:
 
 			uint32_t currentVoiceAddress;
 
-			int32_t older = 0;
-			int32_t old = 0;
-
-			int16_t voiceOldest = 0;
-			int16_t voiceOlder = 0;
-			int16_t voiceOld = 0;
-			int16_t voiceNewest = 0;
+			int16_t oldest = 0;
+			int16_t older = 0;
+			int16_t old = 0;
+			int16_t newest = 0;
 
 			void pushSample(int16_t sample) {
-				voiceOldest = voiceOlder;
-				voiceOlder = voiceOld;
-				voiceOld = voiceNewest;
-				voiceNewest = sample;
+				oldest = older;
+				older = old;
+				old = newest;
+				newest = sample;
 			}
 
 			uint8_t blockBytes[16];
@@ -397,101 +393,12 @@ public:
 	std::vector<int32_t> neg_adpcm_table;
 
 	std::vector<int16_t> gauss;
-	std::vector<int16_t> table;
 
 	uint8_t cycle = 0;
 	int i = 0;
 	float outTemp = 0;
 	uint32_t irqAddress = 0;
 	void irqSend();
-
-
-	output_t clockXA_ADPCM();
-
-	output_t outputSamplesBufferXA[7];
-	output_t OldoutputSampleXA;
-
-	uint8_t asectXA;
-	uint8_t assXA;
-	uint8_t ammXA;
-
-	uint8_t* pBufferXA = new uint8_t[XA_ADPCM_SECTOR_SIZE];
-
-	int16_t samplesMonoXA[56 * 0x12 * 8];
-	int16_t samplesLeftXA[28 * 0x12 * 8];
-	int16_t samplesRightXA[28 * 0x12 * 8];
-
-	int16_t oldLeft = 0;
-	int16_t olderLeft = 0;
-	int16_t oldRight = 0;
-	int16_t olderRight = 0;
-	int16_t oldMono = 0;
-	int16_t olderMono = 0;
-
-	uint32_t p = 0;
-	uint8_t b = 0;
-	uint8_t k = 0;
-	uint32_t counterMono = 0;
-	uint32_t counterLeft = 0;
-	uint32_t counterRight = 0;
-
-	int16_t ringBuffer[32];
-
-	void decodeSectorXA_ADPCM(uint8_t*& src);
-	void decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
-		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
-	void decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& byte,
-		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
-
-	union submode_t {
-		uint8_t data;
-		struct {
-			uint8_t endOfRecord : 1;
-			uint8_t video : 1;
-			uint8_t audio : 1;
-			uint8_t data: 1;
-			uint8_t trigger : 1;
-			uint8_t form2 : 1;
-			uint8_t realTime : 1;
-			uint8_t endOfFile : 1;
-		}elem;
-	}submode;
-
-	union codinginfo_t {
-		uint8_t data;
-		struct {
-			uint8_t monoStereo : 2;
-			uint8_t sampleRate : 2;
-			uint8_t bitsPerSample : 2;
-			uint8_t emphasis : 1;
-			uint8_t reserved : 1;
-		}elem;
-	}codinginfo;
-
-	bool bStereo = false;
-	bool bSampleRate18900Hz = false;
-	bool b8BitsPerSample = false;
-	bool bCycle = false;
-
-	const float step44kHz = 1.0f / 7.0f;
-	const float step37kHz = 1.0f / 6.0f;
-	float counter37kHz = 0.0f;
-	output_t outXA;
-
-	uint16_t cdAudioBufferCounter = 0;
-	uint16_t voice1MonoBufferCounter = 0;
-	uint16_t voice3MonoBufferCounter = 0;
-
-
-	uint8_t asectCDDA;
-	uint8_t assCDDA;
-	uint8_t ammCDDA;
-
-	uint32_t counterCDDA = 0x930;
-
-	output_t clockCDDA();
-
-	uint8_t* pBufferCDDA = nullptr;
 
 	//debug
 	debugUtilities* pDebugger = nullptr;

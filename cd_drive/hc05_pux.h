@@ -260,13 +260,6 @@ public:
 		sector.ass %= 60;
 	}
 
-	void readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
-
-	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
-
-	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
-
-
 	//debug
 	debugUtilities* p_debugger;
 

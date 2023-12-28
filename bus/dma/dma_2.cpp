@@ -120,11 +120,7 @@ void dma2_t::Clock() {
 				endDMATransfer();*/
 
 		if (channelControl.reg.syncMode == linkedList) {
-			memAddrTemp = memoryAddress.reg.memAddr /*& 0x00fffffc*/;
-			if (memoryAddress.reg.memAddr & 0x3) { //??
-				endDMATransfer();
-				return;
-			}
+			memAddrTemp = memoryAddress.reg.memAddr & 0x00fffffc;
 			//std::cout << "~[DMA2] (GPU) madr: 0x" << std::hex << memoryAddress.reg.memAddr << std::endl;
 			/*if ((memAddrTemp >= 0x001c0000) && (memAddrTemp <= 0x001c0100))
 				endDMATransfer();*/
