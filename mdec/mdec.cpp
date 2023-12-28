@@ -105,11 +105,11 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//	}
 	}
 	else if (addr == 0x1f801824) {
-		std::cout << "[MDEC] read32 addr 0x" << addr << std::endl;
+		std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << std::endl;
 		data = statusRegister.data;
 	}
 	else {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << addr << std::endl;
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << std::hex << addr << std::endl;
 		g_emulationPaused = true;
 	}
 }
@@ -150,8 +150,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 				clocks = 0x30;
 				break;
 			default:
-				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x"
-					<< command << std::endl;
+				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x" << std::hex << command << std::endl;
 				g_emulationPaused = true;
 				break;
 			}
@@ -188,8 +187,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 		}
 	}
 	else if (addr == 0x1f801824) {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
-			<< " data 0x" << data << std::endl;
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
+			 << " data 0x" << data << std::endl;
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
@@ -200,7 +199,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 		bEnabledDma1 = controlRegister.elem.dataOutRequest;
 	}
 	else {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
 			<< " data 0x" << data << std::endl;
 		g_emulationPaused = true;
 	}

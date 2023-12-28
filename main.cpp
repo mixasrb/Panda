@@ -83,21 +83,42 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout (USA)/WipEout (USA) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ape Escape (USA).bin"); //require dualshock controller
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Demolition (USA)/Star Wars - Demolition (USA) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Demolition (USA)/Star Wars - Demolition (USA) (Track 01).bin"); //get stuck
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Formula One 99 (Europe) (En,Fr,De,It).bin");
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin"); // get stuck
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy IX (USA) (Disc 1) (v1.1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spot Goes to Hollywood (USA)/Spot Goes to Hollywood (USA) (Track 01).bin");
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+
+
+
 
 //Working ones
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's 102 Dalmatians - Puppies to the Rescue (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider - The Last Revelation (USA) (v1.1).bin");
+ 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Nickelodeon SpongeBob SquarePants - SuperSponge (Europe).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter II Movie (Japan) (Disc 1)/Street Fighter II Movie (Japan) (Disc 1) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 2 (USA) (Rev 1)/Street Fighter Alpha 2 (USA) (Rev 1) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Collection (USA) (Disc 1)/Street Fighter Collection (USA) (Disc 1) (Track 01).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Collection 2 (USA)/Street Fighter Collection 2 (USA) (Track 1).bin"); //graphic bugs with health bar
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy IX (USA) (Disc 1) (v1.1).bin"); //some mdec problems
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tony Hawk's Pro Skater 2 (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tony Hawk's Pro Skater 3 (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tony Hawk's Pro Skater 4 (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alien Resurrection (Europe) (En,Fr,De,Es,It)/Alien Resurrection (Europe) (En,Fr,De,Es,It) (Track 1).bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy Tactics (USA).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter (USA) (v1.1).bin");// DMA 2 linked-list loop
@@ -105,7 +126,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy I
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve II (USA) (Disc 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Treasure Planet (USA).bin");
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vib-Ribbon/Vib-Ribbon (Europe) (En,Fr,De,Es,It) (Track 1).bin");//getlocp loop or gte // problem with tracks // no level generation
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vib-Ribbon/Vib-Ribbon (Europe) (En,Fr,De,Es,It) (Track 1).bin");//getlocp loop or gte // problem with tracks // no level generation //spu irq problem
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Need for Speed III - Hot Pursuit (USA).bin"); //invalid setlock amm value 0xe3 getTD problem // reads problem, needs spu regs
 
@@ -190,7 +211,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Final Fantasy I
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Discworld Noir (Europe) (En,Es,It).bin"); //get stuck mdec sometimes?
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");//gte
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin"); // DMA3 CDROM 0x11400100h (chopped) //~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c7f7f7f Undocumented/Nonsense
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grand Theft Auto 2 (USA).bin");
@@ -476,6 +497,11 @@ public:
 					psx.cpuSOC.clock();
 				}
 
+			/*	if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
+					psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
+					psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
+				}*/
+
 				//Crash Bash
 				//PSX.cdDrive.irq_flag_read.reg.int_1_7 = 3;
 				//PSX.cdDrive.pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
@@ -513,10 +539,10 @@ public:
 				psx.debugger.dump("logs/vram.bin", psx.gpu.vram, 2048 * 512);
 
 			if (GetKey(olc::Key::S).bPressed)
-				psx.debugger.dump("logs/dram.bin", psx.bus.spu.dram, 512 * 1024);
+				psx.debugger.dump("logs/spu_dram.bin", psx.bus.spu.dram, 512 * 1024);
 
 			if (GetKey(olc::Key::M).bPressed)
-				psx.debugger.dump("logs/memcardDumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
+				psx.debugger.dump("logs/memcard_dumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
 
 			if (GetKey(olc::Key::O).bPressed)
 				executeOneInstruction = true;
