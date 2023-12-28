@@ -468,13 +468,13 @@ void gpu_t::videoClock() {
 			pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
 
 
-			if (pBus->spu.spuControlRegister.elem.irq9Enable) {
+			/*if (pBus->spu.spuControlRegister.elem.irq9Enable) {
 				if ((pBus->spu.irqAddress < 0x1000) ||
 					(pBus->spu.irqAddress >= pBus->spu.reverbCurrentAddress)) {
 					pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
 					pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
 				}
-			}
+			}*/
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
@@ -795,9 +795,10 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			case 2:
 				drawTexRect15Bit(param);
 				break;
-			case 3:
-				g_emulationPaused = true;
-				std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+			case 3: //Reserved //Disney's Aladdin in Nasira's Revenge uses
+				//g_emulationPaused = true;
+				//std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+				drawTexRect15Bit(param);
 				break;
 			}
 		else
@@ -1275,9 +1276,12 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 		texBittnesVar.devider = 1;
 		texBittnesVar.firstAnder = 0x0;
 		break;
-	case 3: //Reserved
-		g_emulationPaused = true;
-		std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+	case 3: //Reserved //Disney's Aladdin in Nasira's Revenge uses
+		//g_emulationPaused = true;
+		//std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+		texBittnesVar.bit15 = true;
+		texBittnesVar.devider = 1;
+		texBittnesVar.firstAnder = 0x0;
 		break;
 	}
 

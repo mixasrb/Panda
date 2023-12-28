@@ -425,8 +425,11 @@ void cdDrive::clock() {
 				setDataResponse(INT1, dataResponse, 1);
 			}
 			else { // Play Report	                                                                                        
-				uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm),
-					fromHex8ToBCD(stored_ass), fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
+				uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA),
+					fromHex8ToBCD(pBus->spu.asectCDDA), 0x7f, 0x00 };//??
+
+				//uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm),
+				//	fromHex8ToBCD(stored_ass), fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
 				//peaklo,peakhi??
 
 				setDataResponse(INT1, dataResponse, 8);
@@ -489,10 +492,11 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	else if (!bPlay) {
 		bSendINT1 = true;
 
-		pBuffer = (uint8_t*)fileDataVect.data() + (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + (mode.elem.sectorSize ? 0x0c : 0x18));
+		uint32_t currentPossition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
+		pBuffer = (uint8_t*)fileDataVect.data() + (currentPossition + (mode.elem.sectorSize ? 0x0c : 0x18));
 
 		for (int i = 0; i < 8; i++) {
-			storedSectorHeader[i] = fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x0c + i];
+			storedSectorHeader[i] = fileDataVect[currentPossition + 0x0c + i];
 		}
 	}
 
@@ -758,7 +762,7 @@ void cdDrive::readN(const uint8_t& command) {
 		pBus->spu.ammXA = amm;
 		pBus->spu.assXA = ass;
 		pBus->spu.asectXA = asect;
-		pBus->spu.p = 28 * 2 * 4 * 18;
+		pBus->spu.p = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
 		pBus->spu.submode.data = 0;
 	}
 
@@ -915,9 +919,17 @@ void cdDrive::getLocP(const uint8_t& command) {
 		std::cout << std::hex << "~[CD_DRIVE] GetLocP incorrect track number: " << std::dec << (uint16_t)track << std::endl;
 		g_emulationPaused = true;
 	}
+	std::vector<uint8_t> firstResponse;
+	firstResponse.resize(8);
+	if (bPlay)
+		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA), fromHex8ToBCD(pBus->spu.asectCDDA),
+			fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA), fromHex8ToBCD(pBus->spu.asectCDDA) };
+	else
+		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA),
+			fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) };
 
-	std::vector<uint8_t> firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(mm), fromHex8ToBCD(ss), fromHex8ToBCD(sect),
-		fromHex8ToBCD(amm), fromHex8ToBCD(ass), fromHex8ToBCD(asect) };
+	/*std::vector<uint8_t> firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(mm), fromHex8ToBCD(ss), fromHex8ToBCD(sect),
+		fromHex8ToBCD(amm), fromHex8ToBCD(ass), fromHex8ToBCD(asect) };*/
 
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 }
@@ -1164,7 +1176,7 @@ void cdDrive::readS(const uint8_t& command) {
 		pBus->spu.ammXA = amm;
 		pBus->spu.assXA = ass;
 		pBus->spu.asectXA = asect;
-		pBus->spu.p = 28 * 2 * 4 * 18;
+		pBus->spu.p = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
 		pBus->spu.submode.data = 0;
 	}
 

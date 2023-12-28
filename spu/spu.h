@@ -55,7 +55,6 @@ public:
 		spu_t* p_spu;
 
 		struct voiceRegister_t {
-			spu_t* p_spu;
 
 			union voiceVolumeLeftRight_t {
 				uint32_t data;
@@ -110,16 +109,19 @@ public:
 
 			uint32_t currentVoiceAddress;
 
-			int16_t oldest = 0;
-			int16_t older = 0;
-			int16_t old = 0;
-			int16_t newest = 0;
+			int32_t older = 0;
+			int32_t old = 0;
+
+			int16_t voiceOldest = 0;
+			int16_t voiceOlder = 0;
+			int16_t voiceOld = 0;
+			int16_t voiceNewest = 0;
 
 			void pushSample(int16_t sample) {
-				oldest = older;
-				older = old;
-				old = newest;
-				newest = sample;
+				voiceOldest = voiceOlder;
+				voiceOlder = voiceOld;
+				voiceOld = voiceNewest;
+				voiceNewest = sample;
 			}
 
 			uint8_t blockBytes[16];

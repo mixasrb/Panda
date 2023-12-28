@@ -95,12 +95,18 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 
 
 
 //Working ones
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's 102 Dalmatians - Puppies to the Rescue (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider - The Last Revelation (USA) (v1.1).bin");
+ 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Nickelodeon SpongeBob SquarePants - SuperSponge (Europe).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter II Movie (Japan) (Disc 1)/Street Fighter II Movie (Japan) (Disc 1) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 2 (USA) (Rev 1)/Street Fighter Alpha 2 (USA) (Rev 1) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Collection (USA) (Disc 1)/Street Fighter Collection (USA) (Disc 1) (Track 01).bin");
@@ -205,7 +211,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Discworld Noir (Europe) (En,Es,It).bin"); //get stuck mdec sometimes?
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");//gte
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/gta/Grand Theft Auto (USA) (Track 01).bin"); // DMA3 CDROM 0x11400100h (chopped) //~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c7f7f7f Undocumented/Nonsense
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grand Theft Auto 2 (USA).bin");
@@ -282,7 +288,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider (v1.1)/Tomb Raider (v1.1) (Track 01).bin"); // GetlocP loop??//VSync: timeout
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider II - Starring Lara Croft (Europe)/Tomb Raider II - Starring Lara Croft (Europe) (Track 01).bin");//hangs/VSync: timeout
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider II - Starring Lara Croft (Europe)/Tomb Raider II - Starring Lara Croft (Europe) (Track 01).bin");//hangs/VSync: timeout
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/tomb raider 3/Tomb Raider III - Adventures of Lara Croft (Europe).bin"); //getloocp loop, no input //but works
 
 
@@ -491,6 +497,11 @@ public:
 					psx.cpuSOC.clock();
 				}
 
+			/*	if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
+					psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
+					psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
+				}*/
+
 				//Crash Bash
 				//PSX.cdDrive.irq_flag_read.reg.int_1_7 = 3;
 				//PSX.cdDrive.pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
@@ -528,10 +539,10 @@ public:
 				psx.debugger.dump("logs/vram.bin", psx.gpu.vram, 2048 * 512);
 
 			if (GetKey(olc::Key::S).bPressed)
-				psx.debugger.dump("logs/dram.bin", psx.bus.spu.dram, 512 * 1024);
+				psx.debugger.dump("logs/spu_dram.bin", psx.bus.spu.dram, 512 * 1024);
 
 			if (GetKey(olc::Key::M).bPressed)
-				psx.debugger.dump("logs/memcardDumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
+				psx.debugger.dump("logs/memcard_dumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
 
 			if (GetKey(olc::Key::O).bPressed)
 				executeOneInstruction = true;
