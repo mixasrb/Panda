@@ -69,7 +69,7 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 			<< " data 0x" << std::hex << data << std::endl;*/
 		controlRegister.data = data;
 
-		for (int i = 0; i < 7; i++) {
+		/*for (int i = 0; i < 7; i++) {
 			const uint8_t iPriority = (controlRegister.data >> (i * 4)) & 0x7;
 			for (int j = i + 1; j < 7; j++) {
 				const uint8_t jPriority = (controlRegister.data >> (j * 4)) & 0x7;
@@ -84,7 +84,7 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 				}
 
 			}
-		}
+		}*/
 
 	}
 	else if (addr == 0x1f8010f4) {
@@ -170,18 +170,21 @@ void dmaController_t::clock() {
 				break;
 		}*/
 
-		if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy)//??
-			dma0.Clock();
-		else if (controlRegister.reg.mdecOut_master_enable && dma1.channelControl.reg.startBusy)//??
-			dma1.Clock();
-		else if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy)
-			dma2.Clock();
-		else if (controlRegister.reg.cd_drive_master_enable && dma3.bStart)
-			dma3.Clock();
-		else if (controlRegister.reg.spu_master_enable && dma4.channelControl.reg.startBusy)//??
-			dma4.Clock();
-		else if (controlRegister.reg.otc_master_enable && dma6.bStart)
-			dma6.Clock();
+		if (currentClockFunction != 8)
+			(this->*clockFunctionsArray[currentClockFunction])();
+
+		//if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy)//??
+		//	dma0.Clock();
+		//else if (controlRegister.reg.mdecOut_master_enable && dma1.channelControl.reg.startBusy)//??
+		//	dma1.Clock();
+		//else if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy)
+		//	dma2.Clock();
+		//else if (controlRegister.reg.cd_drive_master_enable && dma3.bStart)
+		//	dma3.Clock();
+		//else if (controlRegister.reg.spu_master_enable && dma4.channelControl.reg.startBusy)//??
+		//	dma4.Clock();
+		//else if (controlRegister.reg.otc_master_enable && dma6.bStart)
+		//	dma6.Clock();
 
 		if ((interruptRegister.reg.force_IRQ) ||
 			(interruptRegister.reg.IRQ_master_enable && (interruptRegister.data << 1 >> 25)))

@@ -257,11 +257,10 @@ cp2_t::cp2_t() {
 #define GTE_LM(op) ((op >> 10) & 0x1) 
 
 void cp2_t::clock() {
-	if (clocks) {
-		if (clocks == 0)
-			commandBusy = false;
+	if (clocks == 0)
+		commandBusy = false;
+	else
 		clocks--;
-	}
 }
 
 uint32_t cp2_t::saturate(int32_t value, int32_t min, int32_t max, uint32_t flag) {
@@ -314,22 +313,22 @@ void cp2_t::MFC2(uint8_t rt, uint8_t rd) {
 		pCpu->gteClocks = clocks;
 
 	uint32_t value = gteRegisters.cp2Data.p[rd].w;
-		if (pCpu->cycle == 0) {
-			if (pCpu->cycle0.bWrite == true)
-				g_emulationPaused = true;
-			pCpu->cycle0.old = pCpu->r[rt];
-			pCpu->cycle0.bWrite = true;
-			pCpu->cycle0.addr = rt;
-			pCpu->cycle0.data = value;
-		}
-		else if (pCpu->cycle == 1) {
-			if (pCpu->cycle1.bWrite == true)
-				g_emulationPaused = true;
-			pCpu->cycle1.old = pCpu->r[rt];
-			pCpu->cycle1.bWrite = true;
-			pCpu->cycle1.addr = rt;
-			pCpu->cycle1.data = value;
-		}
+	if (pCpu->cycle == 0) {
+		if (pCpu->cycle0.bWrite == true)
+			g_emulationPaused = true;
+		pCpu->cycle0.old = pCpu->r[rt];
+		pCpu->cycle0.bWrite = true;
+		pCpu->cycle0.addr = rt;
+		pCpu->cycle0.data = value;
+	}
+	else if (pCpu->cycle == 1) {
+		if (pCpu->cycle1.bWrite == true)
+			g_emulationPaused = true;
+		pCpu->cycle1.old = pCpu->r[rt];
+		pCpu->cycle1.bWrite = true;
+		pCpu->cycle1.addr = rt;
+		pCpu->cycle1.data = value;
+	}
 
 	//pCpu->set(rt, gteRegisters.cp2Data.p[rd].w);
 }

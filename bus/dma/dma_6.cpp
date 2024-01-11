@@ -46,6 +46,10 @@ void dma6_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			memAddrTemp = memoryAddress.reg.memAddr;
 			pDMAController->isCpuStopped = true;
 		}
+
+		if (pDMAController->controlRegister.reg.otc_master_enable && bStart)
+			pDMAController->currentClockFunction = 6;
+
 		break;
 	}
 }
@@ -85,6 +89,8 @@ void dma6_t::triggerIRQ() {
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	else
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;*/
+
+	pDMAController->currentClockFunction = 8;
 }
 
 void dma6_t::Clock() {

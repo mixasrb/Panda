@@ -53,6 +53,8 @@ public:
 
 	bool (dmaController_t::* clockFunctionsArray[7])();
 	bool bmasterEnable = false;
+	uint8_t currentClockFunction = 8;
+
 
 	union controlRegister_t {
 		uint32_t data;

@@ -49,6 +49,10 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}
+
+		if (pDMAController->controlRegister.reg.spu_master_enable && channelControl.reg.startBusy)
+			pDMAController->currentClockFunction = 4;
+
 		break;
 	}
 }
@@ -94,6 +98,8 @@ void dma4_t::triggerIRQ() {
 void dma4_t::endDMATransfer() {
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
+
+	pDMAController->currentClockFunction = 8;
 
 	triggerIRQ();
 }

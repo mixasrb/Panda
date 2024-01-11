@@ -58,7 +58,6 @@ public:
 	uint16_t iCacheCounter = 0;
 
 
-	bool isPipelineFull = false;
 	uint32_t opcode;
 	uint8_t instructionFetchClocks = 0;
 	uint8_t instructionFetchClocks1 = 0;
@@ -260,7 +259,7 @@ public:
 
 	bool gteCommandFlag = false;
 	bool gteCommandFlagTemp = false;
-	bool irqFlag = false;
+	bool bIRQ = false;
 
 
 	//debug

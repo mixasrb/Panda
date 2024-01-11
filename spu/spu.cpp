@@ -921,9 +921,12 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 			int32_t stepValue = -8;
 			adsrStep = stepValue << max(0, 11 - (int32_t)shiftValue);
 
-			bool exponential = adsr.elem.releaseMode;
-			if (exponential)
+			/*bool exponential = adsr.elem.releaseMode;
+			if (exponential) {
 				adsrStep = adsrStep * adsrLevel / 0x8000;
+				if (adsrStep == 0)
+					adsrLevel = 0;
+			}*/
 
 			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
@@ -1200,37 +1203,37 @@ float spu_t::clock() {
 		out = out + outputVoice;
 	}
 
-	////nearest neighbor interpolation 
-	//counter37kHz += step44kHz; // dont look right but works
-	//if (round(counter37kHz) >= step37kHz) {
-	//	if (counter37kHz >= step37kHz)
-	//		counter37kHz -= step37kHz;
+	//nearest neighbor interpolation 
+	counter37kHz += step44kHz; // dont look right but works
+	if (round(counter37kHz) >= step37kHz) {
+		if (counter37kHz >= step37kHz)
+			counter37kHz -= step37kHz;
 
-	//	outXA.channel1 = 0.0f;
-	//	outXA.channel2 = 0.0f;
-	//	if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
-	//		outXA = clockXA_ADPCM();
-	//}
+		outXA.channel1 = 0.0f;
+		outXA.channel2 = 0.0f;
+		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
+			outXA = clockXA_ADPCM();
+	}
 
-	//out.channel1 += outXA.channel1;
-	//out.channel2 += outXA.channel2;
+	out.channel1 += outXA.channel1;
+	out.channel2 += outXA.channel2;
 
-	////if (pBus->pCdDrive->bPlay) {
-	//output_t outCDDA;
-	//outCDDA = clockCDDA();
-	////	if (spuControlRegister.elem.cdAudioEnable)
-	//out = out + outCDDA;
-	////	}
+	//if (pBus->pCdDrive->bPlay) {
+	output_t outCDDA;
+	outCDDA = clockCDDA();
+	//	if (spuControlRegister.elem.cdAudioEnable)
+	out = out + outCDDA;
+	//	}
 
-	//if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse) {
-	//	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel1 * 32767.0f));
-	//	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel2 * 32767.0f));
-	//}
-	//else {
-	//	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel1 * 32767.0f));
-	//	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel2 * 32767.0f));
-	//}
-	//cdAudioBufferCounter++;
+	if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse) {
+		writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel1 * 32767.0f));
+		writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel2 * 32767.0f));
+	}
+	else {
+		writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel1 * 32767.0f));
+		writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel2 * 32767.0f));
+	}
+	cdAudioBufferCounter++;
 
 	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f /*/ (float)i*/;
 	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f /*/ (float)i*/;

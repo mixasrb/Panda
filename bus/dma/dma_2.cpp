@@ -53,6 +53,10 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}
+
+		if (pDMAController->controlRegister.reg.gpu_master_enable && channelControl.reg.startBusy)
+			pDMAController->currentClockFunction = 2;
+
 		break;
 	}
 }
@@ -100,6 +104,8 @@ void dma2_t::endDMATransfer() {
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
 	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
+
+	pDMAController->currentClockFunction = 8;
 
 	//clocks = 0;
 	triggerIRQ();
