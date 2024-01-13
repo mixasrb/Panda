@@ -781,12 +781,10 @@ void spu_t::voices_t::decodeCompressedSample(voiceRegister_t& currentVoiceRegist
 	int32_t fo = p_spu->pos_adpcm_table[filter];
 	int32_t f1 = p_spu->neg_adpcm_table[filter];
 
-	currentVoiceRegisters.older = 0;
-	currentVoiceRegisters.old = 0;
 
 	for (int i = 0; i < 28; i++) {
-		int32_t t = int16_t((int8_t)(currentVoiceRegisters.compressedSamples[i] << 4) >> 4);
-		int32_t s = (t << shift) + (currentVoiceRegisters.old * fo + currentVoiceRegisters.older * f1 + 32) / 64;
+		int16_t t = int16_t(currentVoiceRegisters.compressedSamples[i] << 12) >> 12;
+		int16_t s = (t << shift) + ((currentVoiceRegisters.old * fo + currentVoiceRegisters.older * f1 + 32) / 64);
 
 		if (s > 0x7fff) s = 0x7fff;
 		else if (s < -0x8000) s = -0x8000;
@@ -886,6 +884,7 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 		currentVoiceRegisters.sample = currentVoiceRegisters.samples[currentSampleNumber];
 		currentVoiceRegisters.pushSample(currentVoiceRegisters.sample);
 
+		//this is making sound artifacts
 		currentVoiceRegisters.out = (((int32_t)p_spu->gauss[0x0ff - i] * currentVoiceRegisters.voiceOldest) >> 15);
 		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x1ff - i] * currentVoiceRegisters.voiceOlder) >> 15);
 		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x100 + i] * currentVoiceRegisters.voiceOld) >> 15);
@@ -893,7 +892,7 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 
 		voiceRegisters[voice] = currentVoiceRegisters;
 
-		return currentVoiceRegisters.out;
+		return currentVoiceRegisters.sample;
 	}
 
 	return 0;
@@ -1213,16 +1212,48 @@ float spu_t::clock() {
 		outXA.channel2 = 0.0f;
 		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
 			outXA = clockXA_ADPCM();
+
+		output_t outTempXA;
+		outTempXA.channel1 = outXA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f 
+			+ outXA.channel2 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+		outTempXA.channel2 = outXA.channel2 * pBus->pCdDrive->volumeRightRight / 128.0f
+			+ outXA.channel1 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+
+		if (outTempXA.channel1 > 1.0f)
+			outTempXA.channel1 = 1.0f;
+
+		if (outTempXA.channel2 > 1.0f)
+			outTempXA.channel2 = 1.0f;
+
+		outXA = outTempXA;
 	}
 
-	out.channel1 += outXA.channel1;
-	out.channel2 += outXA.channel2;
+	//if (spuControlRegister.elem.cdAudioEnable) {
+	out.channel1 += outXA.channel1 * (float)(cdVolumeLeftRight.hw.l << 1) / 32767.0f;
+	out.channel2 += outXA.channel2 * (float)(cdVolumeLeftRight.hw.h << 1) / 32767.0f;
+	//}
 
 	//if (pBus->pCdDrive->bPlay) {
 	output_t outCDDA;
 	outCDDA = clockCDDA();
+
+	output_t outTempCDDA;
+	outTempCDDA.channel1 = outCDDA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+		+ outCDDA.channel2 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+	outTempCDDA.channel2 = outCDDA.channel2 * pBus->pCdDrive->volumeRightRight / 128.0f
+		+ outCDDA.channel1 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+
+	if (outTempCDDA.channel1 > 1.0f)
+		outTempCDDA.channel1 = 1.0f;
+
+	if (outTempCDDA.channel2 > 1.0f)
+		outTempCDDA.channel2 = 1.0f;
+
+	outCDDA = outTempCDDA;
+
 	//	if (spuControlRegister.elem.cdAudioEnable)
-	out = out + outCDDA;
+	out.channel1 += outCDDA.channel1 * (float)(cdVolumeLeftRight.hw.l << 1) / 32767.0f;
+	out.channel2 += outCDDA.channel2 * (float)(cdVolumeLeftRight.hw.h << 1) / 32767.0f;
 	//	}
 
 	if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse) {
@@ -1256,15 +1287,15 @@ void spu_t::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const ui
 	int32_t f1 = neg_adpcm_table[filter];
 
 	for (uint8_t j = 0; j < 28; j++) {
-		int32_t t = int16_t((int8_t)((((src[16 + block + j * 4]) >> (nibble * 4)) & 0x0f) << 4) >> 4);
-		int32_t s = (t << shift) + (((int32_t)old * fo + (int32_t)older * f1 + 32) / 64);
+		int16_t t = int16_t((((src[16 + block + j * 4]) >> (nibble * 4)) & 0x0f) << 12) >> 12;
+		int16_t s = (t << shift) + ((old * fo + older * f1 + 32) / 64);
 
 		if (s > 0x7fff) s = 0x7fff;
 		else if (s < -0x8000) s = -0x8000;
 		older = old;
 		old = s;
 
-		dst[counter] = (int16_t)s;
+		dst[counter] = s;
 		counter++;
 	}
 }
@@ -1334,15 +1365,6 @@ void spu_t::decodeSectorXA_ADPCM(uint8_t*& src) {
 }
 
 output_t spu_t::clockXA_ADPCM() {
-	/*ringBuffer[p & 0x1f] = sample;
-	p++;
-	if (counter37kHz == 6) {
-		counter37kHz = 0;
-	}
-	else
-		counter37kHz++;
-
-*/
 	output_t outputSample = OldoutputSampleXA;
 
 	const uint16_t samplesPerSectorXA_ADPCM = 28 * 2 * 4 * 18;

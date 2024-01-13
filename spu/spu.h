@@ -109,8 +109,8 @@ public:
 
 			uint32_t currentVoiceAddress;
 
-			int32_t older = 0;
-			int32_t old = 0;
+			int16_t older = 0;
+			int16_t old = 0;
 
 			int16_t voiceOldest = 0;
 			int16_t voiceOlder = 0;

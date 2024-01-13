@@ -266,6 +266,15 @@ public:
 
 	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
+	uint16_t tempVolumeLeftLeft = 0;
+	uint16_t tempVolumeLeftRight = 0;
+	uint16_t tempVolumeRightRight = 0;
+	uint16_t tempVolumeRightLeft = 0;
+
+	uint16_t volumeLeftLeft = 0;
+	uint16_t volumeLeftRight = 0;
+	uint16_t volumeRightRight = 0;
+	uint16_t volumeRightLeft = 0;
 
 	//debug
 	debugUtilities* p_debugger;
