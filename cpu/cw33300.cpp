@@ -110,6 +110,11 @@ cpu_t::cpu_t() {
 		{&cpu_t::SB}, {&cpu_t::SH}, {&cpu_t::SWL}, {&cpu_t::SW}, {&cpu_t::XXX1}, {&cpu_t::XXX1}, {&cpu_t::SWR}, {&cpu_t::XXX1}
 	};
 
+
+	/*for (uint16_t i = 0; i < 16; i++) {
+		iCache[i].pc = 0xffffffff;
+	}*/
+
 	//debug
 	executedOpcodes.resize(32);
 }
@@ -225,6 +230,9 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 #endif
 
 	isCurrentOpcodeBranch = false;
+	//if (opcode == 0)
+	//	return;
+
 	uint8_t prim_opcode = opcode >> 26;
 
 	if (prim_opcode == 0) { // special
@@ -430,9 +438,9 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 }
 
 void cpu_t::reset() {
-	isPipelineFull = false;
 	cycle = 0;
 	pc = 0xbfc00000;
+
 	cycle0.bWrite = false;
 	cycle1.bWrite = false;
 }
@@ -470,11 +478,11 @@ void cpu_t::clock() {
 		r[0] = 0;
 
 		if (cp0.executeInterrupt) {
-			irqFlag = true;
+			bIRQ = true;
 			pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
-			irqFlag &= !checkForCopOpcode(opcode);
+			bIRQ &= !checkForCopOpcode(opcode);
 
-			if (irqFlag) {
+			if (bIRQ) {
 				cp0.executeInterrupt = false;
 				cp0.exceptionHandler(_INT);
 			}
@@ -482,124 +490,113 @@ void cpu_t::clock() {
 
 		//debug
 #if DEBUG
-		isInstructionExecuted = false;
+		setBiosCallFlag();
+		pc_old = pc;
 #endif
 
-		if (cycle == 0) {
-		label0:
+		if (!cycle) {
 			cycle = 1;
 
-
-			//debug
-#if DEBUG
-			setBiosCallFlag();
-#endif
+			if (cycle1.bWrite) {
+				cycle1.bWrite = false;
+				if (r[cycle1.addr] == cycle1.old)
+					r[cycle1.addr] = cycle1.data;
+			}
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
+			if (pc >= 0xa0000000)
+				clocks += instructionFetchClocks;
+
+			//	if ((pc >= 0xa0000000) || (!iCacheEnabled)) {
+			//		//fetch
+			//		pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
+			//		clocks += instructionFetchClocks;
+			//	}
+			//	else {
+			//		for (uint16_t i = 0; i < 16; i++) {
+			//			if (iCache[(iCacheCounter + i) & 0xf].pc == pc) {
+			//				opcodes[0] = iCache[(iCacheCounter + i) & 0xf].opcode;
+			//				goto skipFetch0;
+			//			}
+			//		}
+			//		iCache[iCacheCounter].pc = pc;
+			//		//fetch
+			//		pBus->cpuRead32(pc, iCache[iCacheCounter].opcode, instructionFetchClocks);
+			//		opcodes[0] = iCache[iCacheCounter].opcode;
+			//		iCacheCounter = ++iCacheCounter & 0xf;
+			//		clocks += instructionFetchClocks;
+			//	}
+			//skipFetch0:
 
 			opcode_pc_0 = pc;
 			opcode_pc = opcode_pc_1;
-
 			opcode = opcodes[1];
+		}
+		else {
+			cycle = 0;
 
-			//debug
-#if DEBUG
-			pc_old = pc;
-#endif
-
-			pc += 4;
-
-			if (!isPipelineFull)
-				goto label1;
-
-			memoryClocks = 0;
-			gteClocks = 0;
-
-			decodeExecuteOpcode(opcodes[1]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
-			//clocks = 1;
-
-			//debug
-#if DEBUG
-			printBiosCall();
-#endif
-
-			//skullmonkeys
-			/*if (cycle0.bWrite) {
+			if (cycle0.bWrite) {
 				cycle0.bWrite = false;
 				if (r[cycle0.addr] == cycle0.old)
 					r[cycle0.addr] = cycle0.data;
-			}*/
-
-			//debug
-#if DEBUG
-			isInstructionExecuted = true;
-#endif
-
-		}
-
-		else {
-			if (!isPipelineFull)
-				goto label0;
-
-		label1:
-			r[0] = 0;
-			cycle = 0;
-			isPipelineFull = true;
-
-
-
-			//debug
-#if DEBUG
-			setBiosCallFlag();
-#endif
+			}
 
 			//fetch
-			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks1);
+			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
+			if (pc >= 0xa0000000)
+				clocks += instructionFetchClocks;
+
+			//	if ((pc >= 0xa0000000) || (!iCacheEnabled)) {
+			//		//fetch
+			//		pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
+			//		clocks += instructionFetchClocks;
+			//	}
+			//	else {
+			//		for (uint16_t i = 0; i < 16; i++) {
+			//			if (iCache[(iCacheCounter + i) & 0xf].pc == pc) {
+			//				opcodes[1] = iCache[(iCacheCounter + i) & 0xf].opcode;
+			//				goto skipFetch1;
+			//			}
+			//		}
+			//		iCache[iCacheCounter].pc = pc;
+			//		//fetch
+			//		pBus->cpuRead32(pc, iCache[iCacheCounter].opcode, instructionFetchClocks);
+			//		opcodes[1] = iCache[iCacheCounter].opcode;
+			//		iCacheCounter = ++iCacheCounter & 0xf;
+			//		clocks += instructionFetchClocks;
+			//	}
+			//skipFetch1:
 
 			opcode_pc_1 = pc;
 			opcode_pc = opcode_pc_0;
 
 			opcode = opcodes[0];
-
-			//debug
-#if DEBUG
-			pc_old = pc;
-#endif
-
-			pc += 4;
-			memoryClocks = 0;
-			gteClocks = 0;
-
-			decodeExecuteOpcode(opcodes[0]);
-			clocks = (instructionFetchClocks + memoryClocks + gteClocks - 1) / 2;
-			//clocks = 1;
-
-			//debug
-#if DEBUG
-			printBiosCall();
-#endif
-
-			//skullmonkeys
-			/*if (cycle1.bWrite) {
-				cycle1.bWrite = false;
-				if (r[cycle1.addr] == cycle1.old)
-					r[cycle1.addr] = cycle1.data;
-			}*/
-
-#if DEBUG
-			isInstructionExecuted = true;
-#endif
-
 		}
+
+
+		pc += 4;
+
+		memoryClocks = 0;
+		gteClocks = 0;
+
+		decodeExecuteOpcode(opcode);
+
+		//assumes that all instructions from cached areas are cached
+		clocks += memoryClocks + gteClocks;
+
+		//debug
+#if DEBUG
+		printBiosCall();
+		isInstructionExecuted = true;
+#endif
+
 	}
 
+	if (clocks)
+		clocks--;
 
-	/*if (clocks > 16)
-		g_emulationPaused = true;
-	else*/
-	clocks--;
+	cp2.clock();
 }
 
 //instructions

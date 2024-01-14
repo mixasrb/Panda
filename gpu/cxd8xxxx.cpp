@@ -10,10 +10,6 @@
 #include <vector>
 #include <map>
 
-static int16_t signed11bit(int16_t val) {
-	return ((int16_t)(val << 5)) >> 5;
-}
-
 class Slope
 {
 	float begin, step;
@@ -95,6 +91,10 @@ extern bool g_logPixel;
 
 #undef DISABLE_SCALING
 #define DISABLE_SCALING 0
+
+static uint16_t signed11bit(uint16_t val) {
+	return ((int16_t)(val << 5)) >> 5;
+}
 
 gpu_t::gpu_t() {
 	gpuStat.data = 0x14000000;
@@ -386,10 +386,8 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 
 void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		/*if (g_GpuCommandsLogged)
-			std::cout << std::hex << "0x" << data << std::endl;*/
-			/*if ((int32_t)collectCount < 0)
-				g_emulationPaused = true;*/
+		/*	if (g_GpuCommandsLogged)
+				std::cout << std::hex << "0x" << data << std::endl;*/
 
 		if (collectCount) {
 			fifo.pushBack(data);
@@ -402,144 +400,51 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 		}
 		else {
 			gp0Command = data;
-			//fifo.clear();//!!!!
 			if (!fifo.empty()) {
-				std::cout << "[GPU] EMULATION PAUSED! collect list not empty 0x" << std::hex << fifo.size() << std::endl;
+				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << fifo.size() << std::endl;
 				g_emulationPaused = true;
 			}
-
-			//if (data == 0x5a0c803c) // tekken 2 ???
-			//	return;
-			/*if (data == 0x40000827) {
-				pBus->dma.dma2.endDMATransfer();
-				return;
-			}*/
-
+			fifo.reset();
 
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
-			/*if (collectCount > 30) {
-				gp0Command = 0;
-				collectCount = 0;
-				g_emulationPaused = true;
-			}*/
-			/*if (gp0Command == 0x40000827) {
-				collectCount = 368-1;
-			}*/
+
+
 			if (((gp0Command >> 24) >= 0xa0) && ((gp0Command >> 24) < 0xc0))
 				bCollectCopyCpuVramParam = true;
-			if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
+			else if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
 				bCollectPolylineParam = true;
 		}
 
 		if (collectCount == 0) {
-			if (g_GpuCommandsLogged)
+
+			if (g_GpuCommandsLogged) {
 				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command << " " << gp0Lookup[gp0Command >> 24].name << std::endl;
-			//fifo.clear();
+				std::cout << "~[GPU] memAdrTemp: 0x" << std::hex << pBus->dma.dma2.memAddrTemp << std::endl;
+			}
+
 			decodeExecuteGp0Command(gp0Command);
 
 			//??
-		//	if (pBus->dma.dma2.channelControl.reg.startBusy)
-			fifoCount++;
-			fifo.reset();
+			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
+				fifoCount++;*/
 		}
 		return;
 	}
 
 	if (addr == 0x1f801814) {
 		gp1Command = data;
+
 		if (g_GpuCommandsLogged)
 			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << std::endl;
-		switch (gp1Command >> 24) {
-		case 0x0:
-			gpuStat.data = 0x14802000;
-			break;
-		case 0x1:
-			//std::cout << "~[GPU] unhandled properly GPU1 command: Reset Command Buffer" << std::endl;
-			break;
-		case 0x2:
-			gpuStat.elem.irq1 = 0;
-			break;
-		case 0x3:
-			gpuStat.elem.displayEnable = data & 0x1;
-			break;
-		case 0x4:
-			gpuStat.elem.dmaDir = gp1Command & 0x3;
-			switch (gp1Command & 0x3) {
-			case 0:
-				gpuStat.elem.dataRequest = 0;
-				break;
-			case 1:
-				gpuStat.elem.dataRequest = (fifoCount >= 16) ? 0 : 1;
-				break;
-			case 2:
-				gpuStat.elem.dataRequest = gpuStat.elem.readyDma;
-				break;
-			case 3:
-				gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
-				break;
-			}
-			break;
-		case 0x5:
-			display_start.x = gp1Command << 22 >> 22;
-			display_start.y = gp1Command << 13 >> 23;
-			break;
-		case 0x6:
-			x1 = gp1Command << 20 >> 20;
-			x2 = gp1Command << 12 >> 24;
-			break;
-		case 0x7:
-			y1 = gp1Command << 22 >> 22;
-			y2 = gp1Command << 12 >> 22;
-			break;
-		case 0x8:
-			gpuStat.elem.horizontalRes1 = gp1Command & 0x3;
-			gpuStat.elem.verticalRes = (gp1Command & 0x4 ? 1 : 0);
-			gpuStat.elem.videoMode = (gp1Command & 0x8 ? 1 : 0);
-			gpuStat.elem.displayAreaColorDepth = (gp1Command & 0x10 ? 1 : 0);
-			gpuStat.elem.verticalInterlace = (gp1Command & 0x20 ? 1 : 0);
-			gpuStat.elem.horizontalRes2 = gp1Command & 0x40;
-			gpuStat.elem.reverseflag = (gp1Command & 0x80 ? 1 : 0);
 
-			if (gpuStat.elem.verticalInterlace)
-				gpuStat.elem.interlaceField = 1;
-			else
-				gpuStat.elem.interlaceField = 0;
-			break;
-		case 0x10:
-			switch (gp1Command & 0x7) {
-			case 2:
-				gp1Result = gp1TextureWindowSetting;
-				break;
-			case 3:
-				gp1Result = gp1TopLeft;
-				break;
-			case 4:
-				gp1Result = gp1BottomRight;
-				break;
-			case 5:
-				gp1Result = gp1DrawOffset;
-				break;
-			case 7:
-				std::cout << "~[GPU] Old 160pin GPU" << std::endl;
-				break;
-			default:
-				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x" << std::hex << data << std::endl;
-				g_emulationPaused = true;
-				break;
-			}
-			break;
-		default:
-			std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << data << std::endl;
-			g_emulationPaused = true;
-			break;
-		}
-		return;
+		decodeExecuteGp1Command(gp1Command);
 	}
 }
 
 void gpu_t::videoClock() {
 	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
 		cpuScanlineClocks = 0;
+
 		if (!gpuStat.elem.verticalRes)
 			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
@@ -547,10 +452,12 @@ void gpu_t::videoClock() {
 		pBus->timer1.clock(_HBLANK_CLOCK);
 		pBus->timer0.clock(_HBLANK_CLOCK);
 
-
+		if (scanlineCount == 0)
+			if (gpuStat.elem.verticalRes)
+				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
 		scanlineCount++;
-		if (scanlineCount == SCANLINE_NUMBER_PAL) {
+		if (scanlineCount == SCANLINE_NUMBER_NTSC) {
 			scanlineCount = -1;
 
 			//fifoCount = 0;
@@ -560,32 +467,52 @@ void gpu_t::videoClock() {
 			//V-Sync interrupt is naturally edge trigered
 			pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
 
-			if (gpuStat.elem.verticalRes && gpuStat.elem.verticalInterlace)
-				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
 
-
-			if (pBus->spu.spuControlRegister.elem.irq9Enable) { //metal gear solid
-				pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-				pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
-			}
+			/*if (pBus->spu.spuControlRegister.elem.irq9Enable) {
+				if ((pBus->spu.irqAddress < 0x1000) ||
+					(pBus->spu.irqAddress >= pBus->spu.reverbCurrentAddress)) {
+					pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+					pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+				}
+			}*/
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
 		}
+
+		if (scanlineCount >= 240)
+			gpuStat.elem.drawingEvenOddLines = 0;
 	}
 
 	if ((cpuScanlineClocks & 0xf) == 0)
 		pBus->timer0.clock(_DOT_CLOCK);
 
 
-	/*if (cpuScanlineClocks % (0x300 * 0x3ff) == 0) {
-		if (pBus->spu.spuControlRegister.elem.irq9Enable) {
-			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-			pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+	//if ((cpuClocks % (44100 * 0x300 / 4)) == 0) { //Rayman 2 - The Great Escape
+	//	if (pBus->spu.spuControlRegister.elem.irq9Enable) {
+	//		pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+	//		pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
+	//	}
+	//}
+
+	if (cpuClocks == CPU_CLOCK)
+		cpuClocks = 0;
+	else
+		cpuClocks++;
+
+
+	cpuScanlineClocks++;
+
+	/*if (fifoIndex) {
+		fifoClocks[fifoIndex]--;
+		if (fifoClocks[fifoIndex] == 0) {
+			pBus->dma.dma2.channelControl.reg.startBusy = 1;
+			gpuStat.elem.readyDma = 1;
+			gpuStat.elem.readyCommand = 1;
+			fifoIndex--;
 		}
 	}*/
 
-	cpuScanlineClocks++;
 
 	//fifoClocks++;
 	//if (fifoCount >= 3071) {
@@ -604,6 +531,501 @@ void gpu_t::videoClock() {
 	//	gpuStat.elem.readyDma = 0;
 	//	gpuStat.elem.readyCommand = 0;
 	//}
+}
+
+void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
+
+	auto maskPosFill = [](uint16_t& xpos, uint16_t& ypos) {
+		xpos = xpos & 0x3f0;
+		ypos = ypos & 0x1ff;
+		};
+
+	auto maskSizFill = [](uint16_t& xsiz, uint16_t& ysiz) {
+		xsiz = ((xsiz & 0x3ff) + 0x0f) & (~0x0f);
+		ysiz = ysiz & 0x1ff;
+		};
+
+	auto maskPosCopy = [](uint16_t& xpos, uint16_t& ypos) {
+		xpos = xpos & 0x3ff;
+		ypos = ypos & 0x1ff;
+		};
+
+	auto maskSizCopy = [](uint16_t& xsiz, uint16_t& ysiz) {
+		xsiz = ((xsiz - 1) & 0x3ff) + 1;
+		ysiz = ((ysiz - 1) & 0x1ff) + 1;
+		};
+
+	switch (command >> 29) {
+	case 0b000: //Misc commands
+		if ((gp0Command >> 24) == 0x02) {
+			param.primitiveType = FILL;
+
+			param.commandColor1 = gp0Command;
+
+			uint32_t pos = fifo.getNext();
+			uint16_t xpos = pos & 0xffff;
+			uint16_t ypos = pos >> 16;
+			maskPosFill(xpos, ypos);
+			param.vert1 = vertex_t(xpos, ypos);
+
+			uint32_t size_x_y = fifo.getNext();
+			uint16_t xsiz = size_x_y & 0xffff;
+			uint16_t ysiz = size_x_y >> 16;
+			maskSizFill(xsiz, ysiz);
+			param.vert4 = param.vert1 + vertex_t(xsiz, ysiz);
+
+			/*fifoClocks[fifoIndex] = xsiz * ysiz / 20;
+
+			if (fifoIndex == 3) {
+				pBus->dma.dma2.channelControl.reg.startBusy = 0;
+				pBus->dma.isCpuStopped = false;
+				gpuStat.elem.readyDma = 0;
+				gpuStat.elem.readyCommand = 0;
+			}
+			++fifoIndex;*/
+
+			fillRectVram(param);
+		}
+		else if ((gp0Command >> 24) == 0x01) {
+			//clar cache unhandled
+		}
+		else {
+			if (gp0Command >> 24 == 0x1f) {
+				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x" << std::hex << command << " " <<
+					gp0Lookup[(command >> 24)].name << "\n";
+				g_emulationPaused = true;
+			}
+		}
+		break;
+	case 0b001: //Polygon primitive
+		param.primitiveType = POLYGON;
+
+		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
+		param.verticesNumber = (command & 0x08000000) ? 4 : 3;
+		param.bTextured = (command & 0x04000000) ? true : false;
+		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
+		param.modulationType = (command & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
+
+		param.commandColor1 = command;
+
+		param.vert1 = fifo.getNext();
+		param.vert1.x = (param.vert1.x + drawOffset.x);
+		param.vert1.y = (param.vert1.y + drawOffset.y);
+
+		if (param.bTextured)
+			param.texCoord1Palette = fifo.getNext();
+
+		if (param.shadingType == GOURAUD_SHADING)
+			param.color2 = fifo.getNext();
+
+		param.vert2 = fifo.getNext();
+		param.vert2.x = (param.vert2.x + drawOffset.x);
+		param.vert2.y = (param.vert2.y + drawOffset.y);
+
+		if (param.bTextured)
+			param.texCoord2TexPage = fifo.getNext();
+
+		if (param.shadingType == GOURAUD_SHADING)
+			param.color3 = fifo.getNext();
+
+		param.vert3 = fifo.getNext();
+		param.vert3.x = (param.vert3.x + drawOffset.x);
+		param.vert3.y = (param.vert3.y + drawOffset.y);
+
+		if (param.bTextured)
+			param.texCoord3 = fifo.getNext();
+
+		param.vert4 = (0, 0);//??
+		if (param.verticesNumber == 4) {
+			if (param.shadingType == GOURAUD_SHADING)
+				param.color4 = fifo.getNext();
+
+			param.vert4 = fifo.getNext();
+			param.vert4.x = (param.vert4.x + drawOffset.x);
+			param.vert4.y = (param.vert4.y + drawOffset.y);
+
+			if (param.bTextured)
+				param.texCoord4 = fifo.getNext();
+		}
+
+		if (param.bTextured) {
+			gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute & 0x7ff);
+			gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+		}
+
+		if (param.shadingType == FLAT_SHADING) {
+			param.color2 = param.commandColor1 & 0x00ffffff;
+			param.color3 = param.commandColor1 & 0x00ffffff;
+			if (param.verticesNumber == 4)
+				param.color4 = param.commandColor1 & 0x00ffffff;
+		}
+
+		if ((abs(param.vert1.x - param.vert2.x) > 1024) ||
+			(abs(param.vert1.x - param.vert3.x) > 1024) ||
+			((param.verticesNumber == 4) && (abs(param.vert1.x - param.vert4.x) > 1024)) ||
+			(abs(param.vert2.x - param.vert3.x) > 1024) ||
+			((param.verticesNumber == 4) && (abs(param.vert2.x - param.vert4.x) > 1024)) ||
+			((param.verticesNumber == 4) && (abs(param.vert3.x - param.vert4.x) > 1024)) ||
+			(abs(param.vert1.y - param.vert2.y) > 512) ||
+			(abs(param.vert1.y - param.vert3.y) > 512) ||
+			((param.verticesNumber == 4) && (abs(param.vert1.y - param.vert4.y) > 512)) ||
+			(abs(param.vert2.y - param.vert3.y) > 512) ||
+			((param.verticesNumber == 4) && (abs(param.vert2.y - param.vert4.y) > 512)) ||
+			((param.verticesNumber == 4) && (abs(param.vert3.y - param.vert4.y) > 512)))
+			return;
+
+	/*	fifoClocks[fifoIndex] = 0x6;
+
+		if (fifoIndex == 3) {
+			pBus->dma.dma2.channelControl.reg.startBusy = 0;
+			pBus->dma.isCpuStopped = false;
+			gpuStat.elem.readyDma = 0;
+			gpuStat.elem.readyCommand = 0;
+		}
+		++fifoIndex;*/
+
+
+		if (param.bTextured)
+			drawTexPolygon(&param);
+		else
+			drawPolygon(&param);
+
+		break;
+
+	case 0b010: //Line primitive
+		param.primitiveType = LINE;
+
+		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
+		param.bPolyline = (command & 0x08000000) ? true : false;
+		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
+
+		if (param.bPolyline)
+			fifo.popBack(); // pop 0x50005000
+
+		param.commandColor1 = command;
+		if (param.shadingType == FLAT_SHADING) {
+			for (int i = 0; i < fifo.size() - 1; i++) {
+				param.vert1 = fifo[i];
+				param.vert1.x = (param.vert1.x + drawOffset.x);
+				param.vert1.y = (param.vert1.y + drawOffset.y);
+				param.vert2 = fifo[i + 1];
+				param.vert2.x = (param.vert2.x + drawOffset.x);
+				param.vert2.y = (param.vert2.y + drawOffset.y);
+				drawLine(param);
+			}
+		}
+		else if (param.shadingType == GOURAUD_SHADING) {
+			for (int i = 0; i < fifo.size() - 2; i += 2) {
+				param.vert1 = fifo[i];
+				param.vert1.x = (param.vert1.x + drawOffset.x);
+				param.vert1.y = (param.vert1.y + drawOffset.y);
+				param.color2 = fifo[i + 1];
+				param.vert2 = fifo[i + 2];
+				param.vert2.x = (param.vert2.x + drawOffset.x);
+				param.vert2.y = (param.vert2.y + drawOffset.y);
+
+				if (fifo[0] == fifo[i + 2]) //!!?????
+					param.color2 = command & 0x00ffffff;
+
+				drawLine(param);
+
+				param.commandColor1 = (param.commandColor1 & 0xff000000) | param.color2.data;
+
+			}
+		}
+
+		fifo.reset();
+
+		break;
+
+	case 0b011: { //Rectangle primitive
+		param.primitiveType = RECT;
+
+		param.rectSize = command << 3 >> 30;
+		param.bTextured = (command & 0x04000000) ? true : false;
+		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
+		param.modulationType = (command & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
+
+		param.commandColor1 = gp0Command;
+
+		param.vert1 = fifo.getNext();
+		param.vert1.x = signed11bit(param.vert1.x + drawOffset.x); //??
+		param.vert1.y = signed11bit(param.vert1.y + drawOffset.y); //??
+
+		if (param.bTextured)
+			param.texCoord1Palette = (texcoordType_t)fifo.getNext();
+
+		switch (param.rectSize) {
+		case 0b00:
+			param.size_y_x = fifo.getNext();
+			break;
+		case 0b01:
+			param.size_y_x = 0x00010001;
+			break;
+		case 0b10:
+			param.size_y_x = 0x00080008;
+			break;
+		case 0b11:
+			param.size_y_x = 0x00100010;
+			break;
+		}
+
+		uint16_t xsiz = param.size_y_x & 0xffff;
+		uint16_t ysiz = param.size_y_x >> 16;
+
+		/*fifoClocks[fifoIndex] = xsiz * ysiz / 14;
+
+		if (fifoIndex == 3) {
+			pBus->dma.dma2.channelControl.reg.startBusy = 0;
+			pBus->dma.isCpuStopped = false;
+			gpuStat.elem.readyDma = 0;
+			gpuStat.elem.readyCommand = 0;
+		}
+		else
+			++fifoIndex;*/
+
+		if (param.bTextured)
+			switch (gpuStat.elem.texPageColors) {
+			case 0:
+				drawTexRect4Bit(param);
+				break;
+			case 1:
+				drawTexRect8Bit(param);
+				break;
+			case 2:
+				drawTexRect15Bit(param);
+				break;
+			case 3: //Reserved //Disney's Aladdin in Nasira's Revenge uses
+				//g_emulationPaused = true;
+				//std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+				drawTexRect15Bit(param);
+				break;
+			}
+		else
+			drawMonochromeRect(param);
+
+		break;
+	}
+	case 0b100: { //VRAM-to-VRAM blit
+		uint32_t sourceCoord = fifo.getNext();
+		uint16_t xpos = sourceCoord & 0xffff;
+		uint16_t ypos = sourceCoord >> 16;
+		maskPosCopy(xpos, ypos);
+		sourceCoord = ((uint32_t)ypos << 16) | xpos;
+
+		uint32_t destCoord = fifo.getNext();
+		xpos = destCoord & 0xffff;
+		ypos = destCoord >> 16;
+		maskPosCopy(xpos, ypos);
+		destCoord = ((uint32_t)ypos << 16) | xpos;
+
+		uint32_t widthHeight = fifo.getNext();
+		uint16_t xsiz = widthHeight & 0xffff;
+		uint16_t ysiz = widthHeight >> 16;
+		maskSizCopy(xsiz, ysiz);
+		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
+
+	/*	fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+
+		if (fifoIndex == 3) {
+			pBus->dma.dma2.channelControl.reg.startBusy = 0;
+			pBus->dma.isCpuStopped = false;
+			gpuStat.elem.readyDma = 0;
+			gpuStat.elem.readyCommand = 0;
+		}
+		else
+			++fifoIndex;*/
+
+		copyRectVramVram(sourceCoord, destCoord, widthHeight);
+		break;
+	}
+	case 0b101: //CPU-to-VRAM blit
+		if (bCollectCopyCpuVramParam) {
+			bCollectCopyCpuVramParam = false;
+
+			destCoord = fifo.getNext();
+			uint16_t xpos = destCoord & 0xffff;
+			uint16_t ypos = destCoord >> 16;
+			maskPosCopy(xpos, ypos);
+			destCoord = ((uint32_t)ypos << 16) | xpos;
+
+			widthHeight = fifo.getNext();
+			uint16_t xsiz = widthHeight & 0xffff;
+			uint16_t ysiz = widthHeight >> 16;
+			maskSizCopy(xsiz, ysiz);
+			widthHeight = ((uint32_t)ysiz << 16) | xsiz;
+
+			/*fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+
+			if (fifoIndex == 3) {
+				pBus->dma.dma2.channelControl.reg.startBusy = 0;
+				pBus->dma.isCpuStopped = false;
+				gpuStat.elem.readyDma = 0;
+				gpuStat.elem.readyCommand = 0;
+			}
+			++fifoIndex;*/
+
+			collectCount = xsiz * ysiz / 2;
+			if ((collectCount * 2) < xsiz * ysiz)
+				collectCount++;
+		}
+		else
+			copyRectCpuVram(destCoord, widthHeight);
+
+		break;
+
+	case 0b110: { //VRAM-to-CPU blit
+		sourceCoord = fifo.getNext();
+		uint16_t xpos = sourceCoord & 0xffff;
+		uint16_t ypos = sourceCoord >> 16;
+		maskPosCopy(xpos, ypos);
+		sourceCoord = ((uint32_t)ypos << 16) | xpos;
+
+		widthHeight = fifo.getNext();
+		uint16_t xsiz = widthHeight & 0xffff;
+		uint16_t ysiz = widthHeight >> 16;
+		maskSizCopy(xsiz, ysiz);
+		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
+
+		fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+
+		/*if (fifoIndex == 3) {
+			pBus->dma.dma2.channelControl.reg.startBusy = 0;
+			pBus->dma.isCpuStopped = false;
+			gpuStat.elem.readyDma = 0;
+			gpuStat.elem.readyCommand = 0;
+		}
+		else
+			++fifoIndex;*/
+
+		copyRectVramCpu(sourceCoord, widthHeight);
+		gpuStat.elem.readyVramCpu = 1;
+		break;
+	}
+	case 0b111: //Environment commands
+		switch (command >> 24) {
+		case 0xe1:
+			gpuStat.data &= 0xffff7800;
+			gpuStat.data |= command & 0x000087ff;
+			gpuStat.elem.texDis = command & 0x00008000 ? 1 : 0;
+			break;
+		case 0xe2:
+			texWinMask.x = command << 27 >> 27;
+			texWinMask.y = command << 22 >> 27;
+			texWinOffset.x = command << 17 >> 27;
+			texWinOffset.y = command << 12 >> 27;
+			gp1TextureWindowSetting = command & 0x000fffff;
+			break;
+		case 0xe3:
+			drawAreaTopLeft.x = command << 22 >> 22;
+			drawAreaTopLeft.y = command << 13 >> 23;
+			gp1TopLeft = command & 0x0007ffff;
+			break;
+		case 0xe4:
+			drawAreaBottomRight.x = command << 22 >> 22;
+			drawAreaBottomRight.y = command << 13 >> 23;
+			gp1BottomRight = command & 0x0007ffff;
+			break;
+		case 0xe5:
+			drawOffset.x = signed11bit(uint16_t(command & 0x7ff));
+			drawOffset.y = signed11bit(uint16_t((command >> 11) & 0x7ff));
+			gp1DrawOffset = command & 0x003fffff;;
+			break;
+		case 0xe6:
+			gpuStat.elem.setMaskBitWhileDrawing = command & 0x1;
+			gpuStat.elem.drawPixels = (command & 0x2 ? 1 : 0);
+			break;
+		}
+	}
+}
+
+void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
+
+	switch (command >> 24) {
+	case 0x0:
+		gpuStat.data = 0x14802000;
+		break;
+	case 0x1:
+		//std::cout << "~[GPU] unhandled properly GPU1 command: Reset Command Buffer" << std::endl;
+		break;
+	case 0x2:
+		gpuStat.elem.irq1 = 0;
+		break;
+	case 0x3:
+		gpuStat.elem.displayEnable = command & 0x1;
+		break;
+	case 0x4:
+		gpuStat.elem.dmaDir = command & 0x3;
+		switch (command & 0x3) {
+		case 0:
+			gpuStat.elem.dataRequest = 0;
+			break;
+		case 1:
+			gpuStat.elem.dataRequest = (fifoCount >= 16) ? 0 : 1;
+			break;
+		case 2:
+			gpuStat.elem.dataRequest = gpuStat.elem.readyDma;
+			break;
+		case 3:
+			gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
+			break;
+		}
+		break;
+	case 0x5:
+		display_start.x = command << 22 >> 22;
+		display_start.y = command << 13 >> 23;
+		break;
+	case 0x6:
+		x1 = command << 20 >> 20;
+		x2 = command << 12 >> 24;
+		break;
+	case 0x7:
+		y1 = command << 22 >> 22;
+		y2 = command << 12 >> 22;
+		break;
+	case 0x8:
+		gpuStat.elem.horizontalRes1 = command & 0x3;
+		gpuStat.elem.verticalRes = (command & 0x4 ? 1 : 0);
+		gpuStat.elem.videoMode = (command & 0x8 ? 1 : 0);
+		gpuStat.elem.displayAreaColorDepth = (command & 0x10 ? 1 : 0);
+		gpuStat.elem.verticalInterlace = (command & 0x20 ? 1 : 0);
+		gpuStat.elem.horizontalRes2 = command & 0x40;
+		gpuStat.elem.reverseflag = (command & 0x80 ? 1 : 0);
+
+		if (gpuStat.elem.verticalInterlace)
+			gpuStat.elem.interlaceField = 1;
+		else
+			gpuStat.elem.interlaceField = 0;
+		break;
+	case 0x10:
+		switch (command & 0x7) {
+		case 2:
+			gp1Result = gp1TextureWindowSetting;
+			break;
+		case 3:
+			gp1Result = gp1TopLeft;
+			break;
+		case 4:
+			gp1Result = gp1BottomRight;
+			break;
+		case 5:
+			gp1Result = gp1DrawOffset;
+			break;
+		case 7:
+			std::cout << "~[GPU] Old 160pin GPU" << std::endl;
+			break;
+		default:
+			std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x" << std::hex << command << std::endl;
+			g_emulationPaused = true;
+			break;
+		}
+		break;
+	default:
+		std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << command << std::endl;
+		g_emulationPaused = true;
+		break;
+	}
+	return;
 }
 
 void gpu_t::updateVramView(const vertex_t& possition, const psxColor16_t& color16) {
@@ -647,7 +1069,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		if ((position.x < 0) || (position.y < 0)) {
 			std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
 				position.y << ")" << "\n";
-			//g_emulationPaused = true;
+			g_emulationPaused = true;
 			return;
 		}
 
@@ -666,13 +1088,6 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		((position.x) <= drawAreaBottomRight.x) &&
 		((position.y) <= drawAreaBottomRight.y)) {
 
-		if ((position.x < 0) || (position.y) < 0) {
-			/*std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
-				position.y << ")" << "\n";
-			g_emulationPaused = true;*/
-			return;
-		}
-
 		uint16_t backPixel;
 		readVram(position, backPixel, bIgnoreDrawingArea);
 
@@ -681,26 +1096,6 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			updateVramView(position, data);
 		}
 	}
-
-
-	//else {
-	//	if ((position.x + (drawOffset.x >> 5) < 0) || (position.y + (drawOffset.y >> 5)) < 0) {
-	//		/*std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x + (drawOffset.x >> 5) << "," <<
-	//			position.y + (drawOffset.y >> 5) << ")" << "\n";
-	//		g_emulationPaused = true;*/
-	//		return;
-	//	}
-
-	//	vram[(((position.x + (drawOffset.x >> 5)) & 1023) - ((position.x + (drawOffset.x >> 5)) >= drawAreaBottomRight.x) ? drawAreaBottomRight.x/* - (drawOffset.x >> 5) */: 0) * 2 * size_y +
-	//		(((position.y + (drawOffset.y >> 5)) & 511) - ((position.y + (drawOffset.y >> 5)) >= drawAreaBottomRight.y) ? drawAreaBottomRight.y /*- (drawOffset.y >> 5)*/ : 0)] = data << 8 >> 8;
-	//	vram[((((position.x + (drawOffset.x >> 5)) & 1023) - ((position.x + (drawOffset.x >> 5)) >= drawAreaBottomRight.x) ? drawAreaBottomRight.x /*- (drawOffset.x >> 5)*/ : 0) * 2 + 1) * size_y +
-	//		(((position.y + (drawOffset.y >> 5)) & 511) - ((position.y + (drawOffset.y >> 5)) >= drawAreaBottomRight.y) ? drawAreaBottomRight.y /*- (drawOffset.y >> 5)*/ : 0)] = data >> 8;
-
-	//	vertex_t p = { 0, 0 };
-	//	p.x = position.x + (drawOffset.x >> 5) - (((position.x + (drawOffset.x >> 5)) >= drawAreaBottomRight.x) ? drawAreaBottomRight.x /*- (drawOffset.x >> 5)*/ : 0);
-	//	p.y = position.y + (drawOffset.y >> 5) - (((position.y + (drawOffset.y >> 5)) >= drawAreaBottomRight.y) ? drawAreaBottomRight.y /*- (drawOffset.y >> 5)*/ : 0);
-	//	updateVramView(p, data);
-	//}
 }
 
 void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea) {
@@ -708,7 +1103,7 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 		if ((position.x < 0) || (position.y < 0)) {
 			std::cout << "~[GPU] EMULATION PAUSED! Read Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
 				position.y << ")" << "\n";
-			//g_emulationPaused = true;
+			g_emulationPaused = true;
 			return;
 		}
 
@@ -720,13 +1115,6 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 		(position.y >= drawAreaTopLeft.y) &&
 		(position.x <= drawAreaBottomRight.x) &&
 		(position.y <= drawAreaBottomRight.y)) {
-
-		if ((position.x < 0) || (position.y < 0)) {
-			/*std::cout << "~[GPU] EMULATION PAUSED! Read Vram out of bounds!" << std::dec << " (x,y) (" << position.x + (drawOffset.x >> 5) << "," <<
-				position.y + (drawOffset.y >> 5) << ")" << "\n";
-			g_emulationPaused = true;*/
-			return;
-		}
 
 		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + (position.y & 511) * size_x_b));
 	}
@@ -754,7 +1142,7 @@ uint32_t gpu_t::format16to24Color(const uint16_t& input) {
 	return color24.data;
 }
 
-void gpu_t::calculateTransparency(vertex_t p, psxColor16_t& frontPixelColor) {
+void gpu_t::calculateTransparency(const vertex_t& p, psxColor16_t& frontPixelColor) {
 	psxColor16_t backPixelColor;
 	readVram(p, backPixelColor.data);
 	switch (gpuStat.elem.semiTransparency) {
@@ -886,10 +1274,14 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	case 2: //15bit
 		texBittnesVar.bit15 = true;
 		texBittnesVar.devider = 1;
+		texBittnesVar.firstAnder = 0x0;
 		break;
-	case 3: //Reserved
-		g_emulationPaused = true;
-		std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+	case 3: //Reserved //Disney's Aladdin in Nasira's Revenge uses
+		//g_emulationPaused = true;
+		//std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
+		texBittnesVar.bit15 = true;
+		texBittnesVar.devider = 1;
+		texBittnesVar.firstAnder = 0x0;
 		break;
 	}
 
@@ -920,6 +1312,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	int u4 = pParam->texCoord4.elem.x;
 	int v4 = pParam->texCoord4.elem.y;
 
+
 	psxColor24_t blendingColor;
 	psxColor16_t frontPixelColor;
 
@@ -929,8 +1322,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 
 	DrawPolygonInterpolated(
 		p0, p1, p2,
-		[&](int x, int y, int b, int g, int r, int u, int v)
-		{
+		[&](int x, int y, int b, int g, int r, int u, int v) {
 			vertex_t p((int16_t)x, (int16_t)y);
 
 			vertex_t pTex;
@@ -938,7 +1330,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += ((((int)round(u) & 255) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3)) / texBittnesVar.devider;
+			pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+				| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 			uint16_t data;
 			readVram(pTex, data, true);
@@ -948,7 +1341,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			else {
 				vertex_t pClut;
 				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> (((int)round(u) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+					((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 				pClut.y = clut.elem.yCoord;
 				readVram(pClut, frontPixelColor.data, true);
 			}
@@ -986,8 +1379,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 
 		DrawPolygonInterpolated(
 			p0, p1, p2,
-			[&](int x, int y, int b, int g, int r, int u, int v)
-			{
+			[&](int x, int y, int b, int g, int r, int u, int v) {
 				vertex_t p((int16_t)x, (int16_t)y);
 
 				vertex_t pTex;
@@ -995,7 +1387,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 				pTex.x = gpuStat.elem.texPageXBase << 6;
-				pTex.x += ((((int)round(u) & 255) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3)) / texBittnesVar.devider;
+				pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+					| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 				uint16_t data;
 				readVram(pTex, data, true);
@@ -1005,7 +1398,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 				else {
 					vertex_t pClut;
 					pClut.x = (clut.elem.xCoord << 4) +
-						((data >> (((int)round(u) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+						((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 					pClut.y = clut.elem.yCoord;
 					readVram(pClut, frontPixelColor.data, true);
 				}
@@ -1037,7 +1430,7 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 	}
 }
 
-void gpu_t::drawMonochromeRect(param_t param) {
+void gpu_t::drawMonochromeRect(const param_t& param) {
 	int16_t x1 = param.vert1.x;
 	int16_t y1 = param.vert1.y;
 	int16_t x2 = x1 + (param.size_y_x & 0xffff);
@@ -1071,8 +1464,7 @@ static void swap(float& a, float& b) {
 	b = a; a = c;
 }
 
-
-void gpu_t::drawLine(param_t param) {
+void gpu_t::drawLine(const param_t& param) { //could be optimized
 
 	psxColor24_t color1 = param.commandColor1;
 	int x1 = param.vert1.x;
@@ -1169,7 +1561,7 @@ void gpu_t::drawLine(param_t param) {
 	}
 }
 
-void gpu_t::drawTexRect15Bit(param_t param) {
+void gpu_t::drawTexRect15Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
 	int16_t u1 = param.texCoord1Palette.elem.x;
 	int16_t v1 = param.texCoord1Palette.elem.y;
@@ -1227,7 +1619,7 @@ void gpu_t::drawTexRect15Bit(param_t param) {
 	}
 }
 
-void gpu_t::drawTexRect8Bit(param_t param) {
+void gpu_t::drawTexRect8Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
 	int16_t u1 = param.texCoord1Palette.elem.x;
 	int16_t v1 = param.texCoord1Palette.elem.y;
@@ -1262,13 +1654,13 @@ void gpu_t::drawTexRect8Bit(param_t param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 1) + ((int16_t)((float)x * ratioX) >> 1)) & (255 >> 1) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
+			pTex.x += (((u1 >> 1) + (((int16_t)((float)x * ratioX) + (u1 & 0x1)) >> 1)) & (255 >> 1) & (~(texWinMask.x << 2))) | ((texWinOffset.x & texWinMask.x) << 2);
 
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
 			pClut.x = clut.elem.xCoord * 16 +
-				(texData >> (((int16_t)((float)x * ratioX) & 0x1) * 8) & 0xff);
+				(texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x1)) & 0x1) * 8) & 0xff);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, frontPixelColor.data, true);
 
@@ -1290,7 +1682,7 @@ void gpu_t::drawTexRect8Bit(param_t param) {
 	}
 }
 
-void gpu_t::drawTexRect4Bit(param_t param) {
+void gpu_t::drawTexRect4Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
 	int16_t u1 = param.texCoord1Palette.elem.x;
 	int16_t v1 = param.texCoord1Palette.elem.y;
@@ -1307,6 +1699,7 @@ void gpu_t::drawTexRect4Bit(param_t param) {
 	int16_t y2 = y1 + ((param.size_y_x >> 16) & 0xffff);
 
 	psxColor16_t frontPixelColor;
+	psxColor16_t randa = rand() & 0x7fff;
 	vertex_t p;
 
 	float ratioX = ((float)(u2 - u1) / (float)(x2 - x1));
@@ -1325,13 +1718,13 @@ void gpu_t::drawTexRect4Bit(param_t param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 2) + ((int16_t)((float)x * ratioX) >> 2)) & (255 >> 2) & (~(texWinMask.x << 3))) | ((texWinOffset.x & texWinMask.x) << 3);
+			pTex.x += (((u1 >> 2) + (((int16_t)((float)x * ratioX) + (u1 & 0x3)) >> 2)) & (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
 
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
 			pClut.x = (clut.elem.xCoord << 4) +
-				(texData >> (((int16_t)((float)x * ratioX) & 0x3) << 2) & 0xf);
+				((texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x3)) & 0x3) << 2)) & 0xf);
 			pClut.y = clut.elem.yCoord;
 			readVram(pClut, frontPixelColor.data, true);
 
@@ -1349,11 +1742,13 @@ void gpu_t::drawTexRect4Bit(param_t param) {
 					calculateTransparency(p, frontPixelColor);
 				writeVram(p, frontPixelColor.data);
 			}
+			/*else
+				writeVram(p, randa.data);*/
 		}
 	}
 }
 
-void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height) {
+void gpu_t::copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_height) {
 	const uint32_t x1 = (dest_coord & 0xffff) & 0x3ff;
 	uint32_t x2 = x1 + (width_height & 0xffff);
 	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
@@ -1381,14 +1776,13 @@ void gpu_t::copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_heig
 		}
 	}
 
-
 	/*if (!buffer.empty() && !(((width_height &0xffff) * (width_height >> 16)) & 0x1)) {
 		std::cout << "[GPU] EMULATION PAUSED! gp0 command 0xa0 buffer not empty 0x" << std::hex << buffer.size() << std::endl;
 		g_emulationPaused = true;
 	}*/
 }
 
-void gpu_t::copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height) {
+void gpu_t::copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height) {
 	const uint16_t x1 = source_coord & 0xffff;
 	const uint16_t x2 = x1 + (width_height & 0xffff);
 	const uint16_t y1 = source_coord >> 16;
@@ -1441,14 +1835,11 @@ void gpu_t::copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCo
 	} while (y < height);
 }
 
-void gpu_t::fillRectVram(param_t param) {
+void gpu_t::fillRectVram(const param_t& param) {
 	int16_t x1 = param.vert1.x;
 	int16_t y1 = param.vert1.y;
 	int16_t x2 = param.vert4.x;
 	int16_t y2 = param.vert4.y;
-
-	int16_t x = x1;
-	int16_t y = y1;
 
 	uint16_t data = format24to16Color(param.commandColor1);
 
@@ -1466,278 +1857,4 @@ void gpu_t::fillRectVram(param_t param) {
 
 	gpuStat.elem.setMaskBitWhileDrawing = oldSetMaskBitWhileDrawing;
 	gpuStat.elem.drawPixels = oldDrawPixels;
-}
-
-void gpu_t::decodeExecuteGp0Command(const uint32_t& commandColor) {
-
-	switch (commandColor >> 29) {
-	case 0b000: //Misc commands
-		if ((gp0Command >> 24) == 0x02) {
-			param.vert1 = (vertex_t)fifo.getNext();
-			uint32_t size_x_y = fifo.getNext();
-
-			param.vert4 = param.vert1 + vertex_t(size_x_y & 0xffff, size_x_y >> 16);
-			param.vert3 = param.vert1 + vertex_t(0, size_x_y >> 16);
-			param.vert2 = param.vert1 + vertex_t(size_x_y & 0xffff, 0);
-			param.commandColor1 = gp0Command;
-
-			fillRectVram(param);
-		}
-		else if ((gp0Command >> 24) == 0x01) {
-		}
-		else {
-			if (gp0Command >> 24 == 0x1f) {
-				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x" << std::hex << commandColor << " " <<
-					gp0Lookup[(commandColor >> 24)].name << "\n";
-				g_emulationPaused = true;
-			}
-		}
-		break;
-	case 0b001: //Polygon primitive
-		param.primitiveType = POLYGON;
-
-		param.shadingType = (commandColor & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
-		param.verticesNumber = (commandColor & 0x08000000) ? 4 : 3;
-		param.bTextured = (commandColor & 0x04000000) ? true : false;
-		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
-		param.modulationType = (commandColor & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
-
-		param.commandColor1 = commandColor;
-
-		param.vert1 = fifo.getNext();
-		param.vert1.x = (param.vert1.x + drawOffset.x);
-		param.vert1.y = (param.vert1.y + drawOffset.y);
-
-		if (param.bTextured)
-			param.texCoord1Palette = fifo.getNext();
-
-		if (param.shadingType == GOURAUD_SHADING)
-			param.color2 = fifo.getNext();
-
-		param.vert2 = fifo.getNext();
-		param.vert2.x = (param.vert2.x + drawOffset.x);
-		param.vert2.y = (param.vert2.y + drawOffset.y);
-
-		if (param.bTextured)
-			param.texCoord2TexPage = fifo.getNext();
-
-		if (param.shadingType == GOURAUD_SHADING)
-			param.color3 = fifo.getNext();
-
-		param.vert3 = fifo.getNext();
-		param.vert3.x = (param.vert3.x + drawOffset.x);
-		param.vert3.y = (param.vert3.y + drawOffset.y);
-
-		if (param.bTextured)
-			param.texCoord3 = fifo.getNext();
-
-		param.vert4 = (0, 0);//??
-		if (param.verticesNumber == 4) {
-			if (param.shadingType == GOURAUD_SHADING)
-				param.color4 = fifo.getNext();
-
-			param.vert4 = fifo.getNext();
-			param.vert4.x = (param.vert4.x + drawOffset.x);
-			param.vert4.y = (param.vert4.y + drawOffset.y);
-
-			if (param.bTextured)
-				param.texCoord4 = fifo.getNext();
-		}
-
-		if (param.bTextured) {
-			gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute & 0x7ff);
-			gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
-		}
-
-		if (param.shadingType == FLAT_SHADING) {
-			param.color2 = param.commandColor1 & 0x00ffffff;
-			param.color3 = param.commandColor1 & 0x00ffffff;
-			if (param.verticesNumber == 4)
-				param.color4 = param.commandColor1 & 0x00ffffff;
-		}
-
-		if ((abs(param.vert1.x - param.vert2.x) > 1024) ||
-			(abs(param.vert1.x - param.vert3.x) > 1024) ||
-			((param.verticesNumber == 4) && (abs(param.vert1.x - param.vert4.x) > 1024)) ||
-			(abs(param.vert2.x - param.vert3.x) > 1024) ||
-			((param.verticesNumber == 4) && (abs(param.vert2.x - param.vert4.x) > 1024)) ||
-			((param.verticesNumber == 4) && (abs(param.vert3.x - param.vert4.x) > 1024)) ||
-			(abs(param.vert1.y - param.vert2.y) > 512) ||
-			(abs(param.vert1.y - param.vert3.y) > 512) ||
-			((param.verticesNumber == 4) && (abs(param.vert1.y - param.vert4.y) > 512)) ||
-			(abs(param.vert2.y - param.vert3.y) > 512) ||
-			((param.verticesNumber == 4) && (abs(param.vert2.y - param.vert4.y) > 512)) ||
-			((param.verticesNumber == 4) && (abs(param.vert3.y - param.vert4.y) > 512)))
-			return;
-
-
-		if (param.bTextured)
-			drawTexPolygon(&param);
-		else
-			drawPolygon(&param);
-
-		break;
-
-	case 0b010: //Line primitive
-		param.primitiveType = LINE;
-
-		param.shadingType = (commandColor & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
-		param.bPolyline = (commandColor & 0x08000000) ? true : false;
-		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
-
-		if (param.bPolyline)
-			fifo.popBack(); // pop 0x50005000
-
-		param.commandColor1 = commandColor;
-		if (param.shadingType == FLAT_SHADING) {
-			for (int i = 0; i < fifo.size() - 1; i++) {
-				param.vert1 = fifo[i];
-				param.vert1.x = (param.vert1.x + drawOffset.x);
-				param.vert1.y = (param.vert1.y + drawOffset.y);
-				param.vert2 = fifo[i + 1];
-				param.vert2.x = (param.vert2.x + drawOffset.x);
-				param.vert2.y = (param.vert2.y + drawOffset.y);
-				drawLine(param);
-			}
-		}
-		else if (param.shadingType == GOURAUD_SHADING) {
-			for (int i = 0; i < fifo.size() - 2; i += 2) {
-				param.vert1 = fifo[i];
-				param.vert1.x = (param.vert1.x + drawOffset.x);
-				param.vert1.y = (param.vert1.y + drawOffset.y);
-				param.color2 = fifo[i + 1];
-				param.vert2 = fifo[i + 2];
-				param.vert2.x = (param.vert2.x + drawOffset.x);
-				param.vert2.y = (param.vert2.y + drawOffset.y);
-
-				if (fifo[0] == fifo[i + 2]) //!!?????
-					param.color2 = commandColor & 0x00ffffff;
-
-				drawLine(param);
-
-				param.commandColor1 = (param.commandColor1 & 0xff000000) | param.color2.data;
-
-			}
-		}
-
-		fifo.reset();
-
-		break;
-
-	case 0b011: { //Rectangle primitive
-		param.primitiveType = RECT;
-
-		param.rectSize = commandColor << 3 >> 30;
-		param.bTextured = (commandColor & 0x04000000) ? true : false;
-		param.transpanencyType = (commandColor & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
-		param.modulationType = (commandColor & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
-
-		param.commandColor1 = gp0Command;
-
-		param.vert1 = fifo.getNext();
-		param.vert1.x = signed11bit(param.vert1.x + drawOffset.x); //??
-		param.vert1.y = signed11bit(param.vert1.y + drawOffset.y); //??
-
-		if (param.bTextured)
-			param.texCoord1Palette = (texcoordType_t)fifo.getNext();
-
-		switch (param.rectSize) {
-		case 0b00:
-			param.size_y_x = fifo.getNext();
-			break;
-		case 0b01:
-			param.size_y_x = 0x00010001;
-			break;
-		case 0b10:
-			param.size_y_x = 0x00080008;
-			break;
-		case 0b11:
-			param.size_y_x = 0x00100010;
-			break;
-		}
-
-		if (param.bTextured)
-			switch (gpuStat.elem.texPageColors) {
-			case 0:
-				drawTexRect4Bit(param);
-				break;
-			case 1:
-				drawTexRect8Bit(param);
-				break;
-			case 2:
-				drawTexRect15Bit(param);
-				break;
-			case 3:
-				g_emulationPaused = true;
-				std::cout << "~[GPU] EMULATION PAUSED! Texture page color mode RESERVED!" << std::endl;
-				break;
-			}
-		else
-			drawMonochromeRect(param);
-
-		break;
-	}
-	case 0b100: { //VRAM-to-VRAM blit
-		uint32_t sourceCoord = fifo.getNext();
-		uint32_t destCoord = fifo.getNext();
-		uint32_t widthHeight = fifo.getNext();
-
-		copyRectVramVram(sourceCoord, destCoord, widthHeight);
-		break;
-	}
-	case 0b101: //CPU-to-VRAM blit
-		if (bCollectCopyCpuVramParam) {
-			bCollectCopyCpuVramParam = false;
-			destCoord = fifo.getNext();
-			widthHeight = fifo.getNext();
-			//collect = ((((width_height >> 16) - 1) & 0x3ff) + 1) * ((((width_height &0xffff) - 1) & 0x3ff) + 1) / 2 + (width_height & 0x1);
-			collectCount = (widthHeight >> 16) * (widthHeight & 0xffff) / 2;
-			if ((collectCount * 2) < ((widthHeight >> 16) * (widthHeight & 0xffff)))
-				collectCount++;
-		}
-		else {
-			copyRectCpuVram(destCoord, widthHeight);
-		}
-		break;
-	case 0b110: //VRAM-to-CPU blit
-		sourceCoord = fifo.getNext();
-		widthHeight = fifo.getNext();
-		copyRectVramCpu(sourceCoord, widthHeight);
-		gpuStat.elem.readyVramCpu = 1;
-		break;
-	case 0b111: //Environment commands
-		switch (commandColor >> 24) {
-		case 0xe1:
-			gpuStat.data &= 0xffff7800;
-			gpuStat.data |= commandColor & 0x000087ff;
-			gpuStat.elem.texDis = commandColor & 0x00008000 ? 1 : 0;
-			break;
-		case 0xe2:
-			texWinMask.x = commandColor << 27 >> 27;
-			texWinMask.y = commandColor << 22 >> 27;
-			texWinOffset.x = commandColor << 17 >> 27;
-			texWinOffset.y = commandColor << 12 >> 27;
-			gp1TextureWindowSetting = commandColor & 0x000fffff;
-			break;
-		case 0xe3:
-			drawAreaTopLeft.x = commandColor << 22 >> 22;
-			drawAreaTopLeft.y = commandColor << 13 >> 23;
-			gp1TopLeft = commandColor & 0x0007ffff;
-			break;
-		case 0xe4:
-			drawAreaBottomRight.x = commandColor << 22 >> 22;
-			drawAreaBottomRight.y = commandColor << 13 >> 23;
-			gp1BottomRight = commandColor & 0x0007ffff;
-			break;
-		case 0xe5:
-			drawOffset.x = signed11bit(uint16_t(commandColor & 0x7ff));
-			drawOffset.y = signed11bit(uint16_t((commandColor >> 11) & 0x7ff));
-			gp1DrawOffset = commandColor & 0x003fffff;;
-			break;
-		case 0xe6:
-			gpuStat.elem.setMaskBitWhileDrawing = commandColor & 0x1;
-			gpuStat.elem.drawPixels = (commandColor & 0x2 ? 1 : 0);
-			break;
-		}
-	}
 }

@@ -138,12 +138,13 @@ void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 		else
 			//if (!pCpu->gteCommand)
 			EPC = pCpu->pc - 4;
-	//else
-	//	EPC = pCpu->opcode_pc;//??
 
-	pCpu->isPipelineFull = false;
 
 	pCpu->pc = 0x80000080;
+
+	//empty pipeline 
+	pCpu->opcodes[0] = 0;
+	pCpu->opcodes[1] = 0;
 }
 
 void cp0_t::updateInterruptMaskStat() {

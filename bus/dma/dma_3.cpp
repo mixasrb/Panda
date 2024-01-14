@@ -52,6 +52,9 @@ void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			pDMAController->isCpuStopped = true;
 		}
 
+		if (pDMAController->controlRegister.reg.cd_drive_master_enable && bStart)
+			pDMAController->currentClockFunction = 3;
+
 		break;
 	}
 }
@@ -99,6 +102,8 @@ void dma3_t::triggerIRQ() {
 	//	pDMAController->interruptRegister.reg.IRQ_master_flag = 1;
 	//else
 	//	pDMAController->interruptRegister.reg.IRQ_master_flag = 0;
+
+	pDMAController->currentClockFunction = 8;
 }
 
 void dma3_t::Clock() {

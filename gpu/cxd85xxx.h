@@ -33,9 +33,9 @@ public:
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 	const uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
-	const uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / 263;
 	const uint32_t SCANLINE_NUMBER_NTSC = 263;
 	const uint32_t SCANLINE_NUMBER_PAL = 314;
+	const uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / SCANLINE_NUMBER_NTSC;
 
 	uint32_t cpuClocks = 0;
 	uint32_t cpuFrameClocks = 0;
@@ -101,7 +101,6 @@ public:
 	uint16_t x2;
 	uint16_t y1;
 	uint16_t y2;
-
 
 	union psxColor16_t {
 		psxColor16_t() {
@@ -174,7 +173,7 @@ public:
 			*(&y) = signed11bit(uint16_t((coord >> 16) & 0x7ff));
 		}
 
-		int16_t signed11bit(int16_t val) {
+		uint16_t signed11bit(uint16_t val) {
 			return ((int16_t)(val << 5)) >> 5;
 		}
 
@@ -193,7 +192,7 @@ public:
 	};
 
 	template <typename T>
-	struct fifo_t { //have some bugs and unintuitives
+	struct fifo_t { //have some bugs and unintuities
 		fifo_t() {
 			ptr = nullptr;
 			currentPossitionWrite = 0;
@@ -240,11 +239,18 @@ public:
 	};
 
 	fifo_t<uint32_t> fifo;
+	uint32_t fifoCount = 0;
+	//uint32_t fifoClocks = 0;
+	uint32_t fifoClocks[4];
+	uint8_t fifoIndex = 0;
 
 	enum primitiveType_t {
 		POLYGON,
 		RECT,
 		LINE,
+		FILL,
+		MEMORY_TRANSFER,
+		OTHER
 	};
 
 	union texcoordType_t {
@@ -278,7 +284,7 @@ public:
 	struct param_t {
 		param_t() {
 		}
-		primitiveType_t primitiveType = RECT;
+		primitiveType_t primitiveType;
 		shadingType_t shadingType;
 		uint32_t rectSize;
 		uint32_t size_y_x;
@@ -302,6 +308,7 @@ public:
 		bool bFlipHorizontally = false;
 		bool bFlipVertically = false;
 	};
+
 	param_t param;
 
 	union clut_t {
@@ -324,14 +331,12 @@ public:
 
 	uint32_t gp0Command;
 	uint32_t collectCount = 0;
-	//std::vector<uint32_t> fifo;
 
-	void decodeExecuteGp0Command(const uint32_t& commandColor);
+	void decodeExecuteGp0Command(const uint32_t& command);
 
-	void calculateTransparency(vertex_t p, psxColor16_t& frontPixelColor);
+	void calculateTransparency(const vertex_t& p, psxColor16_t& frontPixelColor);
 
-
-	void fillRectVram(param_t param);
+	void fillRectVram(const param_t& param);
 
 	enum triangleOrientation_t {
 		PSX_CLOCKWISE,
@@ -342,23 +347,25 @@ public:
 
 	void drawTexPolygon(param_t* p_param);
 
-	void drawLine(param_t param);
+	void drawLine(const param_t& param);
+	bool bCollectPolylineParam = false;
 
-	void drawMonochromeRect(const param_t param);
-	void drawTexRect15Bit(param_t param);
-	void drawTexRect8Bit(param_t param);
-	void drawTexRect4Bit(param_t param);
+	void drawMonochromeRect(const param_t& param);
+	void drawTexRect15Bit(const param_t& param);
+	void drawTexRect8Bit(const param_t& param);
+	void drawTexRect4Bit(const param_t& param);
 
 	void copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
-	void copyRectCpuVram(const uint32_t dest_coord, const uint32_t width_height);
+	void copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_height);
+	void copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height);
+	fifo_t<uint32_t> outputFifo;
+
 	bool bCollectCopyCpuVramParam = false;
-	bool bCollectPolylineParam = false;
 	uint32_t widthHeight;
 	uint32_t destCoord;
 	uint32_t sourceCoord;
-	void copyRectVramCpu(const uint32_t source_coord, const uint32_t width_height);
-	fifo_t<uint32_t> outputFifo;
 
+	void decodeExecuteGp1Command(const uint32_t& command);
 
 	uint32_t gp1Command;
 
@@ -376,9 +383,6 @@ public:
 	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
-
-	uint32_t fifoCount = 0;
-	uint64_t fifoClocks = 0;
 
 	//debug
 	debugUtilities* p_debugger;

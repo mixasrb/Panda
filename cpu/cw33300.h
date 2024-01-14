@@ -48,7 +48,16 @@ public:
 	uint32_t opcode_pc;
 	bool isCurrentOpcodeBranch = false;
 
-	bool isPipelineFull = false;
+	struct iCache_t {
+		uint32_t pc;
+		uint32_t opcode;
+	};
+
+	iCache_t iCache[16];
+	bool iCacheEnabled = true;
+	uint16_t iCacheCounter = 0;
+
+
 	uint32_t opcode;
 	uint8_t instructionFetchClocks = 0;
 	uint8_t instructionFetchClocks1 = 0;
@@ -246,11 +255,11 @@ public:
 		bool bWrite;
 		bool bExecute;
 		uint32_t old;
-	}cycle0,cycle1;
+	}cycle0, cycle1;
 
 	bool gteCommandFlag = false;
 	bool gteCommandFlagTemp = false;
-	bool irqFlag = false;
+	bool bIRQ = false;
 
 
 	//debug

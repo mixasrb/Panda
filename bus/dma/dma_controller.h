@@ -43,6 +43,18 @@ public:
 	dma4_t dma4;
 	dma6_t dma6;
 
+	bool clock0();
+	bool clock1();
+	bool clock2();
+	bool clock3();
+	bool clock4();
+	bool clock5();
+	bool clock6();
+
+	bool (dmaController_t::* clockFunctionsArray[7])();
+	bool bmasterEnable = false;
+	uint8_t currentClockFunction = 8;
+
 
 	union controlRegister_t {
 		uint32_t data;

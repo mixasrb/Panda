@@ -28,6 +28,8 @@ void psxConsole_t::connectComponents() {
 	bus.timer1.pBus = &bus;
 	bus.timer2.pBus = &bus;
 
+	bus.spu.pBus = &bus;
+
 	joyMemCard.pBus = &bus;
 	bus.pJoyMemCard = &joyMemCard;
 }

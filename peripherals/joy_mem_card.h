@@ -119,10 +119,6 @@ public:
 		JOY2 = 1
 	};
 
-	voltageLevel_t ackInputLevel = HIGH;
-
-	uint32_t baudrateTimerClocks = 0x3fffff;
-
 	struct joy_t {
 		voltageLevel_t output;
 		slot_t slotNumber;
@@ -175,6 +171,7 @@ public:
 	bool bSendingData = false;
 	bool bReceivingData = false;
 	bool bAcknowledging = false;
+	bool bPending = false;
 	bool bACK = false;
 
 	std::vector<uint8_t> rxFifo;

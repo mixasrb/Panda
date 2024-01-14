@@ -11,8 +11,8 @@ class timer_t {
 public:
 	busInterface_t* pBus;
 
-	virtual void ReadTimer32(const uint32_t& addr, uint16_t* data) = 0;
-	virtual void WriteTimer32(const uint32_t& addr, const uint16_t& data) = 0;
+	virtual void ReadTimer32(const uint32_t& addr, uint32_t& data) = 0;
+	virtual void WriteTimer32(const uint32_t& addr, const uint32_t& data) = 0;
 
 	virtual void clock(const uint8_t& source) = 0;
 	uint16_t clocks;
@@ -36,7 +36,7 @@ public:
 		struct {
 			uint16_t synchronizationEnable : 1;
 			uint16_t synchronizationMode : 2;
-			uint16_t resetCounterTo : 1;
+			uint16_t resetCounterTo0AfterTarget : 1;
 			uint16_t irqWhenTarget : 1;
 			uint16_t irqWhenFFFF : 1;
 			uint16_t irqOnceRepeat : 1;

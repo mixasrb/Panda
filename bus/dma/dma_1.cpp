@@ -22,7 +22,7 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		//std::cout << "~[DMA1] (MDECout) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		std::cout << "~[DMA1] (MDECout) madr: 0x" << std::hex << memoryAddress.data << std::endl;
 		break;
 	case 4:
 		blockControl.data = data;
@@ -43,12 +43,16 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
-				//std::cout << "~[DMA1] (MDECout) element count: 0x"
-					//<< std::hex << elementCount << std::endl;
+				std::cout << "~[DMA1] (MDECout) element count: 0x"
+					<< std::hex << elementCount << std::endl;
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_1;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}
+
+		if (pDMAController->controlRegister.reg.mdecOut_master_enable && channelControl.reg.startBusy)
+			pDMAController->currentClockFunction = 1;
+
 		break;
 	}
 }
@@ -94,6 +98,8 @@ void dma1_t::endDMATransfer() {
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
 
+	pDMAController->currentClockFunction = 8;
+
 	triggerIRQ();
 }
 
@@ -101,6 +107,7 @@ void dma1_t::Clock() {
 
 	if (clocks == 0) {
 		if (channelControl.reg.syncMode == syncBlocks) {
+			memoryAddress.reg.memAddr = memAddrTemp;
 			endDMATransfer();
 			return;
 		}

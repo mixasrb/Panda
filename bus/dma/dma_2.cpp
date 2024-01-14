@@ -53,6 +53,10 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 		}
+
+		if (pDMAController->controlRegister.reg.gpu_master_enable && channelControl.reg.startBusy)
+			pDMAController->currentClockFunction = 2;
+
 		break;
 	}
 }
@@ -69,6 +73,8 @@ void dma2_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cyc
 
 void dma2_t::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	pBus->cpuRead32(addr, data, cycles);
+	//if (addr & 0x3)
+	//	g_emulationPaused = true;
 }
 
 void dma2_t::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
@@ -99,6 +105,8 @@ void dma2_t::endDMATransfer() {
 	pDMAController->isCpuStopped = false;
 	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
 
+	pDMAController->currentClockFunction = 8;
+
 	//clocks = 0;
 	triggerIRQ();
 }
@@ -106,14 +114,26 @@ void dma2_t::endDMATransfer() {
 void dma2_t::Clock() {
 
 	if (clocks == 0) {
+
 		if ((channelControl.reg.syncMode == syncBlocks) ||
 			((channelControl.reg.syncMode == linkedList) && (memoryAddress.data & 0x00800000))) {
+			//std::cout << "~[DMA2] (GPU) end madr: 0x" << std::hex << memAddrTemp << std::endl;
 			endDMATransfer();
 			return;
 		}
 
+		/*	if (memoryAddress.reg.memAddr & 0x3)
+				endDMATransfer();*/
+
 		if (channelControl.reg.syncMode == linkedList) {
-			memAddrTemp = memoryAddress.reg.memAddr;
+			memAddrTemp = memoryAddress.reg.memAddr /*& 0x00fffffc*/;
+			if (memoryAddress.reg.memAddr & 0x3) { //??
+				endDMATransfer();
+				return;
+			}
+			//std::cout << "~[DMA2] (GPU) madr: 0x" << std::hex << memoryAddress.reg.memAddr << std::endl;
+			/*if ((memAddrTemp >= 0x001c0000) && (memAddrTemp <= 0x001c0100))
+				endDMATransfer();*/
 			uint8_t cycles;
 			uint32_t node;
 			DMARead32(memAddrTemp, node, cycles);
@@ -122,9 +142,21 @@ void dma2_t::Clock() {
 			elementCount = node >> 24;
 			float clks = elementCount * CLOCKS_PER_WORD_DMA_2;
 			clocks = round(clks) == clks ? clks : round(clks) + 1;
+			/*	if (elementCount == 0) {
+					i++;
+					if (i == 10240) {
+						endDMATransfer();
+						i = 0;
+					}
+				}
+				else
+					i = 0;*/
 			return;
 		}
 	}
+
+	//if (memoryAddress.reg.memAddr & 0x3)
+	//	endDMATransfer();
 
 	clocks--;
 	if (clocks < elementCount) {
@@ -140,5 +172,7 @@ void dma2_t::Clock() {
 			pBus->cpuWrite32(0x1f801810, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
+		/*if ((memAddrTemp >= 0x001c0000) && (memAddrTemp <= 0x001c0100))
+			endDMATransfer();*/
 	}
 }

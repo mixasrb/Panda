@@ -3,28 +3,28 @@
 extern bool g_emulationPaused;
 
 //Memory map
-#define RAM ((addr >= 0x00000000 && addr < 0x1f000000) || \
-             (addr >= 0x80000000 && addr < 0x9f000000) || \
-             (addr >= 0xa0000000 && addr < 0xbf000000))
+#define RAM (((addr >= 0x00000000) && (addr < 0x1f000000)) || \
+             ((addr >= 0x80000000) && (addr < 0x9f000000)) || \
+             ((addr >= 0xa0000000) && (addr < 0xbf000000)))
 
-#define EXPANSION1 ((addr >= 0x1f000000 && addr < 0x1f800000) || \
-                    (addr >= 0x9f000000 && addr < 0x9f800000) || \
-                    (addr >= 0xbf000000 && addr < 0xbf800000))
+#define EXPANSION1 (((addr >= 0x1f000000) && (addr < 0x1f800000)) || \
+                    ((addr >= 0x9f000000) && (addr < 0x9f800000)) || \
+                    ((addr >= 0xbf000000) && (addr < 0xbf800000)))
 
-#define SCRATCHPAD ((addr >= 0x1f800000 && addr < 0x1f800400) || \
-                    (addr >= 0x9f800000 && addr < 0x9f800400))
+#define SCRATCHPAD (((addr >= 0x1f800000) && (addr < 0x1f800400)) || \
+                    ((addr >= 0x9f800000) && (addr < 0x9f800400)))
 
-#define MEMORY_CONTROL_1 ((addr >= 0x1f801000 && addr <= 0x1f801020) || \
-                          (addr >= 0x8f801000 && addr <= 0x8f801020) || \
-                          (addr >= 0xbf801000 && addr <= 0xbf801020))
+#define MEMORY_CONTROL_1 (((addr >= 0x1f801000) && (addr <= 0x1f801020)) || \
+                          ((addr >= 0x8f801000) && (addr <= 0x8f801020)) || \
+                          ((addr >= 0xbf801000) && (addr <= 0xbf801020)))
 
-#define JOY_MEM_CARD ((addr >= 0x1f801040 && addr <= 0x1f80104e) || \
-					  (addr >= 0x8f801040 && addr <= 0x8f80104e) || \
-					  (addr >= 0xbf801040 && addr <= 0xbf80104e))
+#define JOY_MEM_CARD (((addr >= 0x1f801040) && (addr <= 0x1f80104e)) || \
+					  ((addr >= 0x8f801040) && (addr <= 0x8f80104e)) || \
+					  ((addr >= 0xbf801040) && (addr <= 0xbf80104e)))
 
-#define SERIAL ((addr >= 0x1f801050 && addr <= 0x1f80105e) || \
-			    (addr >= 0x8f801050 && addr <= 0x8f80105e) || \
-			    (addr >= 0xbf801050 && addr <= 0xbf80105e))
+#define SERIAL (((addr >= 0x1f801050) && (addr <= 0x1f80105e)) || \
+			    ((addr >= 0x8f801050) && (addr <= 0x8f80105e)) || \
+			    ((addr >= 0xbf801050) && (addr <= 0xbf80105e)))
 
 #define MEMORY_CONTROL_2 ((addr == 0x1f801060) || \
 						  (addr == 0x8f801060) || \
@@ -38,17 +38,17 @@ extern bool g_emulationPaused;
 					    (addr == 0x8f801074) || \
                         (addr == 0xbf801074))
 
-#define DMA ((addr >= 0x1f801080 && addr <= 0x1f8010fc) || \
-             (addr >= 0x8f801080 && addr <= 0x8f8010fc) || \
-             (addr >= 0xbf801080 && addr <= 0xbf8010fc))
+#define DMA (((addr >= 0x1f801080) && (addr <= 0x1f8010fc)) || \
+             ((addr >= 0x8f801080) && (addr <= 0x8f8010fc)) || \
+             ((addr >= 0xbf801080) && (addr <= 0xbf8010fc)))
 
-#define TIMERS ((addr >= 0x1f801100 && addr <= 0x1f801128) || \
-			    (addr >= 0x8f801100 && addr <= 0x8f801128) || \
-                (addr >= 0xbf801100 && addr <= 0xbf801128))
+#define TIMERS (((addr >= 0x1f801100) && (addr <= 0x1f801128)) || \
+			    ((addr >= 0x8f801100) && (addr <= 0x8f801128)) || \
+                ((addr >= 0xbf801100) && (addr <= 0xbf801128)))
 
-#define CD_DRIVE ((addr >= 0x1f801800 && addr <= 0x1f801803) || \
-				  (addr >= 0x8f801800 && addr <= 0x8f801803) || \
-				  (addr >= 0xbf801800 && addr <= 0xbf801803))
+#define CD_DRIVE (((addr >= 0x1f801800) && (addr <= 0x1f801803)) || \
+				  ((addr >= 0x8f801800) && (addr <= 0x8f801803)) || \
+				  ((addr >= 0xbf801800) && (addr <= 0xbf801803)))
 
 #define GPU ((addr == 0x1f801810) || (addr == 0x1f801814) || \
 			 (addr == 0x8f801810) || (addr == 0x8f801814) || \
@@ -58,13 +58,13 @@ extern bool g_emulationPaused;
               (addr == 0x8f801820) || (addr == 0x8f801824) || \
               (addr == 0xbf801820) || (addr == 0xbf801824))
 
-#define SPU ((addr >= 0x1f801c00) && (addr <= 0x1f801fff) || \
-             (addr >= 0x8f801c00) && (addr <= 0x8f801fff) || \
-             (addr >= 0xbf801c00) && (addr <= 0xbf801fff))
+#define SPU (((addr >= 0x1f801c00) && (addr <= 0x1f801fff)) || \
+             ((addr >= 0x8f801c00) && (addr <= 0x8f801fff)) || \
+             ((addr >= 0xbf801c00) && (addr <= 0xbf801fff)))
 
-#define BIOS ((addr >= 0x1fc00000 && addr <= (0x1fc00000 + BIOS_SIZE)) || \
-              (addr >= 0x9fc00000 && addr <= (0x9fc00000 + BIOS_SIZE)) || \
-              (addr >= 0xbfc00000 && addr <= (0xbfc00000 + BIOS_SIZE)))
+#define BIOS (((addr >= 0x1fc00000) && (addr <= (0x1fc00000 + BIOS_SIZE))) || \
+              ((addr >= 0x9fc00000) && (addr <= (0x9fc00000 + BIOS_SIZE))) || \
+              ((addr >= 0xbfc00000) && (addr <= (0xbfc00000 + BIOS_SIZE))))
 
 #define POST ((addr  == 0x1f802041) || \
               (addr  == 0x8f802041) || \
@@ -75,7 +75,7 @@ extern bool g_emulationPaused;
 
 void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
-	clocks = 6;
+	clocks = 4;
 
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
@@ -107,7 +107,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	//Expansion 1
 	else if (EXPANSION1) {
 		data = 0x0;
-		clocks = 56;
+		clocks = 25;
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
@@ -139,7 +139,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	else if (MEMORY_CONTROL_2) {
 		std::cout << "[BUS] unhandled ram_size reg read32 0x" << std::hex << addr << std::endl;
 		data = ramSize;
-		clocks = 3;//?? no doc
+		clocks = 3;
 	}
 	else if (INTERRUPT_STAT) {
 		data = interruptStat;
@@ -150,19 +150,19 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		clocks = 3;//?? no doc
 	}
 	else if (TIMERS) {
-		uint16_t datum;
-		switch (addr << 24 >> 28) {
+		uint32_t temp;
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, &datum);
-			data = datum;
+			timer0.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, &datum);
-			data = datum;
+			timer1.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, &datum);
-			data = datum;
+			timer2.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read32 0x" << std::hex << addr << "\n";
@@ -178,6 +178,10 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	else if (MDEC) {
 		pMdec->readMdec32(addr, data);
 		clocks = 3;
+	}
+	else if (SPU) {
+		spu.read32(addr, data);
+		clocks = 39;
 	}
 	//BIOS ROM
 	else if (BIOS) {
@@ -205,8 +209,9 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	}
 	else if (CACHE_CONTROL) {
 		data = cacheControl;
-		std::cout << "[BUS] unhandled cache control reg read32 0x" << std::hex << addr << "\n";
+		//std::cout << "[BUS] unhandled cache control reg read32 0x" << std::hex << addr << "\n";
 		//g_emulationPaused = true;
+		clocks = 2;
 	}
 	else
 		if (!debug) {
@@ -286,6 +291,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 				g_emulationPaused = true;
 			}
+
 			delayRegisters[(addr - 0x1f801000 - 0x8) >> 2].data = data;
 			registerDelays[(addr - 0x1f801000 - 0x8) >> 2] = calculateDelays(delayRegisters[(addr - 0x1f801000 - 0x8) >> 2]);
 			break;
@@ -317,7 +323,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		pCpu->cp0.updateInterruptMaskStat();
 	}
 	else if (TIMERS) {
-		switch (addr << 24 >> 28) {
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
 			timer0.WriteTimer32(addr, data);
 			break;
@@ -345,7 +351,21 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 		pJoyMemCard->cpuWrite32(addr, data);
 	else if (CACHE_CONTROL) {
 		cacheControl = data;
-		std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+
+		/*	if (cacheControl != 0x0001e988)
+				pCpu->iCacheEnabled = false;
+			else
+				pCpu->iCacheEnabled = true;
+
+
+			for (uint16_t i = 0; i < 16; i++) {
+				pCpu->iCache[i].pc = 0xffffffff;
+			}*/
+
+		if ((data != 0x0001e988) && (data != 0x00000804) && (data != 0x00000800)) {
+			std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+			g_emulationPaused = true;
+		}
 	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -355,7 +375,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 
 void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
-	clocks = 6;
+	clocks = 4;
 
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
@@ -379,7 +399,7 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 	//Expansion 1
 	else if (EXPANSION1) {
 		data = 0x0;
-		clocks = 26;
+		clocks = 13;
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
@@ -396,26 +416,26 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 	}
 	//Ussed only in shell??
 	else if (TIMERS) {
-		uint16_t datum;
-		switch (addr << 24 >> 28) {
+		uint32_t temp;
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, &datum);
-			data = datum;
+			timer0.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, &datum);
-			data = datum;
+			timer1.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, &datum);
-			data = datum;
+			timer2.ReadTimer32(addr, temp);
+			data = temp;
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read16 0x" << std::hex << addr << "\n";
 			g_emulationPaused = true;
 			break;
 		}
-		clocks = 3;
+		clocks = 3;//??
 	}
 	//BIOS ROM
 	else if (BIOS) {
@@ -489,7 +509,7 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 		pCpu->cp0.updateInterruptMaskStat();
 	}
 	else if (TIMERS) {
-		switch (addr << 24 >> 28) {
+		switch ((addr & 0xf0) >> 4) {
 		case 0:
 			timer0.WriteTimer32(addr, data);
 			break;
@@ -523,21 +543,28 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 
 void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
 	data = 0x00;
-	clocks = 6;
+	clocks = 3;
 
 	if (RAM) {
-		if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
+		/*if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
 			g_emulationPaused = true;
 			return;
-		}
+		}*/
 
 		//if (cacheControl != 0x0001e988) {
 		//	/*data = scratchpad[addr & 0x3ff];*/
 		//	clocks = 1;
 		//	return;
 		//}
+
+		if ((addr & 0x1fffffff) > 0x00800000) {
+			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
+				<< std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
+			g_emulationPaused = true;
+			return;
+		}
 
 		data = ram[addr & 0x1fffff];
 		clocks = 5;
@@ -559,7 +586,7 @@ void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cloc
 	}
 	else if (DMA) {
 		dma.readDMA8(addr, data, clocks);
-		clocks = 3;
+		clocks = 4;
 	}
 	else if (POST) {
 		data = post;

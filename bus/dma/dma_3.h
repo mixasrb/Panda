@@ -2,7 +2,7 @@
 
 #include "dma.h"
 
-#define CLOCKS_PER_WORD_DMA_3 40
+#define CLOCKS_PER_WORD_DMA_3 (p_bus->registerDelays[4].readSequence << 2)
 
 class dmaController_t;
 

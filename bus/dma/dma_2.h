@@ -35,5 +35,7 @@ public:
 	uint64_t clocks;
 	uint32_t memAddrTemp;
 	uint32_t elementCount;
+
+	uint16_t i = 0;
 };
 

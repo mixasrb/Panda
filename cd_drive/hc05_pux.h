@@ -137,6 +137,7 @@ public:
 
 	void executeCommand(const uint8_t& command);
 
+	void sync(const uint8_t& command);
 	void xxxxx(const uint8_t& command);
 	void getStat(const uint8_t& command);
 	void play(const uint8_t& command);
@@ -161,7 +162,7 @@ public:
 	void readS(const uint8_t& command);
 	void readTOC(const uint8_t& command);
 
-	/*enum stat_t :uint8_t {
+	enum : uint8_t {
 		STAT_PLAY = 0x80,
 		STAT_SEEK = 0x40,
 		STAT_READ = 0x20,
@@ -171,8 +172,7 @@ public:
 		STAT_SPINDLE_MOTOR = 0x02,
 		STAT_ERROR = 0x01,
 		STAT_NULL = 0x0
-	};*/
-	//uint8_t stat;
+	};
 
 	union stat_t {
 		uint8_t data;
@@ -259,6 +259,22 @@ public:
 		sector.amm += (sector.ass / 60) + mm;
 		sector.ass %= 60;
 	}
+
+	void readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
+
+	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
+
+	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
+
+	uint16_t tempVolumeLeftLeft = 0;
+	uint16_t tempVolumeLeftRight = 0;
+	uint16_t tempVolumeRightRight = 0;
+	uint16_t tempVolumeRightLeft = 0;
+
+	uint16_t volumeLeftLeft = 0;
+	uint16_t volumeLeftRight = 0;
+	uint16_t volumeRightRight = 0;
+	uint16_t volumeRightLeft = 0;
 
 	//debug
 	debugUtilities* p_debugger;

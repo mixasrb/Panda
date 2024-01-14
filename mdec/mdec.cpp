@@ -31,7 +31,6 @@ mdec_t::mdec_t() {
 	for (int i = 0; i < 64; i++) {
 		zagzig[zigzag[i]] = i;
 	}
-
 }
 
 union psxColor16_t {
@@ -106,11 +105,11 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//	}
 	}
 	else if (addr == 0x1f801824) {
-		//std::cout << "[MDEC] read32 addr 0x" << addr << std::endl;
+		std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << std::endl;
 		data = statusRegister.data;
 	}
 	else {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << addr << std::endl;
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << std::hex << addr << std::endl;
 		g_emulationPaused = true;
 	}
 }
@@ -138,7 +137,6 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			switch (command >> 29) {
 			case 1:
 				recievedData32Count = command & 0x0000ffff;
-				clocks = 3000000/1000;
 				break;
 			case 2:
 				if (command & 0x1)
@@ -152,8 +150,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 				clocks = 0x30;
 				break;
 			default:
-				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x"
-					<< command << std::endl;
+				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x" << std::hex << command << std::endl;
 				g_emulationPaused = true;
 				break;
 			}
@@ -168,6 +165,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			statusRegister.elem.dataOutRequest = 0;//??
 
 			statusRegister.elem.commandBusy = 1;
+
+			statusRegister.elem.dataOutFifoEmpty = 0;
 		}
 
 		if (recievedData32Count == 0) {
@@ -176,20 +175,20 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			(this->*commandLookup[command >> 29].command)(command);
 
 
-			/*	std::cout << "~[MDEC] recievedData16 count: 0x"
-					<< std::hex << recievedData16.size() << std::endl;
-				std::cout << "~[MDEC] recievedData32 count: 0x"
-					<< std::hex << recievedData32.size() << std::endl;
-				std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;*/
-				//g_emulationPaused = true;
+			std::cout << "~[MDEC] recievedData16 count: 0x"
+				<< std::hex << recievedData16.size() << std::endl;
+			std::cout << "~[MDEC] recievedData32 count: 0x"
+				<< std::hex << recievedData32.size() << std::endl;
+			std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;
+			//g_emulationPaused = true;
 
 			recievedData16.clear();
 			recievedData32.clear();
 		}
 	}
 	else if (addr == 0x1f801824) {
-		/*	std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
-				<< " data 0x" << data << std::endl;*/
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
+			 << " data 0x" << data << std::endl;
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
@@ -200,7 +199,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 		bEnabledDma1 = controlRegister.elem.dataOutRequest;
 	}
 	else {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << addr
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
 			<< " data 0x" << data << std::endl;
 		g_emulationPaused = true;
 	}
@@ -208,8 +207,6 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 
 void mdec_t::clock() {
 	if (clocks) {
-
-
 		clocks--;
 
 		if ((statusRegister.elem.dataOutputDepth == 2) ||
@@ -319,7 +316,8 @@ static uint16_t singned10bit(uint16_t val) {
 	return ((int16_t)(val << 6)) >> 6;
 }
 
-static uint16_t minmax(int16_t val, int16_t min, int16_t max) {
+template<typename T>
+static T minMax(T min, T max, T val) {
 	if (val < min) return min;
 	if (val > max) return max;
 	return val;
@@ -430,15 +428,15 @@ skip:
 		if (i == 0)
 			/* The DC coefficient is not multiplied
 			   by the quantization scale */
-			dequantizedMatrix[i] = minmax(coefficientMatrix[i] * qt[i],
-				-0x400, 0x3ff);
+			dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+				coefficientMatrix[i] * qt[i]);
 		else
 			if (quantizationScale > 0)
-				dequantizedMatrix[i] = minmax((coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8,
-					-0x400, 0x3ff);
+				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+					(coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8);
 			else
-				dequantizedMatrix[i] = minmax(coefficientMatrix[i] * 2,
-					-0x400, 0x3ff);
+				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
+					coefficientMatrix[i] * 2);
 	}
 
 	for (int i = 0; i < 64; i++) {
@@ -505,13 +503,6 @@ void mdec_t::real_idct_core(uint16_t* blk) {
 	}
 }
 
-template<typename T>
-static T MinMax(T min, T max, T val) {
-	if (val < min) return min;
-	if (val > max) return max;
-	return val;
-}
-
 void mdec_t::yuv_to_rgb(int xx, int yy) {
 	//if (src >= recievedData16.data() + recievedData16.size())
 	//	return;
@@ -527,14 +518,14 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 			B = Y + 1.772 * B;
 
 			if (statusRegister.elem.dataOutputSigned == 0) {
-				R = MinMax(0.0f, 255.0f, R + 128.0f);
-				G = MinMax(0.0f, 255.0f, G + 128.0f);
-				B = MinMax(0.0f, 255.0f, B + 128.0f);
+				R = minMax(0.0f, 255.0f, R + 128.0f);
+				G = minMax(0.0f, 255.0f, G + 128.0f);
+				B = minMax(0.0f, 255.0f, B + 128.0f);
 			}
 			else {
-				R = MinMax(-128.0f, 127.0f, R);
-				G = MinMax(-128.0f, 127.0f, G);
-				B = MinMax(-128.0f, 127.0f, B);
+				R = minMax(-128.0f, 127.0f, R);
+				G = minMax(-128.0f, 127.0f, G);
+				B = minMax(-128.0f, 127.0f, B);
 			}
 
 			if (statusRegister.elem.dataOutputDepth == 3) {
@@ -581,8 +572,12 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 
 	statusRegister.elem.dataOutFifoEmpty = 0;
 
-	if (xx + yy == 16)
+	if (xx + yy == 16) {
 		blockCount++;
+		clocks += 3750;
+	}
+
+	//clocks += 33868800 / 900;
 }
 
 void mdec_t::y_to_mono() {
@@ -595,7 +590,7 @@ void mdec_t::y_to_mono() {
 	for (int i = 0; i < 64; i++) {
 		int16_t Y = *(Yblk + i);
 		//Y = Y & 0x1ff; //??
-		Y = MinMax((int16_t)-128, (int16_t)127, Y);
+		Y = minMax((int16_t)-128, (int16_t)127, Y);
 		//Y >>= 1; //??
 		if (statusRegister.elem.dataOutputSigned == 0)
 			Y = Y ^ 0x80;
@@ -605,4 +600,6 @@ void mdec_t::y_to_mono() {
 	dstBlock += 8 / 4 * 8;
 	statusRegister.elem.dataOutFifoEmpty = 0;
 	blockCount++;
+
+	//clocks += 33868800 / 900;
 }
