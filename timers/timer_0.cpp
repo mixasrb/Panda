@@ -34,9 +34,6 @@ void timer0_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 		clockSource = (counterMode.elem.clockSource & 1) ?
 			DOT_CLOCK : SYSTEM_CLOCK;
 
-		if (counterMode.elem.synchronizationMode == 3)
-			bSynchronize = true;
-
 		if ((mode != 0x000) && (mode != 0x14b)) {
 			std::cout << "[TIMER0] EMULATION PAUSED! unhandled timer mode 0x" << std::hex << mode << std::endl;
 			g_emulationPaused = true;
@@ -49,15 +46,15 @@ void timer0_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void timer0_t::clock(const uint8_t& source) {
-	if ((static_cast<clockSource_t>(source) == HBLANK_CLOCK) && (counterMode.elem.synchronizationEnable) &&
-		(counterMode.elem.synchronizationMode == 1)) {
-		currentValue.elem.currentCounterValue = 0;
-		return;
+	if (counterMode.elem.synchronizationEnable) {
+		if ((static_cast<clockSource_t>(source) == HBLANK_CLOCK) && (counterMode.elem.synchronizationMode == 1)) {
+			currentValue.elem.currentCounterValue = 0;
+			return;
+		}
 	}
+	else if (clockSource == static_cast<clockSource_t>(source)) {
 
-	if (clockSource == static_cast<clockSource_t>(source)) {
-
-		if (currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue)  {
+		if (currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) {
 
 			counterMode.elem.reachedTarget = 1;
 
@@ -70,7 +67,7 @@ void timer0_t::clock(const uint8_t& source) {
 
 			currentValue.elem.currentCounterValue = 0;
 		}
-		else 
+		else
 			currentValue.elem.currentCounterValue++;
 	}
 }

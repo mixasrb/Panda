@@ -159,7 +159,8 @@ void joyMemCard_t::cpuWrite16(const uint32_t& addr, const uint16_t& data) {
 
 	case 0x1f80104e:
 		joyBaud.baudrateReloadValue = data;
-		baudrateTimerClocks = 0x3fffff;
+
+		joyStat.elem.baudrateTimer = 0x1fffff;
 
 		if (data != 0x88) {
 			std::cout << "[JOY/MEMCARD] EMULATION PAUSED! unhandled baudrate reload value 0x"
@@ -757,14 +758,6 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 
 void joyMemCard_t::clock() {
 
-	if (joyStat.elem.ackInputLevel == LOW) {
-		ackPendingClocks--;
-		if (ackPendingClocks == 0)
-			joyStat.elem.ackInputLevel = HIGH;
-	}
-
-	voltageLevel_t oldAckInputLevel = joyStat.elem.ackInputLevel;
-
 	if (bSendingData) {
 		sendingClocks--;
 		if (sendingClocks == 0) {
@@ -772,8 +765,7 @@ void joyMemCard_t::clock() {
 			bReceivingData = true;
 		}
 	}
-
-	if (bReceivingData) {
+	else if (bReceivingData) {
 		receivingClocks--;
 		if (receivingClocks == 0) {
 			bReceivingData = false;
@@ -784,36 +776,38 @@ void joyMemCard_t::clock() {
 				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ std::endl;
 		}
 	}
-
-	if (bAcknowledging) {
+	else if (bAcknowledging) {
 		ackClocks--;
 		if (ackClocks == 0) {
 			bAcknowledging = false;
-			if (bACK)
+			if (bACK) {
+				bPending = true;
 				joyStat.elem.ackInputLevel = LOW;
+
+				//already edge triggered 
+				if (joyCtrl.elem.ackInterruptEnable) {
+					joyStat.elem.irq = 1;
+					if (g_buttonPressed)
+						std::cout << "[JOY/MEMCARD] IRQ7" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ std::endl;
+					pBus->pCpu->cp0.interruptHandler(_IRQ_7);
+				}
+				else {
+					if (g_buttonPressed)
+						std::cout << "[JOY/MEMCARD] IRQ7 not sent" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
+						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ std::endl;
+				}
+			}
 		}
 	}
-
-	if ((oldAckInputLevel == HIGH) && (joyStat.elem.ackInputLevel == LOW)) {
-		if (joyCtrl.elem.ackInterruptEnable) {
-			joyStat.elem.irq = 1;
-			if (g_buttonPressed)
-				std::cout << "[JOY/MEMCARD] IRQ7" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ std::endl;
-			pBus->pCpu->cp0.interruptHandler(_IRQ_7);
-		}
-		else {
-			if (g_buttonPressed)
-				std::cout << "[JOY/MEMCARD] IRQ7 not sent" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ std::endl;
-		}
-
+	else if (bPending) {
+		ackPendingClocks--;
+		if (ackPendingClocks == 0)
+			bPending = false;
+		joyStat.elem.ackInputLevel = HIGH;
 	}
 
-	baudrateTimerClocks--;
-	joyStat.elem.baudrateTimer = baudrateTimerClocks;
-	if (baudrateTimerClocks == 0)
-		baudrateTimerClocks = 0x3fffff;
+	joyStat.elem.baudrateTimer++;
 }
 
 void joyMemCard_t::readMemCardFiles() {
