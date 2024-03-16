@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 
 #undef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
@@ -582,7 +582,7 @@ void cpu_t::clock() {
 
 		decodeExecuteOpcode(opcode);
 
-		//assumes that all instructions from cached areas are cached
+		//assumes that all instructions from cached regions are cached
 		clocks += memoryClocks + gteClocks;
 
 		//debug

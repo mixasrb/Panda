@@ -364,7 +364,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 
 		if ((data != 0x0001e988) && (data != 0x00000804) && (data != 0x00000800)) {
 			std::cout << "[BUS] unhandled cache control reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			//g_emulationPaused = true;
 		}
 	}
 	else {
@@ -437,7 +437,10 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 		}
 		clocks = 3;//??
 	}
-	//BIOS ROM
+	else if (addr == 0x1f801130) { //Gran Turismo 2 uses that reg
+		data = 0;
+		clocks = 3;//??
+	}
 	else if (BIOS) {
 		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
 			std::cout << "[BUS] bus_controller adress overflow\n";

@@ -442,30 +442,25 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void gpu_t::videoClock() {
-	if (cpuScanlineClocks == CPU_CLOCKS_PER_SCANLINE) {
+	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
 		cpuScanlineClocks = 0;
-
-		if (!gpuStat.elem.verticalRes)
-			gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+		scanlineCount++;
 
 		//Hblank clocking timer 1
 		pBus->timer1.clock(_HBLANK_CLOCK);
 		pBus->timer0.clock(_HBLANK_CLOCK);
 
-		if (scanlineCount == 0)
-			if (gpuStat.elem.verticalRes)
-				gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+		if (gpuStat.elem.verticalInterlace)
+			if (!gpuStat.elem.verticalRes)
+				gpuStat.elem.drawingEvenOddLines = (scanlineCount <= screenY2) ? scanlineCount & 0x1 : 0;
 
-		scanlineCount++;
-		if (scanlineCount == SCANLINE_NUMBER_NTSC) {
-			scanlineCount = -1;
-
+		if (scanlineCount == screenY2) {
 			//fifoCount = 0;
 			//gpuStat.elem.readyDma = 1;
 			//gpuStat.elem.readyCommand = 1;
 
 			//V-Sync interrupt is naturally edge trigered
-			pBus->pCpu->cp0.interruptHandler(_IRQ_V_SYNC_);
+			pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_); //causes troubles to boot some games
 
 
 			/*if (pBus->spu.spuControlRegister.elem.irq9Enable) {
@@ -479,14 +474,19 @@ void gpu_t::videoClock() {
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
 		}
+		else if (scanlineCount == scanlineNumber) {
+			scanlineCount = -1;
 
-		if (scanlineCount >= 240)
-			gpuStat.elem.drawingEvenOddLines = 0;
+			//pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
+
+			if (gpuStat.elem.verticalInterlace)
+				if (gpuStat.elem.verticalRes)
+					gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+		}
 	}
 
-	if ((cpuScanlineClocks & 0xf) == 0)
+	if ((cpuClocks % dotClockDevider) == 0)
 		pBus->timer0.clock(_DOT_CLOCK);
-
 
 	//if ((cpuClocks % (44100 * 0x300 / 4)) == 0) { //Rayman 2 - The Great Escape
 	//	if (pBus->spu.spuControlRegister.elem.irq9Enable) {
@@ -674,15 +674,15 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			((param.verticesNumber == 4) && (abs(param.vert3.y - param.vert4.y) > 512)))
 			return;
 
-	/*	fifoClocks[fifoIndex] = 0x6;
+		/*	fifoClocks[fifoIndex] = 0x6;
 
-		if (fifoIndex == 3) {
-			pBus->dma.dma2.channelControl.reg.startBusy = 0;
-			pBus->dma.isCpuStopped = false;
-			gpuStat.elem.readyDma = 0;
-			gpuStat.elem.readyCommand = 0;
-		}
-		++fifoIndex;*/
+			if (fifoIndex == 3) {
+				pBus->dma.dma2.channelControl.reg.startBusy = 0;
+				pBus->dma.isCpuStopped = false;
+				gpuStat.elem.readyDma = 0;
+				gpuStat.elem.readyCommand = 0;
+			}
+			++fifoIndex;*/
 
 
 		if (param.bTextured)
@@ -825,16 +825,16 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 		maskSizCopy(xsiz, ysiz);
 		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
-	/*	fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+		/*	fifoClocks[fifoIndex] = xsiz * ysiz / 15;
 
-		if (fifoIndex == 3) {
-			pBus->dma.dma2.channelControl.reg.startBusy = 0;
-			pBus->dma.isCpuStopped = false;
-			gpuStat.elem.readyDma = 0;
-			gpuStat.elem.readyCommand = 0;
-		}
-		else
-			++fifoIndex;*/
+			if (fifoIndex == 3) {
+				pBus->dma.dma2.channelControl.reg.startBusy = 0;
+				pBus->dma.isCpuStopped = false;
+				gpuStat.elem.readyDma = 0;
+				gpuStat.elem.readyCommand = 0;
+			}
+			else
+				++fifoIndex;*/
 
 		copyRectVramVram(sourceCoord, destCoord, widthHeight);
 		break;
@@ -972,16 +972,16 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		}
 		break;
 	case 0x5:
-		display_start.x = command << 22 >> 22;
-		display_start.y = command << 13 >> 23;
+		displayStart.x = command << 22 >> 22;
+		displayStart.y = command << 13 >> 23;
 		break;
 	case 0x6:
-		x1 = command << 20 >> 20;
-		x2 = command << 12 >> 24;
+		screenX1 = (command << 20 >> 20) / 11 * 7;
+		screenX2 = (command << 12 >> 24) / 11 * 7;
 		break;
 	case 0x7:
-		y1 = command << 22 >> 22;
-		y2 = command << 12 >> 22;
+		screenY1 = command << 22 >> 22;
+		screenY2 = command << 12 >> 22;
 		break;
 	case 0x8:
 		gpuStat.elem.horizontalRes1 = command & 0x3;
@@ -992,10 +992,44 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.horizontalRes2 = command & 0x40;
 		gpuStat.elem.reverseflag = (command & 0x80 ? 1 : 0);
 
-		if (gpuStat.elem.verticalInterlace)
+		if (!gpuStat.elem.videoMode) {
+			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
+			scanlineNumber = SCANLINE_NUMBER_NTSC;
+		}
+		else {
+			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
+			scanlineNumber = SCANLINE_NUMBER_PAL;
+		}
+
+		if (!gpuStat.elem.verticalInterlace)
 			gpuStat.elem.interlaceField = 1;
 		else
 			gpuStat.elem.interlaceField = 0;
+
+		if (gpuStat.elem.horizontalRes2) {
+			horizontalResolution = 368;
+			dotClockDevider = 7;
+		}
+		else
+			switch (gpuStat.elem.horizontalRes1) {
+			case 0:
+				horizontalResolution = 256;
+				dotClockDevider = 10;
+				break;
+			case 1:
+				horizontalResolution = 320;
+				dotClockDevider = 8;
+				break;
+			case 2:
+				horizontalResolution = 512;
+				dotClockDevider = 5;
+				break;
+			case 3:
+				horizontalResolution = 640;
+				dotClockDevider = 4;
+				break;
+			}
+
 		break;
 	case 0x10:
 		switch (command & 0x7) {

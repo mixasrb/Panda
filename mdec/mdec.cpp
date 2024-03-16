@@ -105,7 +105,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//	}
 	}
 	else if (addr == 0x1f801824) {
-		std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << std::endl;
+		//std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << std::endl;
 		data = statusRegister.data;
 	}
 	else {
@@ -117,11 +117,11 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801820) {
 		if (recievedData32Count) {
-			rle_t temp_rle;
-			temp_rle.data = (uint16_t)data;
-			recievedData16.push_back(temp_rle);
-			temp_rle.data = (uint16_t)(data >> 16);
-			recievedData16.push_back(temp_rle);
+			uint16_t temp;
+			temp = (uint16_t)data;
+			recievedData16.push_back(temp);
+			temp = (uint16_t)(data >> 16);
+			recievedData16.push_back(temp);
 
 			/*	std::cout << "[MDEC] recieved data 0x" << (uint16_t)data << std::endl;
 				std::cout << "[MDEC] recieved data 0x" << (uint16_t)(data >> 16) << std::endl;*/
@@ -188,7 +188,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	}
 	else if (addr == 0x1f801824) {
 		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
-			 << " data 0x" << data << std::endl;
+			<< " data 0x" << data << std::endl;
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
@@ -229,33 +229,33 @@ void mdec_t::decodeMacroblock(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
+
 	i = 0;
 	dstBlock = 0;
-	src = (uint16_t*)recievedData16.data();
+	src = recievedData16.data();
 	srcTracker = 0;
 	blockCount = 0;
 
 
-	for (; srcTracker < recievedData16.size() - 1;) {
+	while (srcTracker < recievedData16.size())
 		if ((statusRegister.elem.dataOutputDepth == 2) ||
 			(statusRegister.elem.dataOutputDepth == 3)) {
 			statusRegister.elem.currentBlock = 5;
 
-			rl_decode_block((uint16_t*)Crblk, src, quantTableUV);
-			if (srcTracker >= recievedData16.size())
-				return;
-			rl_decode_block((uint16_t*)Cbblk, src, quantTableUV);
+			rl_decode_block((uint16_t*)Crblk, src, srcTracker, quantTableUV);
 
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			rl_decode_block((uint16_t*)Cbblk, src, srcTracker, quantTableUV);
+
+			rl_decode_block((uint16_t*)Yblk, src, srcTracker, quantTableY);
 			yuv_to_rgb(0, 0);
 
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			rl_decode_block((uint16_t*)Yblk, src, srcTracker, quantTableY);
 			yuv_to_rgb(8, 0);
 
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			rl_decode_block((uint16_t*)Yblk, src, srcTracker, quantTableY);
 			yuv_to_rgb(0, 8);
 
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			rl_decode_block((uint16_t*)Yblk, src, srcTracker, quantTableY);
 			yuv_to_rgb(8, 8);
 
 			if (statusRegister.elem.dataOutputDepth == 3)
@@ -265,11 +265,9 @@ void mdec_t::decodeMacroblock(uint32_t command) {
 		}
 		else {
 			statusRegister.elem.currentBlock = 4;
-			rl_decode_block((uint16_t*)Yblk, src, quantTableY);
+			rl_decode_block((uint16_t*)Yblk, src, srcTracker, quantTableY);
 			y_to_mono();
 		}
-		//g_emulationPaused = true;
-	}
 }
 
 void mdec_t::setQuantTable(uint32_t command) {
@@ -277,18 +275,14 @@ void mdec_t::setQuantTable(uint32_t command) {
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 
-	for (uint32_t i = 0; i < 16; i++) {
-		for (uint32_t j = 0; j < 4; j++) {
+	for (uint32_t i = 0; i < 16; i++)
+		for (uint32_t j = 0; j < 4; j++)
 			quantTableY[i * 4 + j] = (uint8_t)(recievedData32[i] >> (8 * j));
-		}
-	}
-	if (command & 0x1) {
-		for (uint32_t i = 16; i < 32; i++) {
-			for (uint32_t j = 0; j < 4; j++) {
+
+	if (command & 0x1)
+		for (uint32_t i = 16; i < 32; i++)
+			for (uint32_t j = 0; j < 4; j++)
 				quantTableUV[(i - 16) * 4 + j] = (uint8_t)(recievedData32[i] >> (8 * j));
-			}
-		}
-	}
 }
 
 void mdec_t::setScaleTable(uint32_t command) {
@@ -296,11 +290,9 @@ void mdec_t::setScaleTable(uint32_t command) {
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 
-	for (uint32_t i = 0; i < 32; i++) {
-		for (uint32_t j = 0; j < 2; j++) {
+	for (uint32_t i = 0; i < 32; i++)
+		for (uint32_t j = 0; j < 2; j++)
 			scaleTable[i * 2 + j] = (uint16_t)(recievedData32[i] >> (16 * j));
-		}
-	}
 }
 
 void mdec_t::noFunction(uint32_t command) {
@@ -312,7 +304,7 @@ void mdec_t::noFunction(uint32_t command) {
 void mdec_t::invalid(uint32_t command) {
 }
 
-static uint16_t singned10bit(uint16_t val) {
+static int16_t singned10bit(uint16_t val) {
 	return ((int16_t)(val << 6)) >> 6;
 }
 
@@ -323,180 +315,63 @@ static T minMax(T min, T max, T val) {
 	return val;
 }
 
-//void mdec_t::rl_decode_block(uint16_t* blk, uint16_t*& src, uint8_t* qt) {
-//	uint16_t n = 0;
-//	int k = 0;
-//	uint16_t q_scale = 0;
-//	int16_t val = 0;
-//
-//	for (int i = 0; i < 64; i++) {
-//		blk[i] = 0;
-//	}
-//
-//	if (srcTracker >= recievedData16.size())
-//		return;
-//skip:
-//	n = *src; src++; k = 0;
-//	srcTracker++;
-//
-//	if (srcTracker >= recievedData16.size())
-//		return;
-//
-//	if (n == 0xfe00) goto skip;
-//
-//	q_scale = (n >> 10) & 0x3f;
-//	val = singned10bit(n & 0x3ff) * qt[k];
-//lop:
-//	if (q_scale == 0)
-//		val = singned10bit(n & 0x3ff) * 2;
-//
-//	val = minmax(val, -0x400, 0x3ff);
-//
-//	if (q_scale > 0)
-//		blk[zagzig[k]] = val;
-//
-//	if (q_scale == 0)
-//		blk[k] = val;
-//
-//	n = *src; src++;
-//	srcTracker++;
-//	k = k + ((n >> 10) & 0x3f) + 1;
-//	val = (singned10bit(n & 0x3ff) * qt[k] * q_scale + 4) / 8;
-//
-//	if (k <= 63) goto lop;
-//
-//
-//	real_idct_core(blk);
-//
-//	return;
-//}
+void mdec_t::rl_decode_block(uint16_t* blk, uint16_t* src, uint32_t& srcTracker, uint8_t* qt) {
+	for (int i = 0; i < 64; i++)
+		blk[i] = 0;
 
-void mdec_t::rl_decode_block(uint16_t* coefficientList, uint16_t*& src, uint8_t* qt) {
+	uint16_t n = src[srcTracker++];
 
-skip:
-	if (srcTracker >= recievedData16.size() - 1)
-		return;
-	if (recievedData16[srcTracker].data == 0xfe00) {
-		if (srcTracker >= recievedData16.size() - 1)
-			return;
-		srcTracker++;
+	while (n == 0xfe00)
+		n = src[srcTracker++];
 
-		goto skip;
-	}
+	uint8_t k = 0;
 
-	uint16_t quantizationScale = recievedData16[srcTracker].elem.factor;
-	uint16_t dcCoefficient = recievedData16[srcTracker].elem.value;
-	srcTracker++;
-	//if (srcTracker >= recievedData16.size() - 1)
-	//	return;
+	uint16_t qScale = (n >> 10) & 0x3f;
 
-	for (int i = 0; i < 64; i++) {
-		coefficientList[i] = 0;
-	}
+	int16_t val = singned10bit(n & 0x3ff) * qt[k];
 
-	coefficientList[0] = singned10bit(dcCoefficient);
+	while (k < 64) {
+		if (qScale == 0)
+			val = singned10bit(n & 0x3ff) << 1;
 
-	uint16_t runLenghtCode = recievedData16[srcTracker].data;
-	srcTracker++;
-	/*if (srcTracker >= recievedData16.size() - 1)
-		return;*/
+		val = minMax((int16_t)-0x400, (int16_t)+0x3ff, val);
 
-	int i = 1 + ((runLenghtCode >> 10) & 0x3f);
-	while (runLenghtCode != 0xfe00) {
-		coefficientList[i] = singned10bit(runLenghtCode & 0x3ff);
-		runLenghtCode = recievedData16[srcTracker].data;
-		i += 1 + ((runLenghtCode >> 10) & 0x3f);
-		if (i > 63)
-			break;
-		srcTracker++;
-		/*if (srcTracker >= recievedData16.size() - 1)
-			break;*/
-	}
-
-	int16_t coefficientMatrix[64];
-
-	for (int i = 0; i < 64; i++) {
-		if (quantizationScale > 0)
-			coefficientMatrix[i] = coefficientList[zigzag[i]];
+		if (qScale)
+			blk[zagzig[k]] = val;
 		else
-			coefficientMatrix[i] = coefficientList[i];
+			blk[k] = val;
+
+		n = src[srcTracker++];
+
+		k += ((n >> 10) & 0x3f) + 1;
+
+		val = (singned10bit(n & 0x3ff) * qt[k] * qScale + 4) >> 3;
 	}
 
-	int16_t dequantizedMatrix[64];
-
-	for (int i = 0; i < 64; i++) {
-		if (i == 0)
-			/* The DC coefficient is not multiplied
-			   by the quantization scale */
-			dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
-				coefficientMatrix[i] * qt[i]);
-		else
-			if (quantizationScale > 0)
-				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
-					(coefficientMatrix[i] * quantizationScale * qt[i] + 4) / 8);
-			else
-				dequantizedMatrix[i] = minMax(-0x400, 0x3ff,
-					coefficientMatrix[i] * 2);
-	}
-
-	for (int i = 0; i < 64; i++) {
-		coefficientList[i] = dequantizedMatrix[i];
-	}
-
-	for (int x = 0; x < 8; x++) {
-		for (int y = 0; y < 8; y++) {
-			float sum = 0;
-
-			for (int dct_x = 0; dct_x < 8; dct_x++) {
-				for (int dct_y = 0; dct_y < 8; dct_y++) {
-
-					float Sub_Total = dequantizedMatrix[dct_x + dct_y * 8];
-
-					if (dct_x == 0)
-						Sub_Total *= sqrt(1.0f / 8.0f);
-					else
-						Sub_Total *= sqrt(2.0f / 8.0f);
-
-					if (dct_y == 0)
-						Sub_Total *= sqrt(1.0f / 8.0f);
-					else
-						Sub_Total *= sqrt(2.0f / 8.0f);
-
-					Sub_Total *=
-						cos(float(dct_x * 3.1412f * (2.0f * float(x) + 1.0f) / (2.0f * 8.0f)));
-					Sub_Total *=
-						cos(float(dct_y * 3.1412f * (2.0f * float(y) + 1.0f) / (2.0f * 8.0f)));
-
-					sum += Sub_Total;
-				}
-			}
-
-			coefficientList[x + y * 8] = (int16_t)sum;
-		}
-	}
-
-
-	//real_idct_core(coefficientList);
-
-	return;
+	real_idct_core(blk);
 }
 
-static void swap(uint16_t*& a, uint16_t*& b) {
-	uint16_t* t = b;
+template<typename T>
+static void swap(T& a, T& b) {
+	T temp = b;
 	b = a;
-	a = t;
+	a = temp;
 }
 
 void mdec_t::real_idct_core(uint16_t* blk) {
-	uint16_t* src = blk; uint16_t* dst = temb_buffer;
-	for (int pass = 0; pass <= 1; pass++) {
-		for (int x = 0; x <= 7; x++) {
-			for (int y = 0; y <= 7; y++) {
+	uint16_t* src = blk;
+	uint16_t* dst = temb_buffer;
+
+	for (int pass = 0; pass < 2; pass++) {
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
 				int32_t sum = 0;
-				for (int z = 0; z <= 7; z++) {
-					sum = sum + (int32_t)(int16_t)src[y + z * 8] * ((int32_t)(int16_t)scaleTable[x + z * 8] / 8);
-				}
-				dst[x + y * 8] = (sum + 0xfff) / 0x2000;
+
+				for (int z = 0; z < 8; z++)
+					sum = sum + (int32_t)(int16_t)src[y + (z << 3)] * (((int32_t)(int16_t)scaleTable[x + (z << 3)] >> 3));
+
+
+				dst[x + y * 8] = (sum + 0xfff) >> 13;
 			}
 		}
 		swap(src, dst);
@@ -504,14 +379,12 @@ void mdec_t::real_idct_core(uint16_t* blk) {
 }
 
 void mdec_t::yuv_to_rgb(int xx, int yy) {
-	//if (src >= recievedData16.data() + recievedData16.size())
-	//	return;
 	for (int y = 0; y < 8; y++) {
 		for (int x = 0; x < 8; x++) {
 
-			float R = (float)*(Crblk + (x + xx) / 2 + (y + yy) / 2 * 8);
-			float B = (float)*(Cbblk + (x + xx) / 2 + (y + yy) / 2 * 8);
-			float Y = (float)*(Yblk + x + y * 8);
+			float R = (float)*(Crblk + ((x + xx) >> 1) + (((y + yy) >> 1) << 3));
+			float B = (float)*(Cbblk + ((x + xx) >> 1) + (((y + yy) >> 1) << 3));
+			float Y = (float)*(Yblk + x + (y << 3));
 
 			float G = Y - 0.3437 * B - 0.7143 * R;
 			R = Y + 1.402 * R;
@@ -530,27 +403,27 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 
 			if (statusRegister.elem.dataOutputDepth == 3) {
 				psxColor16_t color1;
-				color1.component.red = (uint32_t)R >> 3;
-				color1.component.green = (uint32_t)G >> 3;
-				color1.component.blue = (uint32_t)B >> 3;
+				color1.component.red = (uint8_t)R >> 3;
+				color1.component.green = (uint8_t)G >> 3;
+				color1.component.blue = (uint8_t)B >> 3;
 
 				if (statusRegister.elem.dataOutputBit15)
 					color1.data |= 0x8000;
 
-				uint16_t destination = ((x + xx) + (y + yy) * 16) / 2;
+				uint16_t destination = ((x + xx) + ((y + yy) << 4)) >> 1;
 
-				if (x % 2 == 0)
+				if ((x & 0x1) == 0)
 					dst[dstBlock + destination] = (uint32_t)color1.data;
 				else
 					dst[dstBlock + destination] =
 					(dst[dstBlock + destination]) | ((uint32_t)color1.data << 16);
 			}
 			else {
-				uint32_t BGR = (((uint32_t)(uint8_t)B) << 16) | (((uint32_t)(uint8_t)G) << 8) | ((uint32_t)(uint8_t)R);
+				uint32_t BGR = (((uint32_t)B) << 16) | (((uint32_t)G) << 8) | ((uint32_t)R);
 
-				uint16_t destination = ((x + xx) + (y + yy) * 16) * 3 / 4;
+				uint16_t destination = (((x + xx) + ((y + yy) << 4)) * 3) >> 2;
 
-				switch (x % 4) {
+				switch (x & 0x3) {
 				case 0:
 					dst[dstBlock + destination] = BGR;
 					break;

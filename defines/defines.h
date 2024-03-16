@@ -16,7 +16,7 @@
 #define _OV 0x0c
 
 //interrupts
-#define _IRQ_V_SYNC_ 0x01
+#define _IRQ_VBLANK_ 0x01
 #define _IRQ_CD_ROM 0x04
 #define _IRQ_DMA 0x08
 #define _IRQ_TIMER_0 0x10

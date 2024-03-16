@@ -143,6 +143,7 @@ public:
 	void play(const uint8_t& command);
 	void setLoc(const uint8_t& command);
 	void readN(const uint8_t& command);
+	void motorOn(const uint8_t& command);
 	void stop(const uint8_t& command);
 	void pause(const uint8_t& command);
 	void init(const uint8_t& command);
@@ -264,6 +265,8 @@ public:
 
 	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
 
+	uint8_t trackCDDA = 1;
+
 	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
 	uint16_t tempVolumeLeftLeft = 0;
@@ -275,6 +278,8 @@ public:
 	uint16_t volumeLeftRight = 0;
 	uint16_t volumeRightRight = 0;
 	uint16_t volumeRightLeft = 0;
+
+	uint8_t* pNullSrc = (uint8_t*)calloc(0x920, sizeof(uint8_t));
 
 	//debug
 	debugUtilities* p_debugger;

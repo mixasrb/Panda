@@ -32,14 +32,39 @@ public:
 	void videoClock();
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-	const uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
+	const uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
+	const uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
 	const uint32_t SCANLINE_NUMBER_NTSC = 263;
 	const uint32_t SCANLINE_NUMBER_PAL = 314;
-	const uint32_t CPU_CLOCKS_PER_SCANLINE = CPU_CLOCKS_PER_FRAME / SCANLINE_NUMBER_NTSC;
+	const uint32_t CPU_CLOCKS_PER_SCANLINE_NTSC = CPU_CLOCKS_PER_FRAME_NTSC / SCANLINE_NUMBER_NTSC;
+	const uint32_t CPU_CLOCKS_PER_SCANLINE_PAL = CPU_CLOCKS_PER_FRAME_PAL / SCANLINE_NUMBER_PAL;
+
+	const uint32_t cpuDotClocks[5] =
+	{
+		CPU_CLOCK / 10,
+		CPU_CLOCK / 8,
+		CPU_CLOCK / 5,
+		CPU_CLOCK / 4,
+		CPU_CLOCK / 7
+	};
+
+	const uint32_t dotsPerScanline[5] =
+	{
+		341,
+		426,
+		682,
+		853,
+		487
+	};
+
+	uint8_t dotClockDevider = 4;
+	uint16_t horizontalResolution = 640;
 
 	uint32_t cpuClocks = 0;
 	uint32_t cpuFrameClocks = 0;
 	uint32_t cpuScanlineClocks = 0;
+	uint32_t cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
+	uint32_t scanlineNumber = SCANLINE_NUMBER_NTSC;
 	uint32_t scanlineCount = -1;
 
 	union gpuStat_t {
@@ -80,7 +105,7 @@ public:
 
 	texWinMask_t texWinMask;
 	texWinOffset_t texWinOffset;
-	Coord display_start;
+	Coord displayStart;
 
 	typedef struct {
 		uint16_t x;
@@ -97,10 +122,10 @@ public:
 
 	drawOffset_t drawOffset;
 
-	uint16_t x1;
-	uint16_t x2;
-	uint16_t y1;
-	uint16_t y2;
+	uint16_t screenX1;
+	uint16_t screenX2;
+	uint16_t screenY1;
+	uint16_t screenY2;
 
 	union psxColor16_t {
 		psxColor16_t() {
