@@ -850,12 +850,6 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 			}
 
 			decodeCompressedSample(currentVoiceRegisters);
-
-			//??
-			currentVoiceRegisters.voiceOldest = 0;
-			currentVoiceRegisters.voiceOlder = 0;
-			currentVoiceRegisters.voiceOld = 0;
-			currentVoiceRegisters.voiceNewest = 0;
 		}
 
 		uint16_t currentSampleNumber = currentVoiceRegisters.counter >> 12;
@@ -982,7 +976,7 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 
 	}
 	else if (sustain) {
-		if (adsrCycles == 0) {
+		/*if (adsrCycles == 0) {
 			uint32_t shiftValue = adsr.elem.sustainShift;
 			adsrCycles = 1 << max(0, shiftValue - 11);
 
@@ -1006,7 +1000,7 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
 		if (adsrLevel == 0)
-			sustain = false;
+			sustain = false;*/
 	}
 
 	output_t output;
