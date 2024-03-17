@@ -155,15 +155,22 @@ public:
 
 			int16_t out;
 
-			bool startSampleBlockProcesing = false;
-
 			uint32_t adsrCycles = 0;
+			uint32_t adsrCyclesNumber = 0;
+
 			int32_t adsrStep = 0;
 			int32_t adsrLevel = 0;
-			bool attack = false;
-			bool decay = false;
-			bool sustain = false;
-			bool release = true;
+
+			bool bEnvelopeAttack = false;
+			bool bEnvelopeDecay = false;
+			bool bEnvelopeSustain = false;
+			bool bEnvelopeRelease = false;
+
+			void startEnvelopeAttack();
+			void startEnvelopeDecay();
+			void startEnvelopeSustain();
+			void startEnvelopeRelease();
+
 			output_t envelope(const int16_t& input);
 		};
 

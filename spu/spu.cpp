@@ -118,13 +118,11 @@ spu_t::spu_t() {
 	};
 
 	voices.channelOnOff.data = 0x00ffffff;
-
-	outXA.channel1 = 0.0f;
-	outXA.channel2 = 0.0f;
 }
 
 void spu_t::read32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
+
 	if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbc)) {
 		switch (addr) {
 		case 0x1f801d9c:
@@ -152,8 +150,6 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		case 0x8:
-			/*std::cout << "[SPU] adsr 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.voiceRegisters[voiceIndex].adsr.data = data;
 			break;
 
@@ -174,47 +170,32 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		case 0x1f801d88:
-			/*std::cout << "[SPU] Key On 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOn.data |= data;
 			voices.tempKeyOn.data = data;
-			for (int voice = 0; voice < 24; voice++) {
+
+			for (int voice = 0; voice < 24; voice++)
 				if ((data >> voice) & 0x1) {
 					voices.voiceRegisters[voice].adpcmRepeatAddress.data =
 						voices.voiceRegisters[voice].adpcmStartAddress.data;
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
-					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
-					voices.voiceRegisters[voice].attack = true;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].adsrLevel = 0;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
+
+					voices.voiceRegisters[voice].counter = 0x1c000;
+
+					voices.voiceRegisters[voice].startEnvelopeAttack();
 				}
-			}
+
 			voices.channelOnOff.data &= ~voices.keyOn.data;
 			break;
 
 		case 0x1f801d8c:
-			/*std::cout << "[SPU] Key Off 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOff.data |= data;
 			voices.tempKeyOff.data = data;
-			for (uint32_t voice = 0; voice < 24; voice++) {
-				if (((uint32_t)data >> voice) & 0x1) {
-					//if (voices.voiceRegisters[voice].sustain) {
-					voices.voiceRegisters[voice].attack = false;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = true;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//}
-				}
-			}
+
+			for (uint32_t voice = 0; voice < 24; voice++)
+				if (((uint32_t)data >> voice) & 0x1)
+					voices.voiceRegisters[voice].startEnvelopeRelease();
+
 			break;
 
 		case 0x1f801d90:
@@ -453,18 +434,13 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x6:
 			voices.voiceRegisters[voiceIndex].adpcmStartAddress.data = data;
-			//std::cout << "voice " << std::dec << (uint16_t)voiceIndex << "   " << std::hex << voices.voiceRegisters[voiceIndex].adpcmStartAddress.data << std::endl;
 			break;
 
 		case 0x8:
-			/*std::cout << "[SPU] adsr 0x8 0x" << std::hex << data << " voice index " << (uint16_t)voiceIndex << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.voiceRegisters[voiceIndex].adsr.hw.l = data;
 			break;
 
 		case 0xa:
-			/*std::cout << "[SPU] adsr 0xa 0x" << std::hex << data << " voice index " << (uint16_t)voiceIndex << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
 			voices.voiceRegisters[voiceIndex].adsr.hw.h = data;
 			break;
 
@@ -501,91 +477,59 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0x1f801d88:
-			/*std::cout << "[SPU] Key On8 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOn.hw.l |= data;
 			voices.tempKeyOn.hw.l = data;
-			for (int voice = 0; voice < 16; voice++) {
+
+			for (int voice = 0; voice < 16; voice++)
 				if (((uint32_t)data >> voice) & 0x1) {
 					voices.voiceRegisters[voice].adpcmRepeatAddress.data =
 						voices.voiceRegisters[voice].adpcmStartAddress.data;
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
-					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
-					voices.voiceRegisters[voice].attack = true;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].adsrLevel = 0;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
+
+					voices.voiceRegisters[voice].counter = 0x1c000;
+
+					voices.voiceRegisters[voice].startEnvelopeAttack();
 				}
-			}
+
 			voices.channelOnOff.hw.l &= ~voices.keyOn.hw.l;
 			break;
 
 		case 0x1f801d8a:
-			/*std::cout << "[SPU] Key Ona 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOn.hw.h |= data;
 			voices.tempKeyOn.hw.h = data;
-			for (int voice = 16; voice < 24; voice++) {
+
+			for (int voice = 16; voice < 24; voice++)
 				if ((((uint32_t)data << 16) >> voice) & 0x1) {
 					voices.voiceRegisters[voice].adpcmRepeatAddress.data =
 						voices.voiceRegisters[voice].adpcmStartAddress.data;
 					voices.voiceRegisters[voice].currentVoiceAddress =
 						voices.voiceRegisters[voice].adpcmStartAddress.data * 8;
-					voices.voiceRegisters[voice].startSampleBlockProcesing = true;
-					voices.voiceRegisters[voice].attack = true;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = false;
-					voices.voiceRegisters[voice].adsrLevel = 0;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//std::cout << "voice " << std::dec << (uint16_t)voice << "   " << std::hex << voices.voiceRegisters[voice].currentVoiceAddress << std::endl;
+
+					voices.voiceRegisters[voice].counter = 0x1c000;
+
+					voices.voiceRegisters[voice].startEnvelopeAttack();
 				}
-			}
+
 			voices.channelOnOff.hw.h &= ~voices.keyOn.hw.h;
 			break;
 
 		case 0x1f801d8c:
-			/*std::cout << "[SPU] Key Offc 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOff.hw.l |= data;
 			voices.tempKeyOff.hw.l = data;
-			for (uint32_t voice = 0; voice < 16; voice++) {
-				if (((uint32_t)data >> voice) & 0x1) {
-					//if (voices.voiceRegisters[voice].sustain) {
-					voices.voiceRegisters[voice].attack = false;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = true;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//}
-				}
-			}
+
+			for (uint32_t voice = 0; voice < 16; voice++)
+				if (((uint32_t)data >> voice) & 0x1)
+					voices.voiceRegisters[voice].startEnvelopeRelease();
 			break;
 
 		case 0x1f801d8e:
-			/*std::cout << "[SPU] Key Offe 0x" << std::hex << data << " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
-				<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;*/
-
 			voices.keyOff.hw.h |= data;
 			voices.tempKeyOff.hw.h = data;
-			for (uint32_t voice = 16; voice < 24; voice++) {
-				if ((((uint32_t)data << 16) >> voice) & 0x1) {
-					//if (voices.voiceRegisters[voice].sustain) {
-					voices.voiceRegisters[voice].attack = false;
-					voices.voiceRegisters[voice].decay = false;
-					voices.voiceRegisters[voice].sustain = false;
-					voices.voiceRegisters[voice].release = true;
-					voices.voiceRegisters[voice].adsrCycles = 0;
-					//	}
-				}
-			}
+
+			for (uint32_t voice = 16; voice < 24; voice++)
+				if ((((uint32_t)data << 16) >> voice) & 0x1)
+					voices.voiceRegisters[voice].startEnvelopeRelease();
 			break;
 
 		case 0x1f801d90:
@@ -797,99 +741,85 @@ void spu_t::voices_t::decodeCompressedSample(voiceRegister_t& currentVoiceRegist
 }
 
 int16_t spu_t::voices_t::output(const uint8_t& voice) {
-	if (voiceRegisters[voice].attack || voiceRegisters[voice].decay ||
-		voiceRegisters[voice].sustain || voiceRegisters[voice].release) {
-		voiceRegister_t currentVoiceRegisters = voiceRegisters[voice];
+	voiceRegister_t currentVoiceRegisters = voiceRegisters[voice];
 
-		if (currentVoiceRegisters.startSampleBlockProcesing) {
-			currentVoiceRegisters.startSampleBlockProcesing = false;
-			currentVoiceRegisters.counter = 0;
+	uint16_t currentSampleNumber = currentVoiceRegisters.counter >> 12;
+	uint16_t i = (currentVoiceRegisters.counter >> 4) & 0xff;
 
-			for (int i = 0; i < 16; i++) {
-				uint8_t data;
-				p_spu->readDram8(currentVoiceRegisters.currentVoiceAddress + i, data);
-				currentVoiceRegisters.blockBytes[i] = data;;
-			}
-
-			currentVoiceRegisters.shiftFilter.data = currentVoiceRegisters.blockBytes[0];
-
-			currentVoiceRegisters.flagBits.data = currentVoiceRegisters.blockBytes[1];
-
-			if (currentVoiceRegisters.flagBits.elem.loopStart)
-				currentVoiceRegisters.adpcmRepeatAddress.data = currentVoiceRegisters.currentVoiceAddress / 8;
-
-			if (currentVoiceRegisters.flagBits.elem.loopEnd)
-				currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
-
-			currentVoiceRegisters.code = currentVoiceRegisters.flagBits.data & 0x3;
-
-			switch (currentVoiceRegisters.code) {
-			case 0:
-			case 2:
-				currentVoiceRegisters.currentVoiceAddress += 16;
-				break;
-			case 1:
-				currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
-				p_spu->voices.channelOnOff.data |= (uint32_t)1 << voice;
-				voiceRegisters[voice].attack = false;
-				voiceRegisters[voice].decay = false;
-				voiceRegisters[voice].sustain = false;
-				voiceRegisters[voice].release = true;
-				voiceRegisters[voice].adsrCycles = 0;
-				//currentVoiceRegisters.adsr.data = 0x0000;
-				currentVoiceRegisters.adsrLevel = 0;//??
-				break;
-			case 3:
-				currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
-				p_spu->voices.channelOnOff.data |= (uint32_t)1 << voice;
-				break;
-			}
-
-			for (int i = 0; i < 28; i++) {
-				currentVoiceRegisters.compressedSamples[i] = (currentVoiceRegisters.blockBytes[2 + i / 2] >> ((i % 2) * 4)) & 0xf;
-			}
-
-			decodeCompressedSample(currentVoiceRegisters);
-		}
-
-		uint16_t currentSampleNumber = currentVoiceRegisters.counter >> 12;
-		uint16_t i = (currentVoiceRegisters.counter >> 4) & 0xff;
-
-		currentVoiceRegisters.step = currentVoiceRegisters.adpcmSampleRate.data;
-		if (((channel_FM_Mode.data >> voice) & 0x1) && (voice > 1)) {
-			int16_t factor = (int16_t)voiceRegisters[voice - 1].adsrLevel; //??
-			factor = factor + 0x8000;
-			int32_t tempStep = (int32_t)(currentVoiceRegisters.step);
-			tempStep = (tempStep * (uint16_t)factor) >> 15;
-			currentVoiceRegisters.step = tempStep & 0x0000ffff;
-		}
-
-		if (currentVoiceRegisters.step > 0x3fff)
-			currentVoiceRegisters.step = 0x4000;
-
-		currentVoiceRegisters.counter += currentVoiceRegisters.step;
-
-		if (currentSampleNumber >= 27) {
-			//currentVoiceRegisters.counter = 0;
-			currentSampleNumber = 27;
-			currentVoiceRegisters.startSampleBlockProcesing = true;
-		}
-
-		currentVoiceRegisters.sample = currentVoiceRegisters.samples[currentSampleNumber];
-		currentVoiceRegisters.pushSample(currentVoiceRegisters.sample);
-
-		//this is making sound artifacts
-		currentVoiceRegisters.out = (((int32_t)p_spu->gauss[0x0ff - i] * currentVoiceRegisters.voiceOldest) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x1ff - i] * currentVoiceRegisters.voiceOlder) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x100 + i] * currentVoiceRegisters.voiceOld) >> 15);
-		currentVoiceRegisters.out = currentVoiceRegisters.out + (int16_t)(((int32_t)p_spu->gauss[0x000 + i] * currentVoiceRegisters.voiceNewest) >> 15);
-
-		voiceRegisters[voice] = currentVoiceRegisters;
-
-		return currentVoiceRegisters.sample;
+	currentVoiceRegisters.step = currentVoiceRegisters.adpcmSampleRate.data;
+	if (((channel_FM_Mode.data >> voice) & 0x1) && (voice > 1)) {
+		int16_t factor = (int16_t)voiceRegisters[voice - 1].adsrLevel; //??
+		factor = factor + 0x8000;
+		int32_t tempStep = (int32_t)(currentVoiceRegisters.step);
+		tempStep = (tempStep * (uint16_t)factor) >> 15;
+		currentVoiceRegisters.step = tempStep & 0x0000ffff;
 	}
 
-	return 0;
+	if (currentVoiceRegisters.step > 0x3fff)
+		currentVoiceRegisters.step = 0x4000;
+
+	currentVoiceRegisters.counter += currentVoiceRegisters.step;
+
+	if (currentSampleNumber > 27) {
+		currentVoiceRegisters.counter = 0;
+
+		for (int i = 0; i < 16; i++) {
+			uint8_t data;
+			p_spu->readDram8(currentVoiceRegisters.currentVoiceAddress + i, data);
+			currentVoiceRegisters.blockBytes[i] = data;;
+		}
+
+		currentVoiceRegisters.shiftFilter.data = currentVoiceRegisters.blockBytes[0];
+
+		currentVoiceRegisters.flagBits.data = currentVoiceRegisters.blockBytes[1];
+
+		if (currentVoiceRegisters.flagBits.elem.loopStart)
+			currentVoiceRegisters.adpcmRepeatAddress.data = currentVoiceRegisters.currentVoiceAddress / 8;
+
+		if (currentVoiceRegisters.flagBits.elem.loopEnd)
+			currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
+
+		currentVoiceRegisters.code = currentVoiceRegisters.flagBits.data & 0x3;
+
+		switch (currentVoiceRegisters.code) {
+		case 0:
+		case 2:
+			currentVoiceRegisters.currentVoiceAddress += 16;
+			break;
+		case 1:
+			currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
+
+			p_spu->voices.channelOnOff.data |= (uint32_t)1 << voice;
+
+			currentVoiceRegisters.startEnvelopeRelease();
+			currentVoiceRegisters.adsrLevel = 0;
+			break;
+		case 3:
+			currentVoiceRegisters.currentVoiceAddress = currentVoiceRegisters.adpcmRepeatAddress.data * 8;
+
+			p_spu->voices.channelOnOff.data |= (uint32_t)1 << voice;
+			break;
+		}
+
+		for (int i = 0; i < 28; i++) {
+			currentVoiceRegisters.compressedSamples[i] = (currentVoiceRegisters.blockBytes[2 + i / 2] >> ((i % 2) * 4)) & 0xf;
+		}
+
+		decodeCompressedSample(currentVoiceRegisters);
+	}
+
+	currentVoiceRegisters.sample = currentVoiceRegisters.samples[currentSampleNumber];
+	currentVoiceRegisters.pushSample(currentVoiceRegisters.sample);
+
+	//this is making sound artefacts
+	currentVoiceRegisters.out = ((int32_t)p_spu->gauss[0x0ff - i] * currentVoiceRegisters.voiceOldest) >> 15;
+	currentVoiceRegisters.out += ((int32_t)p_spu->gauss[0x1ff - i] * currentVoiceRegisters.voiceOlder) >> 15;
+	currentVoiceRegisters.out += ((int32_t)p_spu->gauss[0x100 + i] * currentVoiceRegisters.voiceOld) >> 15;
+	currentVoiceRegisters.out += ((int32_t)p_spu->gauss[0x000 + i] * currentVoiceRegisters.voiceNewest) >> 15;
+
+	voiceRegisters[voice] = currentVoiceRegisters;
+
+	return currentVoiceRegisters.sample;
 }
 
 static int32_t saturate(int32_t a, int32_t min, int32_t max) {
@@ -904,104 +834,117 @@ static int32_t max(int32_t a, int32_t b) {
 	return (a > b) ? a : b;
 }
 
+void spu_t::voices_t::voiceRegister_t::startEnvelopeAttack() {
+	adsrLevel = 0;
+
+	bEnvelopeAttack = true;
+	bEnvelopeDecay = false;
+	bEnvelopeSustain = false;
+	bEnvelopeRelease = false;
+
+	uint32_t shiftValue = adsr.elem.attackShift;
+	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+
+	int32_t stepValue = 7 - adsr.elem.attackStep;
+	adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.attackShift);
+
+	bool exponential = adsr.elem.attackMode;
+	if (exponential && (adsrLevel > 0x6000))
+		adsrCycles *= 4;
+
+	adsrCyclesNumber = adsrCycles;
+	adsrCycles = 0;
+}
+
+void spu_t::voices_t::voiceRegister_t::startEnvelopeDecay() {
+	bEnvelopeAttack = false;
+	bEnvelopeDecay = true;
+	bEnvelopeSustain = false;
+	bEnvelopeRelease = false;
+
+	uint32_t shiftValue = adsr.elem.decayShift;
+	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+
+	int32_t stepValue = -8;
+	adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.decayShift);
+
+	adsrStep = adsrStep * adsrLevel / 0x8000;
+
+	adsrCyclesNumber = adsrCycles;
+}
+
+void spu_t::voices_t::voiceRegister_t::startEnvelopeSustain() {
+	bEnvelopeAttack = false;
+	bEnvelopeDecay = false;
+	bEnvelopeSustain = true;
+	bEnvelopeRelease = false;
+
+	uint32_t shiftValue = adsr.elem.sustainShift;
+	adsrCycles = 1 << max(0, shiftValue - 11);
+
+	bool increase = !adsr.elem.sustainDirection;
+	int32_t stepValue =
+		increase ? 7 - adsr.elem.sustainStep : -8 + adsr.elem.sustainStep;
+	adsrStep = stepValue << max(0, 11 - shiftValue);
+
+	bool exponential = adsr.elem.sustainMode;
+	if (exponential && increase && (adsrLevel > 0x6000))
+		adsrCycles *= 4;
+	else if (exponential && !increase)
+		adsrStep = adsrStep * adsrLevel / 0x8000;
+
+	adsrCyclesNumber = adsrCycles;
+}
+
+void spu_t::voices_t::voiceRegister_t::startEnvelopeRelease() {
+	bEnvelopeAttack = false;
+	bEnvelopeDecay = false;
+	bEnvelopeSustain = false;
+	bEnvelopeRelease = true;
+
+	uint32_t shiftValue = adsr.elem.releaseShift;
+	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+
+	int32_t stepValue = -8;
+	adsrStep = stepValue << max(0, 11 - (int32_t)shiftValue);
+
+	bool exponential = adsr.elem.releaseMode;
+	if (exponential)
+		adsrStep = adsrStep * adsrLevel / 0x8000;
+
+	adsrCyclesNumber = adsrCycles;
+	adsrCycles = 0;
+}
+
 output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 
-	if (release) {
+	if (bEnvelopeAttack || bEnvelopeDecay ||
+		bEnvelopeSustain || bEnvelopeRelease)
 		if (adsrCycles == 0) {
-			uint32_t shiftValue = adsr.elem.releaseShift;
-			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
-
-			int32_t stepValue = -8;
-			adsrStep = stepValue << max(0, 11 - (int32_t)shiftValue);
-
-			/*bool exponential = adsr.elem.releaseMode;
-			if (exponential) {
-				adsrStep = adsrStep * adsrLevel / 0x8000;
-				if (adsrStep == 0)
-					adsrLevel = 0;
-			}*/
+			adsrCycles = adsrCyclesNumber;
 
 			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
-			if (adsrLevel == 0) {
-				release = false;
-				adsrCycles = 1;
+			if (bEnvelopeAttack) {
+				if (adsrLevel == 0x7fff)
+					startEnvelopeDecay();
 			}
-		}
-		adsrCycles--;
-	}
+			else if (bEnvelopeDecay) {
+				if (adsrLevel <= (adsr.elem.sustainLevel + 1) * 0x800) {
+					adsrLevel = (adsr.elem.sustainLevel + 1) * 0x800;
 
-	if (attack) {
-		if (adsrCycles == 0) {
-			uint32_t shiftValue = adsr.elem.attackShift;
-			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
-
-			int32_t stepValue = 7 - adsr.elem.attackStep;
-			adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.attackShift);
-
-			bool exponential = adsr.elem.attackMode;
-			if (exponential && (adsrLevel > 0x6000))
-				adsrCycles *= 4;
-
-			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
-
-			if (adsrLevel == 0x7fff) {
-				attack = false;
-				decay = true;
-				adsrCycles = 1;
+					startEnvelopeSustain();
+				}
 			}
-		}
-		adsrCycles--;
-	}
-	else if (decay) {
-		if (adsrCycles == 0) {
-			uint32_t shiftValue = adsr.elem.decayShift;
-			adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
-
-			int32_t stepValue = -8;
-			adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.decayShift);
-
-			adsrStep = adsrStep * adsrLevel / 0x8000;
-
-			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
-
-			if (adsrLevel <= (adsr.elem.sustainLevel + 1) * 0x800) {
-				adsrLevel = (adsr.elem.sustainLevel + 1) * 0x800;
-				decay = false;
-				sustain = true;
-				adsrCycles = 1;
+			else if (bEnvelopeSustain) {
 			}
-		}
-		adsrCycles--;
-
-	}
-	else if (sustain) {
-		/*if (adsrCycles == 0) {
-			uint32_t shiftValue = adsr.elem.sustainShift;
-			adsrCycles = 1 << max(0, shiftValue - 11);
-
-
-			bool increase = !adsr.elem.sustainDirection;
-			int32_t stepValue =
-				increase ? 7 - adsr.elem.sustainStep : -8 + adsr.elem.sustainStep;
-			adsrStep = stepValue << max(0, 11 - shiftValue);
-
-
-			bool exponential = adsr.elem.sustainMode;
-			if (exponential && increase && (adsrLevel > 0x6000))
-				adsrCycles *= 4;
-			else if (exponential && !increase)
-				adsrStep = adsrStep * adsrLevel / 0x8000;
+			else if (bEnvelopeRelease) {
+				if (adsrLevel == 0)
+					bEnvelopeRelease = false;
+			}
 		}
 		else
 			adsrCycles--;
-
-		if (adsrCycles == 0)
-			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
-
-		if (adsrLevel == 0)
-			sustain = false;*/
-	}
 
 	output_t output;
 	output.channel1 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
@@ -1071,108 +1014,108 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 //#define vAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dd2 - 0x1f801dc0))
 //
 //#define mLSAME max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd4 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRSAME max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd6 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLCOMB1 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd8 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRCOMB1 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dda - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLCOMB2 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801ddc - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRCOMB2 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dde - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define dLSAME max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de0 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define dRSAME max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de2 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLDIFF max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de4 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRDIFF max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de6 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLCOMB3 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de8 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRCOMB3 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dea - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLCOMB4 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dec - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRCOMB4 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dee - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define dLDIFF max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df0 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define dRDIFF max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df2 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLAPF1 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df4 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRAPF1 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df6 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mLAPF2 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df8 - 0x1f801dc0)) << 3) & 0x7fffe)
-//#define mRAPF2 max(reverbCurrentAddress, \
-//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dfa - 0x1f801dc0)) << 3) & 0x7fffe)
-//
-//#define vLIN (int32_t)*((int16_t*)(reverb + 0x1f801dfc - 0x1f801dc0))
-//#define vRIN (int32_t)*((int16_t*)(reverb + 0x1f801dfe - 0x1f801dc0))
-//
-//
-//
-//	if (cycle == 0) { //left
-//
-//		uint16_t Lin = (vLIN * input) >> 15;
-//
-//		writeDram16(mLSAME,
-//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dLSAME) >> 15) - readDram16(dLSAME - 2)) >> 15) +
-//			readDram16(dLSAME - 2));
-//
-//		writeDram16(mLDIFF,
-//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dRDIFF) >> 15) - readDram16(mLDIFF - 2)) >> 15) +
-//			readDram16(mLDIFF - 2));
-//
-//		uint16_t Lout = (uint16_t)(vCOMB1 * readDram16(mLCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mLCOMB2) >> 15) +
-//			(uint16_t)(vCOMB3 * readDram16(mLCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mLCOMB4) >> 15);
-//
-//		Lout = Lout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe)));
-//		writeDram16(mLAPF1, Lout);
-//		Lout = (uint16_t)(vAPF1 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe));
-//
-//		Lout = Lout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe)));
-//		writeDram16(mLAPF2, Lout);
-//		Lout = (uint16_t)(vAPF2 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe));
-//
-//		return vLOUT * Lout >> 15;
-//	}
-//	else { //right
-//
-//		uint16_t Rin = (vRIN * input) >> 15;
-//
-//		writeDram16(mRSAME,
-//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dRSAME) >> 15) - readDram16(dRSAME - 2)) >> 15) +
-//			readDram16(dRSAME - 2));
-//
-//		writeDram16(mRDIFF,
-//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dLDIFF) >> 15) - readDram16(mRDIFF - 2)) >> 15) +
-//			readDram16(mRDIFF - 2));
-//
-//		uint16_t Rout = (uint16_t)(vCOMB1 * readDram16(mRCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mRCOMB2) >> 15) +
-//			(uint16_t)(vCOMB3 * readDram16(mRCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mRCOMB4) >> 15);
-//
-//		Rout = Rout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe)));
-//		writeDram16(mRAPF1, Rout);
-//		Rout = (uint16_t)(vAPF1 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe));
-//
-//		Rout = Rout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe)));
-//		writeDram16(mRAPF2, Rout);
-//		Rout = (uint16_t)(vAPF2 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe));
-//
-//
-//		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
-//
-//		return vROUT * Rout >> 15;
-//	}
-//
-//
-//	//return 0;
-//}
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd4 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRSAME max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd6 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLCOMB1 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd8 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRCOMB1 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dda - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLCOMB2 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801ddc - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRCOMB2 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dde - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define dLSAME max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de0 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define dRSAME max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de2 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLDIFF max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de4 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRDIFF max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de6 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLCOMB3 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de8 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRCOMB3 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dea - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLCOMB4 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dec - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRCOMB4 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dee - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define dLDIFF max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df0 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define dRDIFF max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df2 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLAPF1 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df4 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRAPF1 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df6 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mLAPF2 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df8 - 0x1f801dc0)) << 3) & 0x7fffe)
+	//#define mRAPF2 max(reverbCurrentAddress, \
+	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dfa - 0x1f801dc0)) << 3) & 0x7fffe)
+	//
+	//#define vLIN (int32_t)*((int16_t*)(reverb + 0x1f801dfc - 0x1f801dc0))
+	//#define vRIN (int32_t)*((int16_t*)(reverb + 0x1f801dfe - 0x1f801dc0))
+	//
+	//
+	//
+	//	if (cycle == 0) { //left
+	//
+	//		uint16_t Lin = (vLIN * input) >> 15;
+	//
+	//		writeDram16(mLSAME,
+	//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dLSAME) >> 15) - readDram16(dLSAME - 2)) >> 15) +
+	//			readDram16(dLSAME - 2));
+	//
+	//		writeDram16(mLDIFF,
+	//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dRDIFF) >> 15) - readDram16(mLDIFF - 2)) >> 15) +
+	//			readDram16(mLDIFF - 2));
+	//
+	//		uint16_t Lout = (uint16_t)(vCOMB1 * readDram16(mLCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mLCOMB2) >> 15) +
+	//			(uint16_t)(vCOMB3 * readDram16(mLCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mLCOMB4) >> 15);
+	//
+	//		Lout = Lout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe)));
+	//		writeDram16(mLAPF1, Lout);
+	//		Lout = (uint16_t)(vAPF1 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe));
+	//
+	//		Lout = Lout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe)));
+	//		writeDram16(mLAPF2, Lout);
+	//		Lout = (uint16_t)(vAPF2 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe));
+	//
+	//		return vLOUT * Lout >> 15;
+	//	}
+	//	else { //right
+	//
+	//		uint16_t Rin = (vRIN * input) >> 15;
+	//
+	//		writeDram16(mRSAME,
+	//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dRSAME) >> 15) - readDram16(dRSAME - 2)) >> 15) +
+	//			readDram16(dRSAME - 2));
+	//
+	//		writeDram16(mRDIFF,
+	//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dLDIFF) >> 15) - readDram16(mRDIFF - 2)) >> 15) +
+	//			readDram16(mRDIFF - 2));
+	//
+	//		uint16_t Rout = (uint16_t)(vCOMB1 * readDram16(mRCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mRCOMB2) >> 15) +
+	//			(uint16_t)(vCOMB3 * readDram16(mRCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mRCOMB4) >> 15);
+	//
+	//		Rout = Rout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe)));
+	//		writeDram16(mRAPF1, Rout);
+	//		Rout = (uint16_t)(vAPF1 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe));
+	//
+	//		Rout = Rout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe)));
+	//		writeDram16(mRAPF2, Rout);
+	//		Rout = (uint16_t)(vAPF2 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe));
+	//
+	//
+	//		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
+	//
+	//		return vROUT * Rout >> 15;
+	//	}
+	//
+	//
+	//	//return 0;
+	//}
 
 
 float spu_t::clock() {
@@ -1198,9 +1141,8 @@ float spu_t::clock() {
 
 	//nearest neighbor interpolation 
 	counter37kHz += step44kHz; // dont look right but works
-	if (round(counter37kHz) >= step37kHz) {
-		if (counter37kHz >= step37kHz)
-			counter37kHz -= step37kHz;
+	if (counter37kHz >= (step37kHz / 2.0f)) {
+		counter37kHz -= step37kHz;
 
 		outXA.channel1 = 0.0f;
 		outXA.channel2 = 0.0f;
@@ -1208,7 +1150,7 @@ float spu_t::clock() {
 			outXA = clockXA_ADPCM();
 
 		output_t outTempXA;
-		outTempXA.channel1 = outXA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f 
+		outTempXA.channel1 = outXA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f
 			+ outXA.channel2 * pBus->pCdDrive->volumeLeftRight / 128.0f;
 		outTempXA.channel2 = outXA.channel2 * pBus->pCdDrive->volumeRightRight / 128.0f
 			+ outXA.channel1 * pBus->pCdDrive->volumeRightLeft / 128.0f;
@@ -1228,7 +1170,7 @@ float spu_t::clock() {
 	//}
 
 	//if (pBus->pCdDrive->bPlay) {
-	output_t outCDDA;
+	output_t outCDDA = { 0,0 };
 	outCDDA = clockCDDA();
 
 	output_t outTempCDDA;

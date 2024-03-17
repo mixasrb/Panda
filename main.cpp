@@ -73,7 +73,6 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (Europe)/Vigilante 8 - 2nd Offense (Europe) (Track 01).bin");// get stuck
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galaxian 3 (Europe)/Galaxian 3 (Europe) (Track 1).bin"); // + 0x36cd2 * 20 / 10, woks too slow
 
 
 //games
@@ -89,7 +88,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin"); //mdec //test event cdrom (waitClocksDataResponse + 0x36cd2*2) // cache  //SeekP //play?? exeption 04//problem with getTn getTd probably needs cue parser
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte
 //problems with drawing after implementing new rasterizer algorithm
-// 
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ape Escape (USA).bin"); //require dualshock controller
 
 
@@ -102,6 +101,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //Working ones
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galaxian 3 (Europe)/Galaxian 3 (Europe) (Track 1).bin"); // + 0x36cd2 * 20 / 10, woks too slow
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Dead or Alive (USA)/Dead or Alive (USA) (Track 01).bin"); // problem with background music after pausing
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Diablo (USA) (En,Fr,De,Sv).bin");//works better with waitClocksDataResponse + 0x36cd2 * 14 / 10
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomba! 2 - The Evil Swine Return/Tomba! 2 - The Evil Swine Return (Track 1).bin");//waitClocksDataResponse + 0x36cd2 * 14 / 10 , [CD_DRIVE] EMULATION PAUSED!Issued SeekL before Setlock!
@@ -250,7 +250,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin"); //ChangeThread stuck fixed probably
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite seems it depends of cpu speed
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Monkey Hero (USA).bin");//gte//problem with character sprite seems it depends of cpu speed // problem with spu dram transfer
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");//mdec //no input/gte
