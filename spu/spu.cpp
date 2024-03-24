@@ -1166,7 +1166,7 @@ float spu_t::clock() {
 
 	//if (spuControlRegister.elem.cdAudioEnable) {
 	out.channel1 += outXA.channel1 * (float)(cdVolumeLeftRight.hw.l << 1) / 32767.0f;
-	out.channel2 += outXA.channel2 * (float)(cdVolumeLeftRight.hw.h << 1) / 32767.0f;
+	out.channel2 += outXA.channel2 * ((float)(int16_t(cdVolumeLeftRight.hw.h << 1))) / 32767.0f;
 	//}
 
 	//if (pBus->pCdDrive->bPlay) {
