@@ -101,19 +101,19 @@ public:
 	typedef struct {
 		uint8_t x;
 		uint8_t y;
-	}texWinOffset_t, texWinMask_t, Coord;
+	}texWinOffset_t, texWinMask_t;
 
 	texWinMask_t texWinMask;
 	texWinOffset_t texWinOffset;
-	Coord displayStart;
 
 	typedef struct {
 		uint16_t x;
 		uint16_t y;
-	}drawArea_t;
+	}drawArea_t, Coord;
 
 	drawArea_t drawAreaTopLeft;
 	drawArea_t drawAreaBottomRight;
+	Coord displayStart;
 
 	typedef struct {
 		int16_t x;
@@ -266,7 +266,7 @@ public:
 	fifo_t<uint32_t> fifo;
 	uint32_t fifoCount = 0;
 	//uint32_t fifoClocks = 0;
-	uint32_t fifoClocks[4];
+	uint32_t fifoClocks[5] = { 0, 0, 0, 0, 0 };
 	uint8_t fifoIndex = 0;
 
 	enum primitiveType_t {
@@ -408,6 +408,8 @@ public:
 	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
+
+	bool bWasActiveDMA = false;
 
 	//debug
 	debugUtilities* p_debugger;

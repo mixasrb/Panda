@@ -57,6 +57,16 @@ void timer2_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 
 void timer2_t::clock(const uint8_t& source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
+
+		if (counterMode.elem.clockSource & 0x2)
+			if (clocks == 7) {
+				clocks = 0;
+			}
+			else {
+				clocks++;
+				return;
+			}
+
 		uint8_t irqOld = counterMode.elem.irq;
 
 		if (currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) {
@@ -64,19 +74,22 @@ void timer2_t::clock(const uint8_t& source) {
 			counterMode.elem.reachedTarget = 1;
 
 			if (counterMode.elem.resetCounterTo0AfterTarget)
-				currentValue.elem.currentCounterValue = 0;
+				currentValue.elem.currentCounterValue = -1;
 
 			if (counterMode.elem.irqWhenTarget) {
 				counterMode.elem.irq = 0;
 				pulsingTime = 0;
 			}
 		}
-		else if (currentValue.elem.currentCounterValue == 0xffff) {
+
+		if (currentValue.elem.currentCounterValue == 0xffff) {
 
 			counterMode.elem.reachedFFFF = 1;
 
-			currentValue.elem.currentCounterValue = 0;
+			currentValue.elem.currentCounterValue = -1;
 		}
+
+		currentValue.elem.currentCounterValue++;
 
 		//pulsing
 		if ((!counterMode.elem.irqPulseToggle) &&
@@ -89,15 +102,5 @@ void timer2_t::clock(const uint8_t& source) {
 		if ((irqOld == 1) && (counterMode.elem.irq == 0))
 			pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_2);
 
-		if (counterMode.elem.clockSource & 0x2) {
-			if (clocks == 8) {
-				clocks = 0;
-				currentValue.elem.currentCounterValue++;
-			}
-			else
-				clocks++;
-		}
-		else
-			currentValue.elem.currentCounterValue++;
 	}
 }

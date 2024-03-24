@@ -599,13 +599,17 @@ void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cloc
 		pCdDrive->readCdDrive8(addr, data);
 		clocks = 8;//??
 	}
+	else if (SPU) {
+		spu.read8(addr, data);
+		clocks = 18;
+	}
 	else if (JOY_MEM_CARD) {
 		pJoyMemCard->cpuRead8(addr, data);
 		clocks = 3;
 	}
 	else
 		if (!debug) {
-			std::cout << "[BUS] EMULATION PASUED! unhandled read8 0x" << addr << "\n";
+			std::cout << "[BUS] EMULATION PASUED! unhandled read8 0x" << std::hex << addr << "\n";
 			g_emulationPaused = true;
 		}
 }

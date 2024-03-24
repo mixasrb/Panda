@@ -411,7 +411,7 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 		}
 	}
 	else {
-		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+		std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
 		g_emulationPaused = true;
 	}
 }
@@ -670,6 +670,34 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;
 	}
+}
+
+void spu_t::read8(const uint32_t& addr, uint8_t& data) {
+	data = 0;
+
+	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
+		uint8_t voiceIndex = (addr >> 4) - 0x1f801c0;
+		switch (addr & 0xf) {
+
+		case 0x8:
+			data = voices.voiceRegisters[voiceIndex].adsr.b.l;
+			break;
+
+		default:
+			std::cout << "[SPU] EMULATION PASUED! unhandled addr read8 0x" << std::hex << addr << "\n";
+			g_emulationPaused = true;
+			break;
+		}
+	}
+	else {
+		std::cout << "[SPU] EMULATION PASUED! unhandled addr read8 0x" << std::hex << addr << "\n";
+		g_emulationPaused = true;
+	}
+}
+
+void spu_t::write8(const uint32_t& addr, const uint8_t& data) {
+	std::cout << "[SPU] EMULATION PASUED! unhandled write8 adress 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
+	g_emulationPaused = true;
 }
 
 void spu_t::irqSend() {
@@ -950,9 +978,6 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 	output.channel1 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
 	output.channel2 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
 
-	currentVolumeLeftRight.hw.l = uint32_t(output.channel1 * 32767.0f);//??
-	currentVolumeLeftRight.hw.h = uint32_t(output.channel2 * 32767.0f);//??
-
 	return output;
 }
 
@@ -1133,8 +1158,11 @@ float spu_t::clock() {
 			voice3MonoBufferCounter++;
 		}
 
-		outputVoice.channel1 *= (float)(voices.voiceRegisters[voice].volumeLeftRight.hw.l << 1) / 32767.0f;
-		outputVoice.channel2 *= (float)(voices.voiceRegisters[voice].volumeLeftRight.hw.h << 1) / 32767.0f;
+		outputVoice.channel1 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.l << 1))) / 32767.0f;
+		outputVoice.channel2 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.h << 1))) / 32767.0f;
+
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.l = uint32_t(outputVoice.channel1 * 32767.0f);//??
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.h = uint32_t(outputVoice.channel2 * 32767.0f);//??
 
 		out = out + outputVoice;
 	}
@@ -1161,12 +1189,15 @@ float spu_t::clock() {
 		if (outTempXA.channel2 > 1.0f)
 			outTempXA.channel2 = 1.0f;
 
+		/*outTempXA.channel1 /= 10.0f;
+		outTempXA.channel2 /= 10.0f;*/
+
 		outXA = outTempXA;
 	}
 
 	//if (spuControlRegister.elem.cdAudioEnable) {
-	out.channel1 += outXA.channel1 * (float)(cdVolumeLeftRight.hw.l << 1) / 32767.0f;
-	out.channel2 += outXA.channel2 * ((float)(int16_t(cdVolumeLeftRight.hw.h << 1))) / 32767.0f;
+	out.channel1 += outXA.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
+	out.channel2 += outXA.channel2 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
 	//}
 
 	//if (pBus->pCdDrive->bPlay) {
@@ -1188,8 +1219,8 @@ float spu_t::clock() {
 	outCDDA = outTempCDDA;
 
 	//	if (spuControlRegister.elem.cdAudioEnable)
-	out.channel1 += outCDDA.channel1 * (float)(cdVolumeLeftRight.hw.l << 1) / 32767.0f;
-	out.channel2 += outCDDA.channel2 * (float)(cdVolumeLeftRight.hw.h << 1) / 32767.0f;
+	out.channel1 += outCDDA.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
+	out.channel2 += outCDDA.channel2 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
 	//	}
 
 	if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse) {
@@ -1202,8 +1233,8 @@ float spu_t::clock() {
 	}
 	cdAudioBufferCounter++;
 
-	out.channel1 = out.channel1 * (float)(mainVolumeLeftRight.hw.l << 1) / 32767.0f /*/ (float)i*/;
-	out.channel2 = out.channel2 * (float)(mainVolumeLeftRight.hw.h << 1) / 32767.0f /*/ (float)i*/;
+	out.channel1 = out.channel1 * ((float)(int16_t(mainVolumeLeftRight.hw.l << 1))) / 32767.0f; 
+	out.channel2 = out.channel2 * ((float)(int16_t(mainVolumeLeftRight.hw.h << 1))) / 32767.0f;
 
 	return out.channel1 / 2.0f + out.channel2 / 2.0f;
 }

@@ -430,7 +430,7 @@ void cdDrive::clock() {
 		//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 			//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
 																		 //bugs bunny games also  resident evil 1 ??
-		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/ /*+ 0x36cd2 * 8 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10 *//*+ 0x36cd2 * 8 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			dataClocks = 0;
 
@@ -526,12 +526,14 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	if ((mode.elem.xa_adpcm) && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x4))
 		indexStatus.reg.adpbusy = 1;
 
-	if (!(mode.elem.xa_adpcm)) {
+	//if (!(mode.elem.xa_adpcm)) 
+	{
 		std::cout << "~[CD_DRIVE] Read sector:" << std::endl;
 		std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
 		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
 		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
-		waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732) + 0x36cd2 * 8 / 10;
+		waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+		//waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732)/* + 0x36cd2 * 8 / 10*/;
 		switch (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) {
 		case 0x1:
 			std::cout << "~[CD_DRIVE] video sector" << std::endl;
@@ -1251,12 +1253,12 @@ void cdDrive::readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uin
 			else
 				bSectorFound = true;
 
-		if (bSectorFound) {
+		/*if (bSectorFound) {
 			std::cout << "~[CD_DRIVE] Read sectorXA:" << std::endl;
 			std::cout << std::dec << "~[CD_DRIVE] ammXA: " << (uint16_t)amm << std::endl;
 			std::cout << std::dec << "~[CD_DRIVE] assXA: " << (uint16_t)ass << std::endl;
 			std::cout << std::dec << "~[CD_DRIVE] asectXA: " << (uint16_t)asect << std::endl;
-		}
+		}*/
 
 		if (++asect == 75) {
 			asect = 0;

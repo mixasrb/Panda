@@ -380,8 +380,28 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 		return;
 	}
 
-	if (addr == 0x1f801814)
+	if (addr == 0x1f801814) {
+		switch (gpuStat.elem.dmaDir) {
+		case 0:
+			gpuStat.elem.dataRequest = 0;
+			break;
+		case 1:
+			if (fifoIndex >= 2)
+				gpuStat.elem.dataRequest = 0;
+			else
+				gpuStat.elem.dataRequest = 1;
+			break;
+		case 2:
+			gpuStat.elem.dataRequest = gpuStat.elem.readyDma;
+			break;
+		case 3:
+			gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
+			break;
+		}
+
+
 		data = gpuStat.data;
+	}
 }
 
 void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
@@ -423,6 +443,21 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			}
 
 			decodeExecuteGp0Command(gp0Command);
+
+			if (fifoIndex >= 2) {
+				if (gpuStat.elem.dmaDir == 2)
+					if (pBus->dma.dma2.channelControl.reg.startBusy) {
+						pBus->dma.dma2.channelControl.reg.startBusy = 0;
+						bWasActiveDMA = true;
+						pBus->dma.isCpuStopped = false;
+						gpuStat.elem.readyDma = 0;
+
+						if (g_GpuCommandsLogged)
+							std::cout << "~[GPU] FIFO FULL" << std::hex << std::endl;
+					}
+
+				gpuStat.elem.readyCommand = 0;
+			}
 
 			//??
 			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
@@ -503,6 +538,33 @@ void gpu_t::videoClock() {
 
 	cpuScanlineClocks++;
 
+	if (fifoIndex < 2) {
+		if (gpuStat.elem.dmaDir == 2)
+			if (bWasActiveDMA) {
+				bWasActiveDMA = false;
+				pBus->dma.dma2.channelControl.reg.startBusy = 1;
+				pBus->dma.isCpuStopped = false;
+				gpuStat.elem.readyDma = 1;
+			}
+		gpuStat.elem.readyCommand = 1;
+	}
+
+	if (fifoIndex > 0) {
+		if (fifoClocks[0] == 0) {
+			fifoIndex--;
+			fifoClocks[0] = fifoClocks[1];
+			fifoClocks[1] = fifoClocks[2];
+			fifoClocks[2] = fifoClocks[3];
+			fifoClocks[3] = fifoClocks[4];
+			fifoClocks[4] = 0;
+		}
+		else {
+			fifoClocks[0] -= 0x1;
+			if ((int32_t)fifoClocks[0] < 0)
+				fifoClocks[0] = 0;
+		}
+	}
+
 	/*if (fifoIndex) {
 		fifoClocks[fifoIndex]--;
 		if (fifoClocks[fifoIndex] == 0) {
@@ -574,15 +636,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			maskSizFill(xsiz, ysiz);
 			param.vert4 = param.vert1 + vertex_t(xsiz, ysiz);
 
-			/*fifoClocks[fifoIndex] = xsiz * ysiz / 20;
-
-			if (fifoIndex == 3) {
-				pBus->dma.dma2.channelControl.reg.startBusy = 0;
-				pBus->dma.isCpuStopped = false;
-				gpuStat.elem.readyDma = 0;
-				gpuStat.elem.readyCommand = 0;
-			}
-			++fifoIndex;*/
+			/*fifoClocks[fifoIndex] = xsiz * ysiz / 0x40;
+			fifoIndex++;*/
 
 			fillRectVram(param);
 		}
@@ -597,7 +652,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			}
 		}
 		break;
-	case 0b001: //Polygon primitive
+	case 0b001: { //Polygon primitive
 		param.primitiveType = POLYGON;
 
 		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
@@ -674,23 +729,45 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			((param.verticesNumber == 4) && (abs(param.vert3.y - param.vert4.y) > 512)))
 			return;
 
-		/*	fifoClocks[fifoIndex] = 0x6;
+		//int16_t vertx[4] = { param.vert1.x, param.vert2.x, param.vert3.x, param.vert4.x };
+		//int16_t verty[4] = { param.vert1.y, param.vert2.y, param.vert3.y, param.vert4.y };
 
-			if (fifoIndex == 3) {
-				pBus->dma.dma2.channelControl.reg.startBusy = 0;
-				pBus->dma.isCpuStopped = false;
-				gpuStat.elem.readyDma = 0;
-				gpuStat.elem.readyCommand = 0;
-			}
-			++fifoIndex;*/
+		//int16_t maxX = 0;
+		//int16_t minX = 0;
+		//int16_t maxY = 0;
+		//int16_t minY = 0;
 
+		//maxX = utils::max(vertx, param.verticesNumber);
+		//minX = utils::min(vertx, param.verticesNumber);
+		//maxY = utils::max(verty, param.verticesNumber);
+		//minY = utils::min(verty, param.verticesNumber);
+
+		//float k = 1.0f;
+		//k += param.shadingType ? 0.25f : 0.0f;
+		//k += param.bTextured ? 0.25f : 0.0f;
+		//k += (param.transpanencyType == SEMI_TRANSPARENT) ? 0.25f : 0.0f;
+
+		//if (param.bTextured) {
+		//	gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute & 0x7ff);
+		//	gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+
+		//	if (gpuStat.elem.texPageColors >= 2)
+		//		fifoClocks[fifoIndex] = 0x100;
+		//	else
+		//		fifoClocks[fifoIndex] = abs(maxX - minX) * abs(maxY - minY) * k / (0x300);
+		//}
+
+		//std::cout << "FIFO clocks: " << std::dec << fifoClocks[fifoIndex] << std::endl;
+
+		//fifoIndex++;
 
 		if (param.bTextured)
 			drawTexPolygon(&param);
 		else
 			drawPolygon(&param);
+	}
 
-		break;
+			  break;
 
 	case 0b010: //Line primitive
 		param.primitiveType = LINE;
@@ -774,15 +851,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 		uint16_t ysiz = param.size_y_x >> 16;
 
 		/*fifoClocks[fifoIndex] = xsiz * ysiz / 14;
-
-		if (fifoIndex == 3) {
-			pBus->dma.dma2.channelControl.reg.startBusy = 0;
-			pBus->dma.isCpuStopped = false;
-			gpuStat.elem.readyDma = 0;
-			gpuStat.elem.readyCommand = 0;
-		}
-		else
-			++fifoIndex;*/
+		fifoIndex++;*/
 
 		if (param.bTextured)
 			switch (gpuStat.elem.texPageColors) {
@@ -825,16 +894,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 		maskSizCopy(xsiz, ysiz);
 		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
-		/*	fifoClocks[fifoIndex] = xsiz * ysiz / 15;
-
-			if (fifoIndex == 3) {
-				pBus->dma.dma2.channelControl.reg.startBusy = 0;
-				pBus->dma.isCpuStopped = false;
-				gpuStat.elem.readyDma = 0;
-				gpuStat.elem.readyCommand = 0;
-			}
-			else
-				++fifoIndex;*/
+		/*fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+		fifoIndex++;*/
 
 		copyRectVramVram(sourceCoord, destCoord, widthHeight);
 		break;
@@ -856,14 +917,7 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
 			/*fifoClocks[fifoIndex] = xsiz * ysiz / 15;
-
-			if (fifoIndex == 3) {
-				pBus->dma.dma2.channelControl.reg.startBusy = 0;
-				pBus->dma.isCpuStopped = false;
-				gpuStat.elem.readyDma = 0;
-				gpuStat.elem.readyCommand = 0;
-			}
-			++fifoIndex;*/
+			fifoIndex++;*/
 
 			collectCount = xsiz * ysiz / 2;
 			if ((collectCount * 2) < xsiz * ysiz)
@@ -887,16 +941,8 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 		maskSizCopy(xsiz, ysiz);
 		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
-		fifoClocks[fifoIndex] = xsiz * ysiz / 15;
-
-		/*if (fifoIndex == 3) {
-			pBus->dma.dma2.channelControl.reg.startBusy = 0;
-			pBus->dma.isCpuStopped = false;
-			gpuStat.elem.readyDma = 0;
-			gpuStat.elem.readyCommand = 0;
-		}
-		else
-			++fifoIndex;*/
+		/*fifoClocks[fifoIndex] = xsiz * ysiz / 15;
+		fifoIndex++;*/
 
 		copyRectVramCpu(sourceCoord, widthHeight);
 		gpuStat.elem.readyVramCpu = 1;
@@ -943,6 +989,94 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 
 	switch (command >> 24) {
 	case 0x0:
+		//clear fifo
+
+		gpuStat.elem.irq1 = 0;
+
+		gpuStat.elem.displayEnable = 0;
+
+		gpuStat.elem.dmaDir = 0;
+
+		displayStart.x = 0;
+		displayStart.y = 0;
+
+		screenX1 = 0x200;
+		screenX2 = 0x200 + 256 * 10;
+
+		screenY1 = 0x010;
+		screenY2 = 0x010 + 240;
+
+		gpuStat.elem.horizontalRes1 = 1;
+		gpuStat.elem.verticalRes = 0;
+		gpuStat.elem.videoMode = 0;
+		gpuStat.elem.displayAreaColorDepth = 0;
+		gpuStat.elem.verticalInterlace = 0;
+		gpuStat.elem.horizontalRes2 = 0;
+		gpuStat.elem.reverseflag = 0;
+
+		if (!gpuStat.elem.videoMode) {
+			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
+			scanlineNumber = SCANLINE_NUMBER_NTSC;
+		}
+		else {
+			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
+			scanlineNumber = SCANLINE_NUMBER_PAL;
+		}
+
+		if (!gpuStat.elem.verticalInterlace)
+			gpuStat.elem.interlaceField = 1;
+		else
+			gpuStat.elem.interlaceField = 0;
+
+		if (gpuStat.elem.horizontalRes2) {
+			horizontalResolution = 368;
+			dotClockDevider = 7;
+		}
+		else
+			switch (gpuStat.elem.horizontalRes1) {
+			case 0:
+				horizontalResolution = 256;
+				dotClockDevider = 10;
+				break;
+			case 1:
+				horizontalResolution = 320;
+				dotClockDevider = 8;
+				break;
+			case 2:
+				horizontalResolution = 512;
+				dotClockDevider = 5;
+				break;
+			case 3:
+				horizontalResolution = 640;
+				dotClockDevider = 4;
+				break;
+			}
+
+		gpuStat.data &= 0xffff7800;
+		gpuStat.data |= 0 & 0x000087ff;
+		gpuStat.elem.texDis = 0 & 0x00008000 ? 1 : 0;
+
+		texWinMask.x = 0 << 27 >> 27;
+		texWinMask.y = 0 << 22 >> 27;
+		texWinOffset.x = 0 << 17 >> 27;
+		texWinOffset.y = 0 << 12 >> 27;
+		gp1TextureWindowSetting = 0 & 0x000fffff;
+
+		drawAreaTopLeft.x = 0 << 22 >> 22;
+		drawAreaTopLeft.y = 0 << 13 >> 23;
+		gp1TopLeft = 0 & 0x0007ffff;
+
+		drawAreaBottomRight.x = 0 << 22 >> 22;
+		drawAreaBottomRight.y = 0 << 13 >> 23;
+		gp1BottomRight = 0 & 0x0007ffff;
+
+		drawOffset.x = signed11bit(uint16_t(0 & 0x7ff));
+		drawOffset.y = signed11bit(uint16_t((0 >> 11) & 0x7ff));
+		gp1DrawOffset = 0 & 0x003fffff;;
+
+		gpuStat.elem.setMaskBitWhileDrawing = 0 & 0x1;
+		gpuStat.elem.drawPixels = (0 & 0x2 ? 1 : 0);
+
 		gpuStat.data = 0x14802000;
 		break;
 	case 0x1:
@@ -956,7 +1090,7 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		break;
 	case 0x4:
 		gpuStat.elem.dmaDir = command & 0x3;
-		switch (command & 0x3) {
+		/*switch (command & 0x3) {
 		case 0:
 			gpuStat.elem.dataRequest = 0;
 			break;
@@ -969,15 +1103,15 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		case 3:
 			gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
 			break;
-		}
+		}*/
 		break;
 	case 0x5:
-		displayStart.x = command << 22 >> 22;
-		displayStart.y = command << 13 >> 23;
+		displayStart.x = command & 0x3ff;
+		displayStart.y = (command >> 10) & 0x1ff;
 		break;
 	case 0x6:
-		screenX1 = (command << 20 >> 20) / 11 * 7;
-		screenX2 = (command << 12 >> 24) / 11 * 7;
+		screenX1 = command & 0xfff;
+		screenX2 = (command >> 12) & 0xfff;
 		break;
 	case 0x7:
 		screenY1 = command << 22 >> 22;
@@ -989,7 +1123,7 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.videoMode = (command & 0x8 ? 1 : 0);
 		gpuStat.elem.displayAreaColorDepth = (command & 0x10 ? 1 : 0);
 		gpuStat.elem.verticalInterlace = (command & 0x20 ? 1 : 0);
-		gpuStat.elem.horizontalRes2 = command & 0x40;
+		gpuStat.elem.horizontalRes2 = (command & 0x40 ? 1 : 0);
 		gpuStat.elem.reverseflag = (command & 0x80 ? 1 : 0);
 
 		if (!gpuStat.elem.videoMode) {
@@ -1094,7 +1228,7 @@ void gpu_t::updateVramView(const vertex_t& possition, const psxColor16_t& color1
 	if (g_logPixel && (possition.x == g_mousePossitionX) && (possition.y == g_mousePossitionY)) {
 		vramView.SetPixel(possition.x, possition.y, olc::YELLOW);
 		std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command << " " << gp0Lookup[gp0Command >> 24].name << std::endl;
-		//g_emulationPaused = true;
+		g_emulationPaused = true;
 	}
 }
 
@@ -1364,7 +1498,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) / texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
+			pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
+				/ texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
 				| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
 
 			uint16_t data;
@@ -1375,7 +1510,8 @@ void gpu_t::drawTexPolygon(param_t* pParam) {
 			else {
 				vertex_t pClut;
 				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+					((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
+						& texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 				pClut.y = clut.elem.yCoord;
 				readVram(pClut, frontPixelColor.data, true);
 			}
@@ -1776,8 +1912,6 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 					calculateTransparency(p, frontPixelColor);
 				writeVram(p, frontPixelColor.data);
 			}
-			/*else
-				writeVram(p, randa.data);*/
 		}
 	}
 }
@@ -1787,14 +1921,6 @@ void gpu_t::copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_he
 	uint32_t x2 = x1 + (width_height & 0xffff);
 	const uint32_t y1 = (dest_coord >> 16) & 0x1ff;
 	uint32_t y2 = y1 + (width_height >> 16);
-
-	//std::vector<uint16_t> buffer(fifo.size() << 1);
-	//for (uint32_t i = 0; i < (buffer.size() >> 1); i++) {
-	//	uint32_t data = fifo.getNext();
-	//	buffer[i * 2] = data;
-	//	buffer[i * 2 + 1] = data >> 16;
-	//}
-	//fifo.reset();
 
 	uint32_t i = 0;
 	uint32_t data;
@@ -1809,11 +1935,6 @@ void gpu_t::copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_he
 			i++;
 		}
 	}
-
-	/*if (!buffer.empty() && !(((width_height &0xffff) * (width_height >> 16)) & 0x1)) {
-		std::cout << "[GPU] EMULATION PAUSED! gp0 command 0xa0 buffer not empty 0x" << std::hex << buffer.size() << std::endl;
-		g_emulationPaused = true;
-	}*/
 }
 
 void gpu_t::copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height) {

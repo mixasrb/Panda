@@ -170,6 +170,9 @@
     <ClInclude Include="bus\dma\dma_4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dependencies\olcPGEX_Sound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="logs\scratchpad.bin">

@@ -71,18 +71,19 @@ void timer1_t::clock(const uint8_t& source) {
 			counterMode.elem.reachedTarget = 1;
 
 			if (counterMode.elem.resetCounterTo0AfterTarget)
-				currentValue.elem.currentCounterValue = 0;
+				currentValue.elem.currentCounterValue = -1;
 
 			if (counterMode.elem.irqWhenTarget) {
 				counterMode.elem.irq = 0;
 				pulsingTime = 0;
 			}
 		}
-		else if (currentValue.elem.currentCounterValue == 0xffff) {
+
+		if (currentValue.elem.currentCounterValue == 0xffff) {
 
 			counterMode.elem.reachedFFFF = 1;
 
-			currentValue.elem.currentCounterValue = 0;
+			currentValue.elem.currentCounterValue = -1;
 		}
 
 		//pulsing

@@ -10,4 +10,5 @@ public:
 	void ReadTimer32(const uint32_t& addr, uint32_t& data) override;
 	void WriteTimer32(const uint32_t& addr, const uint32_t& data) override;
 	void clock(const uint8_t& source) override;
+	uint16_t pulsingTime = 0;
 };

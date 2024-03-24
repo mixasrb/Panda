@@ -36,6 +36,8 @@ public:
 	void read16(const uint32_t& addr, uint16_t& data);
 	void write16(const uint32_t& addr, const uint16_t& data);
 
+	void read8(const uint32_t& addr, uint8_t& data);
+	void write8(const uint32_t& addr, const uint8_t& data);
 
 	float clock();
 
@@ -72,10 +74,15 @@ public:
 			}adpcmStartAddress;
 
 			union voice_ADSR_t {
+				struct {
+					uint8_t l, h1, h2, h3;
+				}b;
+
 				uint32_t data;
 				struct {
 					uint16_t l, h;
 				}hw;
+
 				struct {
 					uint32_t sustainLevel : 4;
 					uint32_t decayShift : 4;

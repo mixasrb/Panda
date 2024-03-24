@@ -79,6 +79,8 @@ union psxColor16_t {
 void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 	if (addr == 0x1f801820) {
 
+		statusRegister.elem.dataOutRequest = 0;//??
+
 		//data = rand();
 		//if (i >= dst_num) {
 		//	/*psxColor16_t color1;
@@ -162,8 +164,6 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			if (bEnabledDma0)
 				statusRegister.elem.dataInRequest = 1;
 
-			statusRegister.elem.dataOutRequest = 0;//??
-
 			statusRegister.elem.commandBusy = 1;
 
 			statusRegister.elem.dataOutFifoEmpty = 0;
@@ -171,6 +171,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 
 		if (recievedData32Count == 0) {
 			statusRegister.elem.dataInFifoFull = 1;
+			if (bEnabledDma0)
+				statusRegister.elem.dataInRequest = 0;
 
 			(this->*commandLookup[command >> 29].command)(command);
 
@@ -220,6 +222,10 @@ void mdec_t::clock() {
 		if (clocks == 0) {
 			if (bEnabledDma1)
 				statusRegister.elem.dataOutRequest = 1;
+
+			if (bEnabledDma0)
+				statusRegister.elem.dataInRequest = 1;
+
 			statusRegister.elem.commandBusy = 0;
 		}
 	}
