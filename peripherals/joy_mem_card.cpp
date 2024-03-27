@@ -271,13 +271,13 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 			if (device == MEM_CARD) {
 				memCardCommand = joyTxData.elem.dataToBeSent;
 
-				if ((memCardCommand != 0x52) && (memCardCommand != 0x57) && (memCardCommand != 0x58)) {
+				if ((memCardCommand != 0x52) && (memCardCommand != 0x57) && (memCardCommand != 0x58) && (memCardCommand != 0x5a)) {
 					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
 						<< " system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << std::endl;
 					g_emulationPaused = true;
 				}
-				if (memCardCommand == 0x58) { //Street Fighter Alpha 3, Final Fantasy VIII
+				if ((memCardCommand == 0x58) || (memCardCommand == 0x5a)) { //Street Fighter Alpha 3, Final Fantasy VIII //Jade Cocoon - Story of the Tamamayu (USA)
 					bSendingData = false;
 					bACK = false;
 					sequvenceIndex = 0;

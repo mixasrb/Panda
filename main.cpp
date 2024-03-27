@@ -66,6 +66,11 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/access-t
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //Panzer Bandit, Galaxian 3,Conveni Special
+//Gunners Heaven
+//The Misadventures of Tron Bonne
+//tokimeki memorial 2
+//Legend of Mana Hercules
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Evil Dead - Hail to the King (USA) (Disc 1).bin");//[TIMER0] EMULATION PAUSED! unhandled timer mode 0x158, //not drawing gameplay
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Evil Dead - Hail to the King (Europe) (Disc 1).bin");//[TIMER0] EMULATION PAUSED! unhandled timer mode 0x158, //not drawing gameplay
 
@@ -73,7 +78,14 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Dino Crisis 2 (USA)/Dino Crisis 2 (USA) (Track 1).bin"); //get stuck
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Madness (USA) (Disc 1)/Shadow Madness (USA) (Disc 1) (Track 1).bin"); // get stuck
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Koudelka (USA) (Disc 1).bin"); //no fmvs and gets stuck
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Dino Crisis [NTSC-U] [SLUS-00922]/Dino Crisis (USA) (v1.0) (Track 1).bin"); // get stuck in gameplay
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (Europe)/Vigilante 8 - 2nd Offense (Europe) (Track 01).bin");// get stuck
@@ -81,6 +93,19 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //games
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Game (Europe).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Series - Crashdown (USA).bin");
+
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galerians (USA) (Disc 1).bin");
+ 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Ocean - The Second Story (USA) (Disc 1).bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Jade Cocoon - Story of the Tamamayu (USA).bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Legend of Dragoon, The (USA) (Disc 1).bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/SaGa Frontier (USA).bin"); // no sound - problem witx XA-ADPCM, and more sound problems
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Polaris SnoCross (USA).bin");
 
@@ -344,13 +369,14 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 
-
 class psxEmulator_t : public olc::PixelGameEngine {
 public:
 
 	psxEmulator_t() {
 		sAppName = "Panda by Miloseviceva Milicija";
 	}
+
+	output_t sampleLR = { 0.0f, 0.0f };
 
 	psxConsole_t psx;
 
@@ -359,8 +385,19 @@ public:
 	bool isDebuggerViewed = false;
 
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
-		if (!g_emulationPaused)
-			return pInstance->psx.bus.spu.clock();
+		if (nChanel == 0) {
+			if (!g_emulationPaused) {
+				for (int i = 0; i < 0x300; i++)
+					pInstance->psx.clock();
+
+				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
+			}
+		}
+
+		if (nChanel == 0)
+			return pInstance->sampleLR.channel0;
+		else
+			return pInstance->sampleLR.channel1;
 	}
 
 	std::unique_ptr<olc::Decal> decSprite;
@@ -373,7 +410,7 @@ public:
 
 		pInstance = this;
 
-		olc::SOUND::InitialiseAudio(44100, 1, 8, 512);
+		olc::SOUND::InitialiseAudio(44100, 2, 8, 512);
 		olc::SOUND::SetUserSynthFunction(soundOut);
 
 		psx.reset();
@@ -484,7 +521,7 @@ public:
 		if (!g_emulationPaused) {
 			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
-				psx.clock();
+				//psx.clock();
 
 				/*if ((g_systemClocks % 0x300) == 0)
 					psx.bus.spu.clock();*/
@@ -600,7 +637,7 @@ public:
 
 			//DrawSprite(0, 0, psx.gpu.getVramSprite());
 
-			if (!psx.gpu.gpuStat.elem.displayEnable) 
+			if (!psx.gpu.gpuStat.elem.displayEnable)
 			{
 				uint16_t x1 = psx.gpu.displayStart.x;
 				uint16_t y1 = psx.gpu.displayStart.y;
@@ -642,13 +679,13 @@ public:
 					break;
 				}
 				if (psx.gpu.gpuStat.elem.verticalRes) {
-					//	verticalResolution = (psx.gpu.screenY2 - psx.gpu.screenY1) * 2;
-					verticalResolution = 480;
+					verticalResolution = (psx.gpu.screenY2 - psx.gpu.screenY1) * 2;
+					//verticalResolution = 480;
 					y2 = y1 + verticalResolution;
 				}
 				else {
-					//verticalResolution = psx.gpu.screenY2 - psx.gpu.screenY1;
-					verticalResolution = 240;
+					verticalResolution = psx.gpu.screenY2 - psx.gpu.screenY1;
+					//verticalResolution = 240;
 					y2 = y1 + verticalResolution;
 				}
 
@@ -661,7 +698,7 @@ public:
 						int i = 0; //??
 						for (int y = 0; y < verticalResolution; y++) {
 							olc::Pixel pixel;
-							switch ((x1 + x + i) % 3) {
+							switch ((/*x1 +*/ x + i) % 3) {
 							case 0: {
 								uint16_t data;
 								gpu_t::vertex_t p;
@@ -791,7 +828,7 @@ int main(int argumentCount, char* argumetVector[]) {
 
 	psxEmulator_t emulator;
 	//if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
-	if (emulator.Construct(640, 480, 2, 2, false, false))
+	if (emulator.Construct(640, 480, 1, 1, false, true))
 		emulator.Start();
 
 	return EXIT_SUCCESS;

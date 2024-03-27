@@ -15,16 +15,17 @@
 class busInterface_t;
 
 struct output_t {
+	float channel0;
 	float channel1;
-	float channel2;
 
 	output_t operator+(output_t a) {
 		output_t output;
+		output.channel0 = channel0 + a.channel0;
 		output.channel1 = channel1 + a.channel1;
-		output.channel2 = channel2 + a.channel2;
 		return output;
 	}
 };
+
 class spu_t {
 public:
 
@@ -39,12 +40,12 @@ public:
 	void read8(const uint32_t& addr, uint8_t& data);
 	void write8(const uint32_t& addr, const uint8_t& data);
 
-	float clock();
+	output_t clock();
 
 	busInterface_t* pBus;
 
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
-	uint8_t* reverb = new uint8_t[64];
+	int16_t reverb[32];
 
 	uint16_t readDram16(const uint32_t& addr);
 	void writeDram16(const uint32_t& addr, const uint16_t& data);
@@ -315,7 +316,8 @@ public:
 	};
 
 	uint32_t reverbCurrentAddress;
-	int16_t reverbVoice(const uint16_t& input, const uint8_t& cycle);
+	void reverbClock(const output_t& input, const uint8_t& cycle);
+	output_t reverbOutput = { 0, 0 };
 
 	voices_t voices;
 
@@ -463,7 +465,7 @@ public:
 			uint8_t endOfRecord : 1;
 			uint8_t video : 1;
 			uint8_t audio : 1;
-			uint8_t data: 1;
+			uint8_t data : 1;
 			uint8_t trigger : 1;
 			uint8_t form2 : 1;
 			uint8_t realTime : 1;
@@ -490,7 +492,7 @@ public:
 	const float step44kHz = 1.0f / 7.0f;
 	const float step37kHz = 1.0f / 6.0f;
 	float counter37kHz = 0.0f;
-	output_t outXA;
+	output_t outAudioCD;
 
 	uint16_t cdAudioBufferCounter = 0;
 	uint16_t voice1MonoBufferCounter = 0;

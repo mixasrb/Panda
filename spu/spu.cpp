@@ -391,7 +391,7 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
-		data = *((uint16_t*)(reverb + addr - 0x1f801dc0));
+		data = reverb[(addr - 0x1f801dc0) >> 1];
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		uint8_t voiceIndex = (addr - 0x1f801e00) >> 2;
@@ -660,7 +660,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
-		*((uint16_t*)(reverb + addr - 0x1f801dc0)) = data;
+		reverb[(addr - 0x1f801dc0) >> 1] = data;
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -919,7 +919,8 @@ void spu_t::voices_t::voiceRegister_t::startEnvelopeSustain() {
 	if (exponential && increase && (adsrLevel > 0x6000))
 		adsrCycles *= 4;
 	else if (exponential && !increase)
-		adsrStep = adsrStep * adsrLevel / 0x8000;
+		if (adsrStep * adsrLevel >= 0x8000) //??
+			adsrStep = adsrStep * adsrLevel >> 15;
 
 	adsrCyclesNumber = adsrCycles;
 }
@@ -938,7 +939,8 @@ void spu_t::voices_t::voiceRegister_t::startEnvelopeRelease() {
 
 	bool exponential = adsr.elem.releaseMode;
 	if (exponential)
-		adsrStep = adsrStep * adsrLevel / 0x8000;
+		if (adsrStep * adsrLevel >= 0x8000) //??
+			adsrStep = adsrStep * adsrLevel >> 15;
 
 	adsrCyclesNumber = adsrCycles;
 	adsrCycles = 0;
@@ -975,194 +977,202 @@ output_t spu_t::voices_t::voiceRegister_t::envelope(const int16_t& input) {
 			adsrCycles--;
 
 	output_t output;
+	output.channel0 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
 	output.channel1 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
-	output.channel2 = (float)input / 32767.0f * (float)adsrLevel / 32767.0f;
 
 	return output;
 }
 
-//template<typename T>
-//static T max(T a, T b) {
-//	return (a > b) ? a : b;
-//}
-//
-//int16_t spu_t::reverbVoice(const uint16_t& input, const uint8_t& cycle) {
-//
-//#undef vLOUT
-//#undef vROUT
-//#undef mBASE
-//#undef dAPF1
-//#undef dAPF2
-//#undef vIIR
-//#undef vCOMB1
-//#undef vCOMB2
-//#undef vCOMB3
-//#undef vCOMB4
-//#undef vWALL
-//#undef vAPF1
-//#undef vAPF2
-//#undef mLSAME
-//#undef mRSAME
-//#undef mLCOMB1
-//#undef mRCOMB1
-//#undef mLCOMB2
-//#undef mRCOMB2
-//#undef dLSAME
-//#undef dRSAME
-//#undef mLDIFF
-//#undef mRDIFF
-//#undef mLCOMB3
-//#undef mRCOMB3
-//#undef mLCOMB4
-//#undef mRCOMB4
-//#undef dLDIFF
-//#undef dRDIFF
-//#undef mLAPF1
-//#undef mRAPF1
-//#undef mLAPF2
-//#undef mRAPF2
-//#undef vLIN
-//#undef vRIL
-//
-//#define vLOUT (int16_t)reverbOutputVolumeLeftRight.hw.l
-//#define vROUT (int16_t)reverbOutputVolumeLeftRight.hw.h
-//#define mBASE dramReverbWorkAreaStartAddress.data
-//#define dAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dc0 - 0x1f801dc0)) << 3
-//#define dAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dc2 - 0x1f801dc0)) << 3
-//#define vIIR (int32_t)*((int16_t*)(reverb + 0x1f801dc4 - 0x1f801dc0))
-//#define vCOMB1 (int32_t)*((int16_t*)(reverb + 0x1f801dc6 - 0x1f801dc0))
-//#define vCOMB2 (int32_t)*((int16_t*)(reverb + 0x1f801dc8 - 0x1f801dc0))
-//#define vCOMB3 (int32_t)*((int16_t*)(reverb + 0x1f801dca - 0x1f801dc0))
-//#define vCOMB4 (int32_t)*((int16_t*)(reverb + 0x1f801dcc - 0x1f801dc0))
-//#define vWALL (int32_t)*((int16_t*)(reverb + 0x1f801dce - 0x1f801dc0))
-//#define vAPF1 (int32_t)*((int16_t*)(reverb + 0x1f801dd0 - 0x1f801dc0))
-//#define vAPF2 (int32_t)*((int16_t*)(reverb + 0x1f801dd2 - 0x1f801dc0))
-//
-//#define mLSAME max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd4 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRSAME max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd6 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLCOMB1 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dd8 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRCOMB1 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dda - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLCOMB2 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801ddc - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRCOMB2 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dde - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define dLSAME max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de0 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define dRSAME max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de2 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLDIFF max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de4 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRDIFF max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de6 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLCOMB3 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801de8 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRCOMB3 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dea - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLCOMB4 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dec - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRCOMB4 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dee - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define dLDIFF max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df0 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define dRDIFF max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df2 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLAPF1 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df4 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRAPF1 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df6 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mLAPF2 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801df8 - 0x1f801dc0)) << 3) & 0x7fffe)
-	//#define mRAPF2 max(reverbCurrentAddress, \
-	//	(reverbCurrentAddress + (int32_t)*((int16_t*)(reverb + 0x1f801dfa - 0x1f801dc0)) << 3) & 0x7fffe)
-	//
-	//#define vLIN (int32_t)*((int16_t*)(reverb + 0x1f801dfc - 0x1f801dc0))
-	//#define vRIN (int32_t)*((int16_t*)(reverb + 0x1f801dfe - 0x1f801dc0))
-	//
-	//
-	//
-	//	if (cycle == 0) { //left
-	//
-	//		uint16_t Lin = (vLIN * input) >> 15;
-	//
-	//		writeDram16(mLSAME,
-	//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dLSAME) >> 15) - readDram16(dLSAME - 2)) >> 15) +
-	//			readDram16(dLSAME - 2));
-	//
-	//		writeDram16(mLDIFF,
-	//			uint16_t(vIIR * (Lin + (uint16_t)(vWALL * readDram16(dRDIFF) >> 15) - readDram16(mLDIFF - 2)) >> 15) +
-	//			readDram16(mLDIFF - 2));
-	//
-	//		uint16_t Lout = (uint16_t)(vCOMB1 * readDram16(mLCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mLCOMB2) >> 15) +
-	//			(uint16_t)(vCOMB3 * readDram16(mLCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mLCOMB4) >> 15);
-	//
-	//		Lout = Lout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe)));
-	//		writeDram16(mLAPF1, Lout);
-	//		Lout = (uint16_t)(vAPF1 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF1 - dAPF1) & 0x7fffe));
-	//
-	//		Lout = Lout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe)));
-	//		writeDram16(mLAPF2, Lout);
-	//		Lout = (uint16_t)(vAPF2 * Lout >> 15) + readDram16(max(reverbCurrentAddress, (mLAPF2 - dAPF2) & 0x7fffe));
-	//
-	//		return vLOUT * Lout >> 15;
-	//	}
-	//	else { //right
-	//
-	//		uint16_t Rin = (vRIN * input) >> 15;
-	//
-	//		writeDram16(mRSAME,
-	//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dRSAME) >> 15) - readDram16(dRSAME - 2)) >> 15) +
-	//			readDram16(dRSAME - 2));
-	//
-	//		writeDram16(mRDIFF,
-	//			uint16_t(vIIR * (Rin + (uint16_t)(vWALL * readDram16(dLDIFF) >> 15) - readDram16(mRDIFF - 2)) >> 15) +
-	//			readDram16(mRDIFF - 2));
-	//
-	//		uint16_t Rout = (uint16_t)(vCOMB1 * readDram16(mRCOMB1) >> 15) + (uint16_t)(vCOMB2 * readDram16(mRCOMB2) >> 15) +
-	//			(uint16_t)(vCOMB3 * readDram16(mRCOMB3) >> 15) + (uint16_t)(vCOMB4 * readDram16(mRCOMB4) >> 15);
-	//
-	//		Rout = Rout - (uint16_t)(vAPF1 * readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe)));
-	//		writeDram16(mRAPF1, Rout);
-	//		Rout = (uint16_t)(vAPF1 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF1 - dAPF1) & 0x7fffe));
-	//
-	//		Rout = Rout - (uint16_t)(vAPF2 * readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe)));
-	//		writeDram16(mRAPF2, Rout);
-	//		Rout = (uint16_t)(vAPF2 * Rout >> 15) + readDram16(max(reverbCurrentAddress, (mRAPF2 - dAPF2) & 0x7fffe));
-	//
-	//
-	//		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
-	//
-	//		return vROUT * Rout >> 15;
-	//	}
-	//
-	//
-	//	//return 0;
-	//}
+template<typename T>
+static T max(T a, T b) {
+	return (a > b) ? a : b;
+}
+
+void spu_t::reverbClock(const output_t& input, const uint8_t& cycle) {
+
+#undef vLOUT
+#undef vROUT
+#undef mBASE
+#undef dAPF1
+#undef dAPF2
+#undef vIIR
+#undef vCOMB1
+#undef vCOMB2
+#undef vCOMB3
+#undef vCOMB4
+#undef vWALL
+#undef vAPF1
+#undef vAPF2
+#undef mLSAME
+#undef mRSAME
+#undef mLCOMB1
+#undef mRCOMB1
+#undef mLCOMB2
+#undef mRCOMB2
+#undef dLSAME
+#undef dRSAME
+#undef mLDIFF
+#undef mRDIFF
+#undef mLCOMB3
+#undef mRCOMB3
+#undef mLCOMB4
+#undef mRCOMB4
+#undef dLDIFF
+#undef dRDIFF
+#undef mLAPF1
+#undef mRAPF1
+#undef mLAPF2
+#undef mRAPF2
+#undef vLIN
+#undef vRIL
+
+#define vLOUT (int32_t)reverbOutputVolumeLeftRight.hw.l
+#define vROUT (int32_t)reverbOutputVolumeLeftRight.hw.h
+#define mBASE dramReverbWorkAreaStartAddress.data
+#define dAPF1 (int32_t)reverb[0x00]
+#define dAPF2 (int32_t)reverb[0x01]
+#define vIIR (int32_t)reverb[0x02]
+#define vCOMB1 (int32_t)reverb[0x03]
+#define vCOMB2 (int32_t)reverb[0x04]
+#define vCOMB3 (int32_t)reverb[0x05]
+#define vCOMB4 (int32_t)reverb[0x06]
+#define vWALL (int32_t)reverb[0x07]
+#define vAPF1 (int32_t)reverb[0x08]
+#define vAPF2 (int32_t)reverb[0x09]
+#define mLSAME reverb[0x0a]
+#define mRSAME reverb[0x0b]
+#define mLCOMB1 reverb[0x0c]
+#define mRCOMB1 reverb[0x0d]
+#define mLCOMB2 reverb[0x0e]
+#define mRCOMB2 reverb[0x0f]
+#define dLSAME reverb[0x10]
+#define dRSAME reverb[0x11]
+#define mLDIFF reverb[0x12]
+#define mRDIFF reverb[0x13]
+#define mLCOMB3 reverb[0x14]
+#define mRCOMB3 reverb[0x15]
+#define mLCOMB4 reverb[0x16]
+#define mRCOMB4 reverb[0x17]
+#define dLDIFF reverb[0x18]
+#define dRDIFF reverb[0x19]
+#define mLAPF1 reverb[0x1a]
+#define mRAPF1 reverb[0x1b]
+#define mLAPF2 reverb[0x1c]
+#define mRAPF2 reverb[0x1d]
+#define vLIN (int32_t)reverb[0x1e]
+#define vRIN (int32_t)reverb[0x1f]
 
 
-float spu_t::clock() {
+	auto sramRead = [&](uint32_t addr) {
+
+		addr = reverbCurrentAddress + (addr << 3);
+
+		if (addr > 0x7fffe)
+			addr += -0x7fffe + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+		else if (addr < ((uint32_t)dramReverbWorkAreaStartAddress.data << 3))
+			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+
+		return (int32_t)(int16_t)readDram16(addr);
+		};
+
+	auto sramWrite = [&](uint32_t addr, uint16_t data) {
+
+		addr = reverbCurrentAddress + (addr << 3);
+
+		if (addr > 0x7fffe)
+			addr += -0x7fffe + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+		else if (addr < ((uint32_t)dramReverbWorkAreaStartAddress.data << 3))
+			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+
+		writeDram16(addr, data);
+		};
+
+
+
+	if (cycle == 0) { //left
+
+		int32_t Lin = (vLIN * int16_t(input.channel0 * 32767.0f)) >> 15;
+
+		sramWrite(mLSAME,
+			saturate(((Lin + (sramRead(dLSAME) * vWALL >> 15) - sramRead(mLSAME - 2)) * vIIR >> 15) +
+				sramRead(mLSAME - 2), -0x8000, 0x7fff));
+
+		sramWrite(mLDIFF,
+			saturate(((Lin + (sramRead(dRDIFF) * vWALL >> 15) - sramRead(mLDIFF - 2)) * vIIR >> 15) +
+				sramRead(mLDIFF - 2), -0x8000, 0x7fff));
+
+		int32_t Lout = (vCOMB1 * sramRead(mLCOMB1) >> 15) + (vCOMB2 * sramRead(mLCOMB2) >> 15) +
+			(vCOMB3 * sramRead(mLCOMB3) >> 15) + (vCOMB4 * sramRead(mLCOMB4) >> 15);
+
+		Lout = saturate(Lout - (vAPF1 * sramRead(mLAPF1 - dAPF1) >> 15), -0x8000, 0x7fff);
+		sramWrite(mLAPF1, Lout);
+		Lout = (vAPF1 * Lout >> 15) + sramRead(mLAPF1 - dAPF1);
+
+		Lout = saturate(Lout - (vAPF2 * sramRead(mLAPF2 - dAPF2) >> 15), -0x8000, 0x7fff);
+		sramWrite(mLAPF2, Lout);
+		Lout = saturate((vAPF2 * Lout >> 15) + sramRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
+
+		reverbOutput.channel0 = float(vLOUT * Lout >> 15) / 32767.0f;
+	}
+	else { //right
+
+		int32_t Rin = (vRIN * int16_t(input.channel1 * 32767.0f)) >> 15;
+
+		sramWrite(mRSAME,
+			saturate(((Rin + (sramRead(dRSAME) * vWALL >> 15) - sramRead(mRSAME - 2)) * vIIR >> 15) +
+				sramRead(mRSAME - 2), -0x8000, 0x7fff));
+
+		sramWrite(mRDIFF,
+			saturate(((Rin + (sramRead(dLDIFF) * vWALL >> 15) - sramRead(mRDIFF - 2)) * vIIR >> 15) +
+				sramRead(mRDIFF - 2), -0x8000, 0x7fff));
+
+		int32_t Rout = (vCOMB1 * sramRead(mRCOMB1) >> 15) + (vCOMB2 * sramRead(mRCOMB2) >> 15) +
+			(vCOMB3 * sramRead(mRCOMB3) >> 15) + (vCOMB4 * sramRead(mRCOMB4) >> 15);
+
+		Rout = saturate(Rout - (vAPF1 * sramRead(mRAPF1 - dAPF1) >> 15), -0x8000, 0x7fff);
+		sramWrite(mRAPF1, Rout);
+		Rout = (vAPF1 * Rout >> 15) + sramRead(mRAPF1 - dAPF1);
+
+		Rout = saturate(Rout - (vAPF2 * sramRead(mRAPF2 - dAPF2) >> 15), -0x8000, 0x7fff);
+		sramWrite(mRAPF2, Rout);
+		Rout = saturate((vAPF2 * Rout >> 15) + sramRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
+
+		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
+
+		reverbOutput.channel1 = float(vROUT * Rout >> 15) / 32767.0f;
+	}
+}
+
+
+output_t spu_t::clock() {
 	output_t out = { 0.0f, 0.0f };
+	output_t reverbInput = { 0.0f, 0.0f };
 
-	for (int voice = 0; voice < 24; voice++) { //crash 3 problem voice 16
+	for (int voice = 0; voice < 24; voice++) {
 		output_t outputVoice = voices.voiceRegisters[voice].envelope(voices.output(voice));
 
+
 		if (voice == 1) {
-			writeDram16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel1 * 32767.0f));
+			writeDram16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel0 * 32767.0f));
 			voice1MonoBufferCounter++;
 		}
 		else if (voice == 3) {
-			writeDram16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel1 * 32767.0f));
+			writeDram16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel0 * 32767.0f));
 			voice3MonoBufferCounter++;
 		}
 
-		outputVoice.channel1 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.l << 1))) / 32767.0f;
-		outputVoice.channel2 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.h << 1))) / 32767.0f;
+		outputVoice.channel0 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.l << 1))) / 32767.0f;
+		outputVoice.channel1 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.h << 1))) / 32767.0f;
 
-		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.l = uint32_t(outputVoice.channel1 * 32767.0f);//??
-		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.h = uint32_t(outputVoice.channel2 * 32767.0f);//??
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.l = uint32_t(outputVoice.channel0 * 32767.0f);//??
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.h = uint32_t(outputVoice.channel1 * 32767.0f);//??
+
+		if (((outputVoice.channel0 != 0.0f) || (outputVoice.channel1 != 0.0f))
+			&& (voices.channelReverbMode.data & (0x1 << voice)))
+			reverbInput = reverbInput + outputVoice;
+
+		if (outputVoice.channel0 * outputVoice.channel1 != 0.0f)
+			voices.channelReverbMode.data &= ~(0x1 << voice);
 
 		out = out + outputVoice;
 	}
@@ -1172,71 +1182,70 @@ float spu_t::clock() {
 	if (counter37kHz >= (step37kHz / 2.0f)) {
 		counter37kHz -= step37kHz;
 
-		outXA.channel1 = 0.0f;
-		outXA.channel2 = 0.0f;
+		outAudioCD.channel0 = 0.0f;
+		outAudioCD.channel1 = 0.0f;
 		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
-			outXA = clockXA_ADPCM();
+			outAudioCD = clockXA_ADPCM();
 
 		output_t outTempXA;
-		outTempXA.channel1 = outXA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f
-			+ outXA.channel2 * pBus->pCdDrive->volumeLeftRight / 128.0f;
-		outTempXA.channel2 = outXA.channel2 * pBus->pCdDrive->volumeRightRight / 128.0f
-			+ outXA.channel1 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+		outTempXA.channel0 = outAudioCD.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+			+ outAudioCD.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+		outTempXA.channel1 = outAudioCD.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
+			+ outAudioCD.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+
+		if (outTempXA.channel0 > 1.0f)
+			outTempXA.channel0 = 1.0f;
 
 		if (outTempXA.channel1 > 1.0f)
 			outTempXA.channel1 = 1.0f;
 
-		if (outTempXA.channel2 > 1.0f)
-			outTempXA.channel2 = 1.0f;
-
-		/*outTempXA.channel1 /= 10.0f;
-		outTempXA.channel2 /= 10.0f;*/
-
-		outXA = outTempXA;
+		outAudioCD = outTempXA;
 	}
-
-	//if (spuControlRegister.elem.cdAudioEnable) {
-	out.channel1 += outXA.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
-	out.channel2 += outXA.channel2 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
-	//}
 
 	//if (pBus->pCdDrive->bPlay) {
 	output_t outCDDA = { 0,0 };
 	outCDDA = clockCDDA();
 
 	output_t outTempCDDA;
-	outTempCDDA.channel1 = outCDDA.channel1 * pBus->pCdDrive->volumeLeftLeft / 128.0f
-		+ outCDDA.channel2 * pBus->pCdDrive->volumeLeftRight / 128.0f;
-	outTempCDDA.channel2 = outCDDA.channel2 * pBus->pCdDrive->volumeRightRight / 128.0f
-		+ outCDDA.channel1 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+	outTempCDDA.channel0 = outCDDA.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+		+ outCDDA.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+	outTempCDDA.channel1 = outCDDA.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
+		+ outCDDA.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+
+	if (outTempCDDA.channel0 > 1.0f)
+		outTempCDDA.channel0 = 1.0f;
 
 	if (outTempCDDA.channel1 > 1.0f)
 		outTempCDDA.channel1 = 1.0f;
 
-	if (outTempCDDA.channel2 > 1.0f)
-		outTempCDDA.channel2 = 1.0f;
+	outAudioCD = outAudioCD + outTempCDDA;
 
-	outCDDA = outTempCDDA;
-
-	//	if (spuControlRegister.elem.cdAudioEnable)
-	out.channel1 += outCDDA.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
-	out.channel2 += outCDDA.channel2 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
-	//	}
-
-	if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse) {
-		writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel1 * 32767.0f));
-		writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outXA.channel2 * 32767.0f));
+	if (spuControlRegister.elem.cdAudioEnable) {
+		out.channel0 += outAudioCD.channel0 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
+		out.channel1 += outAudioCD.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
 	}
-	else {
-		writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel1 * 32767.0f));
-		writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outCDDA.channel2 * 32767.0f));
-	}
+
+	if (spuControlRegister.elem.cdAudioReverb)
+		reverbInput = reverbInput + outAudioCD;
+
+	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outAudioCD.channel0 * 32767.0f));
+	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outAudioCD.channel1 * 32767.0f));
 	cdAudioBufferCounter++;
 
-	out.channel1 = out.channel1 * ((float)(int16_t(mainVolumeLeftRight.hw.l << 1))) / 32767.0f; 
-	out.channel2 = out.channel2 * ((float)(int16_t(mainVolumeLeftRight.hw.h << 1))) / 32767.0f;
+	if (spuControlRegister.elem.reverbMasterEnable || spuControlRegister.elem.cdAudioReverb)
+		reverbClock(reverbInput, cycle);
 
-	return out.channel1 / 2.0f + out.channel2 / 2.0f;
+	reverbInput = { 0.0f, 0.0f };
+
+	if (cycle == 0)
+		cycle = 1;
+	else
+		cycle = 0;
+
+	out.channel0 = (/*out.channel0*/ +reverbOutput.channel0) * ((float)(int16_t(mainVolumeLeftRight.hw.l << 1))) / 32767.0f;
+	out.channel1 = (/*out.channel1*/ +reverbOutput.channel1) * ((float)(int16_t(mainVolumeLeftRight.hw.h << 1))) / 32767.0f;
+
+	return out;
 }
 
 void spu_t::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
@@ -1349,26 +1358,26 @@ output_t spu_t::clockXA_ADPCM() {
 		if (bSampleRate18900Hz) {
 			if (bCycle) {
 				if (bStereo) {
-					outputSample.channel1 = samplesLeftXA[p >> 1] / 32767.0f;
-					outputSample.channel2 = samplesRightXA[p >> 1] / 32767.0f;
+					outputSample.channel0 = samplesLeftXA[p >> 1] / 32767.0f;
+					outputSample.channel1 = samplesRightXA[p >> 1] / 32767.0f;
 					p += 2;
 				}
 				else {
+					outputSample.channel0 = samplesMonoXA[p] / 32767.0f;
 					outputSample.channel1 = samplesMonoXA[p] / 32767.0f;
-					outputSample.channel2 = samplesMonoXA[p] / 32767.0f;
 					p++;
 				}
 			}
 		}
 		else {
 			if (bStereo) {
-				outputSample.channel1 = samplesLeftXA[p >> 1] / 32767.0f;
-				outputSample.channel2 = samplesRightXA[p >> 1] / 32767.0f;
+				outputSample.channel0 = samplesLeftXA[p >> 1] / 32767.0f;
+				outputSample.channel1 = samplesRightXA[p >> 1] / 32767.0f;
 				p += 2;
 			}
 			else {
+				outputSample.channel0 = samplesMonoXA[p] / 32767.0f;
 				outputSample.channel1 = samplesMonoXA[p] / 32767.0f;
-				outputSample.channel2 = samplesMonoXA[p] / 32767.0f;
 				p++;
 			}
 		}
@@ -1389,9 +1398,9 @@ output_t spu_t::clockCDDA() {
 			pBus->pCdDrive->readSectorCDDA(ammCDDA, assCDDA, asectCDDA, pBufferCDDA);
 		}
 
-		outputSample.channel1 = *((int16_t*)(pBufferCDDA + counterCDDA)) / 32767.0f;
+		outputSample.channel0 = *((int16_t*)(pBufferCDDA + counterCDDA)) / 32767.0f;
 		counterCDDA += 2;
-		outputSample.channel2 = *((int16_t*)(pBufferCDDA + counterCDDA)) / 32767.0f;
+		outputSample.channel1 = *((int16_t*)(pBufferCDDA + counterCDDA)) / 32767.0f;
 		counterCDDA += 2;
 	}
 
