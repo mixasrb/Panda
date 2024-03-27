@@ -147,6 +147,11 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 		switch (addr & 0xf) {
 		case 0x0:
 			voices.voiceRegisters[voiceIndex].volumeLeftRight.data = data;
+
+			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.data & 0x80008000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x8:
@@ -163,6 +168,11 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 		switch (addr) {
 		case 0x1f801d80:
 			mainVolumeLeftRight.data = data;
+
+			if (mainVolumeLeftRight.data & 0x80008000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d84:
@@ -422,10 +432,20 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		switch (addr & 0xf) {
 		case 0x0:
 			voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.l = data;
+
+			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.l & 0x8000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x2:
 			voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.h = data;
+
+			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.h & 0x8000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x4:
@@ -462,10 +482,20 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		switch (addr) {
 		case 0x1f801d80:
 			mainVolumeLeftRight.hw.l = data;
+
+			if (mainVolumeLeftRight.hw.l & 0x8000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d82:
 			mainVolumeLeftRight.hw.h = data;
+
+			if (mainVolumeLeftRight.hw.h & 0x8000) {
+				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d84:
