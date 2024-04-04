@@ -80,7 +80,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Madness (USA) (Disc 1)/Shadow Madness (USA) (Disc 1) (Track 1).bin"); // get stuck
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Koudelka (USA) (Disc 1).bin"); //no fmvs and gets stuck
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Koudelka (USA) (Disc 1).bin"); //no fmvs and ?gets stuck?
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Dino Crisis [NTSC-U] [SLUS-00922]/Dino Crisis (USA) (v1.0) (Track 1).bin"); // get stuck in gameplay
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
@@ -96,7 +96,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Game (Europe).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Series - Crashdown (USA).bin");
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galerians (USA) (Disc 1).bin");
  
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Ocean - The Second Story (USA) (Disc 1).bin");
@@ -219,7 +219,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Da
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input// fixed with implemted spu??
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (USA).bin");//stuck // problem with mem card // like no input// maybe spu regs ?? needs reverb
 
 
@@ -387,8 +387,8 @@ public:
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
 			if (!g_emulationPaused) {
-				for (int i = 0; i < 0x300; i++)
-					pInstance->psx.clock();
+				/*for (int i = 0; i < 0x300; i++)
+					pInstance->psx.clock();*/
 
 				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
 			}
@@ -423,7 +423,6 @@ public:
 		Clear(olc::VERY_DARK_GREY);
 
 		//gamepad input 
-
 		if (!g_emulationPaused) {
 
 			enum keyMap_swlo {
@@ -514,14 +513,13 @@ public:
 		}
 
 		//clocker
-
 		constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 		constexpr uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
 
 		if (!g_emulationPaused) {
 			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
-				//psx.clock();
+				psx.clock();
 
 				/*if ((g_systemClocks % 0x300) == 0)
 					psx.bus.spu.clock();*/
@@ -540,9 +538,7 @@ public:
 		}
 
 		//debugger
-
 		bool executeOneInstruction = false;
-
 
 		if (GetKey(olc::Key::CTRL).bHeld) {
 
@@ -828,7 +824,7 @@ int main(int argumentCount, char* argumetVector[]) {
 
 	psxEmulator_t emulator;
 	//if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
-	if (emulator.Construct(640, 480, 1, 1, false, true))
+	if (emulator.Construct(640, 480, 1, 1, false, false))
 		emulator.Start();
 
 	return EXIT_SUCCESS;

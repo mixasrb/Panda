@@ -597,7 +597,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x1f801da2:
 			dramReverbWorkAreaStartAddress.data = data;
-			reverbCurrentAddress = dramReverbWorkAreaStartAddress.data << 3;
+			reverbCurrentBufferAddress = dramReverbWorkAreaStartAddress.data << 3;
 			break;
 
 		case 0x1f801da4:
@@ -1092,32 +1092,40 @@ void spu_t::reverbClock(const output_t& input, const uint8_t& cycle) {
 #define vLIN (int32_t)reverb[0x1e]
 #define vRIN (int32_t)reverb[0x1f]
 
+	auto sramRead = [&](int32_t addr) {
 
-	auto sramRead = [&](uint32_t addr) {
-
-		addr = reverbCurrentAddress + (addr << 3);
+		addr = reverbCurrentBufferAddress + (addr << 3);
 
 		if (addr > 0x7fffe)
-			addr += -0x7fffe + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
-		else if (addr < ((uint32_t)dramReverbWorkAreaStartAddress.data << 3))
+			addr += -0x80000 + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+		else if (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))
 			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+
+		/*if ((addr > 0x7fffe) || (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))) {
+			std::cout << std::hex << addr << std::endl;
+			g_emulationPaused = true;
+		}*/
 
 		return (int32_t)(int16_t)readDram16(addr);
 		};
 
 	auto sramWrite = [&](uint32_t addr, uint16_t data) {
 
-		addr = reverbCurrentAddress + (addr << 3);
+		addr = reverbCurrentBufferAddress + (addr << 3);
 
 		if (addr > 0x7fffe)
-			addr += -0x7fffe + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
-		else if (addr < ((uint32_t)dramReverbWorkAreaStartAddress.data << 3))
+			addr += -0x80000 + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+		else if (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))
 			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
 
-		writeDram16(addr, data);
+		/*if ((addr > 0x7fffe) || (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))) {
+			std::cout << std::hex << addr << std::endl;
+			g_emulationPaused = true;
+		}*/
+
+		if (spuControlRegister.elem.reverbMasterEnable)
+			writeDram16(addr, data);
 		};
-
-
 
 	if (cycle == 0) { //left
 
@@ -1134,12 +1142,12 @@ void spu_t::reverbClock(const output_t& input, const uint8_t& cycle) {
 		int32_t Lout = (vCOMB1 * sramRead(mLCOMB1) >> 15) + (vCOMB2 * sramRead(mLCOMB2) >> 15) +
 			(vCOMB3 * sramRead(mLCOMB3) >> 15) + (vCOMB4 * sramRead(mLCOMB4) >> 15);
 
-		Lout = saturate(Lout - (vAPF1 * sramRead(mLAPF1 - dAPF1) >> 15), -0x8000, 0x7fff);
-		sramWrite(mLAPF1, Lout);
+		Lout = Lout - (vAPF1 * sramRead(mLAPF1 - dAPF1) >> 15);
+		sramWrite(mLAPF1, saturate(Lout, -0x8000, 0x7fff));
 		Lout = (vAPF1 * Lout >> 15) + sramRead(mLAPF1 - dAPF1);
 
-		Lout = saturate(Lout - (vAPF2 * sramRead(mLAPF2 - dAPF2) >> 15), -0x8000, 0x7fff);
-		sramWrite(mLAPF2, Lout);
+		Lout = Lout - (vAPF2 * sramRead(mLAPF2 - dAPF2) >> 15);
+		sramWrite(mLAPF2, saturate(Lout, -0x8000, 0x7fff));
 		Lout = saturate((vAPF2 * Lout >> 15) + sramRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
 
 		reverbOutput.channel0 = float(vLOUT * Lout >> 15) / 32767.0f;
@@ -1159,123 +1167,125 @@ void spu_t::reverbClock(const output_t& input, const uint8_t& cycle) {
 		int32_t Rout = (vCOMB1 * sramRead(mRCOMB1) >> 15) + (vCOMB2 * sramRead(mRCOMB2) >> 15) +
 			(vCOMB3 * sramRead(mRCOMB3) >> 15) + (vCOMB4 * sramRead(mRCOMB4) >> 15);
 
-		Rout = saturate(Rout - (vAPF1 * sramRead(mRAPF1 - dAPF1) >> 15), -0x8000, 0x7fff);
-		sramWrite(mRAPF1, Rout);
+		Rout = Rout - (vAPF1 * sramRead(mRAPF1 - dAPF1) >> 15);
+		sramWrite(mRAPF1, saturate(Rout, -0x8000, 0x7fff));
 		Rout = (vAPF1 * Rout >> 15) + sramRead(mRAPF1 - dAPF1);
 
-		Rout = saturate(Rout - (vAPF2 * sramRead(mRAPF2 - dAPF2) >> 15), -0x8000, 0x7fff);
-		sramWrite(mRAPF2, Rout);
+		Rout = Rout - (vAPF2 * sramRead(mRAPF2 - dAPF2) >> 15);
+		sramWrite(mRAPF2, saturate(Rout, -0x8000, 0x7fff));
 		Rout = saturate((vAPF2 * Rout >> 15) + sramRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
 
-		reverbCurrentAddress = max(mBASE << 3, (reverbCurrentAddress + 2) & 0x7fffe);
-
 		reverbOutput.channel1 = float(vROUT * Rout >> 15) / 32767.0f;
+
+		reverbCurrentBufferAddress = max(mBASE << 3, (reverbCurrentBufferAddress + 2) & 0x7fffe);
 	}
 }
 
 
 output_t spu_t::clock() {
-	output_t out = { 0.0f, 0.0f };
-	output_t reverbInput = { 0.0f, 0.0f };
+	output_t output = { 0.0f, 0.0f };
+	output_t outputTempVoices = { 0.0f, 0.0f };
+	output_t inputReverb = { 0.0f, 0.0f };
 
 	for (int voice = 0; voice < 24; voice++) {
 		output_t outputVoice = voices.voiceRegisters[voice].envelope(voices.output(voice));
 
-
 		if (voice == 1) {
-			writeDram16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel0 * 32767.0f));
+			writeDram16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
 			voice1MonoBufferCounter++;
 		}
 		else if (voice == 3) {
-			writeDram16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), (uint16_t)(outputVoice.channel0 * 32767.0f));
+			writeDram16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
 			voice3MonoBufferCounter++;
 		}
 
 		outputVoice.channel0 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.l << 1))) / 32767.0f;
 		outputVoice.channel1 *= ((float)(int16_t(voices.voiceRegisters[voice].volumeLeftRight.hw.h << 1))) / 32767.0f;
 
-		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.l = uint32_t(outputVoice.channel0 * 32767.0f);//??
-		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.h = uint32_t(outputVoice.channel1 * 32767.0f);//??
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.l = uint16_t(outputVoice.channel0 * 32767.0f);//??
+		voices.voiceRegisters[voice].currentVolumeLeftRight.hw.h = uint16_t(outputVoice.channel1 * 32767.0f);//??
 
-		if (((outputVoice.channel0 != 0.0f) || (outputVoice.channel1 != 0.0f))
-			&& (voices.channelReverbMode.data & (0x1 << voice)))
-			reverbInput = reverbInput + outputVoice;
+		if (voices.channelReverbMode.data & (0x1 << voice)) {
+			inputReverb = inputReverb + outputVoice;
 
-		if (outputVoice.channel0 * outputVoice.channel1 != 0.0f)
-			voices.channelReverbMode.data &= ~(0x1 << voice);
+			if (voices.channelOnOff.data & (0x1 << voice))
+				voices.channelReverbMode.data &= ~(0x1 << voice);
+		}
 
-		out = out + outputVoice;
+		outputTempVoices = outputTempVoices + outputVoice;
 	}
+
+	if (spuControlRegister.elem.spuEnable && spuControlRegister.elem.unmuteSPU)
+		output = output + outputTempVoices;
 
 	//nearest neighbor interpolation 
 	counter37kHz += step44kHz; // dont look right but works
 	if (counter37kHz >= (step37kHz / 2.0f)) {
 		counter37kHz -= step37kHz;
 
-		outAudioCD.channel0 = 0.0f;
-		outAudioCD.channel1 = 0.0f;
+		outputAudioCD.channel0 = 0.0f;
+		outputAudioCD.channel1 = 0.0f;
 		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
-			outAudioCD = clockXA_ADPCM();
+			outputAudioCD = clockXA_ADPCM();
 
-		output_t outTempXA;
-		outTempXA.channel0 = outAudioCD.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
-			+ outAudioCD.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
-		outTempXA.channel1 = outAudioCD.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
-			+ outAudioCD.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+		output_t outputTempXA;
+		outputTempXA.channel0 = outputAudioCD.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+			+ outputAudioCD.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+		outputTempXA.channel1 = outputAudioCD.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
+			+ outputAudioCD.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
 
-		if (outTempXA.channel0 > 1.0f)
-			outTempXA.channel0 = 1.0f;
+		if (outputTempXA.channel0 > 1.0f)
+			outputTempXA.channel0 = 1.0f;
 
-		if (outTempXA.channel1 > 1.0f)
-			outTempXA.channel1 = 1.0f;
+		if (outputTempXA.channel1 > 1.0f)
+			outputTempXA.channel1 = 1.0f;
 
-		outAudioCD = outTempXA;
+		outputAudioCD = outputTempXA;
 	}
 
-	//if (pBus->pCdDrive->bPlay) {
-	output_t outCDDA = { 0,0 };
-	outCDDA = clockCDDA();
+	output_t outputCDDA = { 0,0 };
+	outputCDDA = clockCDDA();
 
-	output_t outTempCDDA;
-	outTempCDDA.channel0 = outCDDA.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
-		+ outCDDA.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
-	outTempCDDA.channel1 = outCDDA.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
-		+ outCDDA.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+	output_t outputTempCDDA;
+	outputTempCDDA.channel0 = outputCDDA.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+		+ outputCDDA.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+	outputTempCDDA.channel1 = outputCDDA.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
+		+ outputCDDA.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
 
-	if (outTempCDDA.channel0 > 1.0f)
-		outTempCDDA.channel0 = 1.0f;
+	if (outputTempCDDA.channel0 > 1.0f)
+		outputTempCDDA.channel0 = 1.0f;
 
-	if (outTempCDDA.channel1 > 1.0f)
-		outTempCDDA.channel1 = 1.0f;
+	if (outputTempCDDA.channel1 > 1.0f)
+		outputTempCDDA.channel1 = 1.0f;
 
-	outAudioCD = outAudioCD + outTempCDDA;
+	outputAudioCD = outputAudioCD + outputTempCDDA;
 
 	if (spuControlRegister.elem.cdAudioEnable) {
-		out.channel0 += outAudioCD.channel0 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
-		out.channel1 += outAudioCD.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
+		output.channel0 += outputAudioCD.channel0 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
+		output.channel1 += outputAudioCD.channel1 * (float)((int16_t)cdVolumeLeftRight.hw.h) / 32767.0f;
 	}
 
 	if (spuControlRegister.elem.cdAudioReverb)
-		reverbInput = reverbInput + outAudioCD;
+		inputReverb = inputReverb + outputAudioCD;
 
-	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outAudioCD.channel0 * 32767.0f));
-	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), (uint16_t)(outAudioCD.channel1 * 32767.0f));
+	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel0 * 32767.0f));
+	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel1 * 32767.0f));
 	cdAudioBufferCounter++;
 
-	if (spuControlRegister.elem.reverbMasterEnable || spuControlRegister.elem.cdAudioReverb)
-		reverbClock(reverbInput, cycle);
+	reverbClock(inputReverb, cycle);
 
-	reverbInput = { 0.0f, 0.0f };
+	if (spuControlRegister.elem.reverbMasterEnable)
+		output = output + reverbOutput;
 
 	if (cycle == 0)
 		cycle = 1;
 	else
 		cycle = 0;
 
-	out.channel0 = (/*out.channel0*/ +reverbOutput.channel0) * ((float)(int16_t(mainVolumeLeftRight.hw.l << 1))) / 32767.0f;
-	out.channel1 = (/*out.channel1*/ +reverbOutput.channel1) * ((float)(int16_t(mainVolumeLeftRight.hw.h << 1))) / 32767.0f;
+	output.channel0 = output.channel0 * ((float)(int16_t(mainVolumeLeftRight.hw.l << 1))) / 32767.0f;
+	output.channel1 = output.channel1 * ((float)(int16_t(mainVolumeLeftRight.hw.h << 1))) / 32767.0f;
 
-	return out;
+	return output;
 }
 
 void spu_t::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& nibble,

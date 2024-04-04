@@ -315,7 +315,7 @@ public:
 		int16_t output(const uint8_t& voice);
 	};
 
-	uint32_t reverbCurrentAddress;
+	uint32_t reverbCurrentBufferAddress;
 	void reverbClock(const output_t& input, const uint8_t& cycle);
 	output_t reverbOutput = { 0, 0 };
 
@@ -365,7 +365,7 @@ public:
 			uint16_t reverbMasterEnable : 1;
 			uint16_t noiseFrequencyStep : 2;
 			uint16_t noiseFrequencyShift : 4;
-			uint16_t muteSPU : 1;
+			uint16_t unmuteSPU : 1;
 			uint16_t spuEnable : 1;
 		}elem;
 	}spuControlRegister;
@@ -492,7 +492,7 @@ public:
 	const float step44kHz = 1.0f / 7.0f;
 	const float step37kHz = 1.0f / 6.0f;
 	float counter37kHz = 0.0f;
-	output_t outAudioCD;
+	output_t outputAudioCD;
 
 	uint16_t cdAudioBufferCounter = 0;
 	uint16_t voice1MonoBufferCounter = 0;
