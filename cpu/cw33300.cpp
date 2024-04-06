@@ -1,9 +1,6 @@
 #include "cw33300.h"
 #include "../bus/bus_interface.h"
 
-#undef DEBUG
-#define DEBUG 0
-
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
 extern bool g_biosCallbacksLogged;
@@ -224,7 +221,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
 	//}
 
-#if DEBUG
+#ifdef CPU_DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 #endif
@@ -448,7 +445,7 @@ void cpu_t::reset() {
 void cpu_t::clock() {
 
 	//SIDELOAD debug
-#if DEBUG
+#ifdef CPU_DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
 		sideLoad();
 #endif
@@ -489,7 +486,7 @@ void cpu_t::clock() {
 		}
 
 		//debug
-#if DEBUG
+#ifdef CPU_DEBUG
 		setBiosCallFlag();
 		pc_old = pc;
 #endif
@@ -586,7 +583,7 @@ void cpu_t::clock() {
 		clocks += memoryClocks + gteClocks;
 
 		//debug
-#if DEBUG
+#ifdef CPU_DEBUG
 		printBiosCall();
 		isInstructionExecuted = true;
 #endif

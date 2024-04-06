@@ -32,7 +32,8 @@ void timer2_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 		counterMode.data = data & 0x3ff;
 		mode = counterMode.data & 0x3ff;
 
-		counterMode.elem.irq = 1;
+		if (data & 0x400)
+			counterMode.elem.irq = 1;
 
 		clockSource = (counterMode.elem.clockSource & 0x2) ?
 			SYSTEM_CLOCK : SYSTEM_CLOCK;
