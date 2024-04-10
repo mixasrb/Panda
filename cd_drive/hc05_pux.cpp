@@ -430,7 +430,7 @@ void cdDrive::clock() {
 		//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 			//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
 																		 //bugs bunny games also  resident evil 1 ??
-		else if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 14 / 10 /*+ 0x36cd2 * 8 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/ /*+ 0x36cd2 * 8 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			dataClocks = 0;
 
@@ -490,31 +490,27 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((ass < 2) && (amm == 0)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector ass < 2!" << std::endl;
-		//g_emulationPaused = true;
-		//bSendINT1 = true;
+		g_emulationPaused = true;
 		return;
 	}
 
 	if (fileDataVect.size() < (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x930)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector!" << std::endl;
-		//g_emulationPaused = true;
+		g_emulationPaused = true;
 		return;
 	}
 
-
-	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_Filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
-		|| (stat.elem.play && (mode.elem.report == 0))) {
+	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x04))
+		|| (stat.elem.play && (mode.elem.report == 0)))
 		bSendINT1 = false;
-	}
 	else if (!bPlay) {
 		bSendINT1 = true;
 
 		uint32_t currentPossition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
 		pBuffer = (uint8_t*)fileDataVect.data() + (currentPossition + (mode.elem.sectorSize ? 0x0c : 0x18));
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++)
 			storedSectorHeader[i] = fileDataVect[currentPossition + 0x0c + i];
-		}
 	}
 
 	stored_amm = amm;
@@ -526,40 +522,35 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	if ((mode.elem.xa_adpcm) && (fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x4))
 		indexStatus.reg.adpbusy = 1;
 
-	//if (!(mode.elem.xa_adpcm)) 
-	{
-		std::cout << "~[CD_DRIVE] Read sector:" << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
-		std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
-		waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
-		//waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732)/* + 0x36cd2 * 8 / 10*/;
-		switch (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) {
-		case 0x1:
-			std::cout << "~[CD_DRIVE] video sector" << std::endl;
-			waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+	waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+
+	std::cout << "~[CD_DRIVE] Read sector:" << std::endl;
+	std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
+	std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
+	std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
+
+	if (!bPlay)
+		switch (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1 << 1) {
+		case 0x0:
+			std::cout << "~[CD_DRIVE] unused sector" << std::endl;
 			break;
 		case 0x2:
-			std::cout << "~[CD_DRIVE] audio sector" << std::endl;
-			waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+			std::cout << "~[CD_DRIVE] video sector" << std::endl;
 			break;
 		case 0x4:
+			std::cout << "~[CD_DRIVE] audio sector" << std::endl;
+			break;
+		case 0x8:
 			std::cout << "~[CD_DRIVE] data sector" << std::endl;
-			//waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732) + 0x36cd2 * 8 / 10;
 			break;
 		default:
-			if (!bPlay) {
-				std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
-					std::hex << " 0x" << (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) << std::endl;
-				//g_emulationPaused = true;
-			}
-			else {
-				std::cout << "~[CD_DRIVE] CD DA sector" << std::endl;
-				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
-			}
+			std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
+				std::hex << " 0x" << (((uint32_t)fileDataVect[((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x12] & 0x0f) >> 1) << std::endl;
+			g_emulationPaused = true;
 			break;
 		}
-	}
+	else
+		std::cout << "~[CD_DRIVE] CDDA sector" << std::endl;
 
 	for (int i = 0; i < cdTracks.size(); i++) {
 		if ((amm == cdTracks[i].index1End.amm) &&
@@ -628,13 +619,13 @@ void cdDrive::setDriveMode() {
 		indexStatus.reg.adpbusy = 0;
 
 	std::cout << std::hex << "~[CD_DRIVE] mode: " << (uint16_t)mode.data << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] Speed: " << (uint16_t)mode.elem.speed << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] speed: " << (uint16_t)mode.elem.speed << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] XA-ADCPM: " << (uint16_t)mode.elem.xa_adpcm << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] Sector size: " << (uint16_t)mode.elem.sectorSize << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] Ignore bit: " << (uint16_t)mode.elem.ignoreBit << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] XA-Filter: " << (uint16_t)mode.elem.xa_Filter << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] Report: " << (uint16_t)mode.elem.report << std::endl;
-	std::cout << std::hex << "~[CD_DRIVE] AutoPause: " << (uint16_t)mode.elem.autoPause << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] sector size: " << (uint16_t)mode.elem.sectorSize << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] ignore bit: " << (uint16_t)mode.elem.ignoreBit << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] XA-Filter: " << (uint16_t)mode.elem.xa_filter << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] report: " << (uint16_t)mode.elem.report << std::endl;
+	std::cout << std::hex << "~[CD_DRIVE] autoPause: " << (uint16_t)mode.elem.autoPause << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] CDDA: " << (uint16_t)mode.elem.cdda << std::endl;
 }
 
@@ -962,7 +953,7 @@ void cdDrive::getLocP(const uint8_t& command) {
 			fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA), fromHex8ToBCD(pBus->spu.asectCDDA) };
 	else
 		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA),
-			fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) };
+			fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) }; //??
 
 	/*std::vector<uint8_t> firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(mm), fromHex8ToBCD(ss), fromHex8ToBCD(sect),
 		fromHex8ToBCD(amm), fromHex8ToBCD(ass), fromHex8ToBCD(asect) };*/
@@ -1095,7 +1086,7 @@ void cdDrive::seekL(const uint8_t& command) {
 	}
 
 	stat.elem.spindleMotor = 1;
-	
+
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -1247,7 +1238,7 @@ void cdDrive::readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uin
 		src = (uint8_t*)fileDataVect.data() + currentPossition;
 
 		if (fileDataVect[currentPossition + 0x10 + 0x02] & 0x04)
-			if (mode.elem.xa_Filter)
+			if (mode.elem.xa_filter)
 				bSectorFound = (fileDataVect[currentPossition + 0x10] == filterFile) &&
 				(fileDataVect[currentPossition + 0x10 + 0x01] == filterChannel);
 			else

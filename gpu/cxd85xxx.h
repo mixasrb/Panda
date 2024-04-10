@@ -407,6 +407,7 @@ public:
 
 	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
+	olc::Sprite* pVramViewBuffered = new olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
 	bool bWasActiveDMA = false;

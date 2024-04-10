@@ -210,10 +210,20 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 
 		case 0x1f801d90:
 			voices.channel_FM_Mode.data = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d94:
 			voices.channelNoiseMode.data = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! Noise enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d98:
@@ -319,6 +329,7 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 
 		case 0x1f801d90:
 			data = voices.channel_FM_Mode.hw.l;
+
 			break;
 
 		case 0x1f801d92:
@@ -564,18 +575,38 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x1f801d90:
 			voices.channel_FM_Mode.hw.l = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d92:
 			voices.channel_FM_Mode.hw.h = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d94:
 			voices.channelNoiseMode.hw.l = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d96:
 			voices.channelNoiseMode.hw.h = data;
+
+			if (data) {
+				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << std::endl;
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801d98:
@@ -805,14 +836,13 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 	uint16_t i = (currentVoiceRegisters.counter >> 4) & 0xff;
 
 	currentVoiceRegisters.step = currentVoiceRegisters.adpcmSampleRate.data;
-	if (((channel_FM_Mode.data >> voice) & 0x1) && (voice > 1)) {
-		int16_t factor = (int16_t)voiceRegisters[voice - 1].adsrLevel; //??
+	if (((channel_FM_Mode.data >> voice) & 0x1) && (voice > 0)) {
+		uint16_t factor = (uint16_t)voiceRegisters[voice - 1].adsrLevel; //??
 		factor = factor + 0x8000;
-		int32_t tempStep = (int32_t)(currentVoiceRegisters.step);
+		uint32_t tempStep = int32_t((int16_t)currentVoiceRegisters.step);
 		tempStep = (tempStep * (uint16_t)factor) >> 15;
 		currentVoiceRegisters.step = tempStep & 0x0000ffff;
 	}
-
 	if (currentVoiceRegisters.step > 0x3fff)
 		currentVoiceRegisters.step = 0x4000;
 

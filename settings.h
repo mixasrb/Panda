@@ -8,7 +8,7 @@ bool g_GpuCommandsLogged = false;
 bool g_buttonPressed = false;
 bool g_logPixel = false;
 
-const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph1001.bin");
+const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph101.bin");
 
 const char* g_memCardPaths[2] = { "D:/projects/emulation_psx/binaries/memory_cards/memCard1.bin", "D:/projects/emulation_psx/binaries/memory_cards/memCard2.bin" };
 
@@ -49,20 +49,26 @@ const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/access-t
 //uint8_t g_driveStatus = _NO_DISC;
 uint8_t g_driveStatus = _LICENCED_MODE_2;
 
-//Games not working
+//Games that are not working
 
 //Panzer Bandit, Galaxian 3,Conveni Special
 //Gunners Heaven
-//The Misadventures of Tron Bonne
 //tokimeki memorial 2
-//Legend of Mana Hercules
+//Legend of Mana
+
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Wipeout XL (USA)/Wipeout XL (USA) (Track 01).bin"); //get stuck disk read errors
+
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/NHL FaceOff 2000 (USA).bin"); // needs waitClocksDataResponse + 0x36cd2 * 14 / 10, and crashes
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/NHL FaceOff 2001.bin"); //crashes
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Evil Dead - Hail to the King (USA) (Disc 1).bin");//[TIMER0] EMULATION PAUSED! unhandled timer mode 0x158, //not drawing gameplay
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Evil Dead - Hail to the King (Europe) (Disc 1).bin");//[TIMER0] EMULATION PAUSED! unhandled timer mode 0x158, //not drawing gameplay
@@ -82,17 +88,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter 2 (USA) (Disc 1).bin"); // timer 2 irq maybe??
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Series - Crashdown (USA).bin");
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (Europe)/Vigilante 8 - 2nd Offense (Europe) (Track 01).bin");// get stuck
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galerians (USA) (Disc 1).bin");
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Ocean - The Second Story (USA) (Disc 1).bin");
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Jade Cocoon - Story of the Tamamayu (USA).bin");
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Legend of Dragoon, The (USA) (Disc 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/SaGa Frontier (USA).bin"); // no sound - problem witx XA-ADPCM, and more sound problems
 
@@ -126,12 +122,19 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 
-
 //Working ones
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Legend of Mana.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Railroad Tycoon II (USA)/Railroad Tycoon II (USA) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Misadventures of Tron Bonne, The (USA)/Misadventures of Tron Bonne, The (USA) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galerians (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Legend of Dragoon, The (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Jade Cocoon - Story of the Tamamayu (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Ocean - The Second Story (USA) (Disc 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Series - Crashdown (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Men in Black - The Game (Europe).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tenchu - Stealth Assassins (USA) (v1.1).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman Rush (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Atlantis - The Lost Empire (USA)/Disney's Atlantis - The Lost Empire (USA) (Track 1).bin");
 

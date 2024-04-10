@@ -217,7 +217,7 @@ public:
 			uint8_t cdda : 1;
 			uint8_t autoPause : 1;
 			uint8_t report : 1;
-			uint8_t xa_Filter : 1;
+			uint8_t xa_filter : 1;
 			uint8_t ignoreBit : 1;
 			uint8_t sectorSize : 1;
 			uint8_t xa_adpcm : 1;

@@ -831,6 +831,8 @@ namespace olc
 		Pixel SampleBL(const olc::vf2d& uv) const;
 		Pixel* GetData();
 		olc::Sprite* Duplicate();
+		//mine
+		void DuplicateUnsafe(olc::Sprite* spr);
 		olc::Sprite* Duplicate(const olc::vi2d& vPos, const olc::vi2d& vSize);
 		olc::vi2d Size() const;
 		std::vector<olc::Pixel> pColData;
@@ -1723,6 +1725,12 @@ namespace olc
 		std::memcpy(spr->GetData(), GetData(), width * height * sizeof(olc::Pixel));
 		spr->modeSample = modeSample;
 		return spr;
+	}
+
+	//mine
+	void Sprite::DuplicateUnsafe(olc::Sprite* spr){
+		std::memcpy(spr->GetData(), GetData(), width * height * sizeof(olc::Pixel));
+		spr->modeSample = modeSample;
 	}
 
 	olc::Sprite* Sprite::Duplicate(const olc::vi2d& vPos, const olc::vi2d& vSize)

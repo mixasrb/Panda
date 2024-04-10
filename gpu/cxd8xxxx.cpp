@@ -507,6 +507,9 @@ void gpu_t::videoClock() {
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
+
+			//not completely tested 	
+			vramView.DuplicateUnsafe(pVramViewBuffered);
 		}
 		else if (scanlineCount == scanlineNumber) {
 			scanlineCount = -1;
@@ -1271,7 +1274,7 @@ void gpu_t::readVram(const vertex_t& position, uint16_t& data, const bool bIgnor
 }
 
 olc::Sprite* gpu_t::getVramSprite() {
-	return &vramView;
+	return pVramViewBuffered;
 }
 
 uint16_t gpu_t::format24to16Color(const uint32_t& input) {
