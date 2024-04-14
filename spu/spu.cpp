@@ -125,8 +125,16 @@ void spu_t::read32(const uint32_t& addr, uint32_t& data) {
 
 	if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbc)) {
 		switch (addr) {
+		case 0x1f801d80:
+			data = mainVolumeLeftRight.data;
+			break;
+
 		case 0x1f801d9c:
 			data = voices.channelOnOff.data;
+			break;
+
+		case 0x1f801dbc:
+			//Unknown??
 			break;
 
 		default:
@@ -230,6 +238,15 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			voices.channelReverbMode.data = data;
 			break;
 
+		case 0x1f801dac:
+			dramDataTransferControl.data = (uint16_t)data;
+
+			if (data != 0x0004) {
+				std::cout << "[SPU] EMULATION PASUED! unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
+				g_emulationPaused = true;
+			}
+			break;
+
 		case 0x1f801db0:
 			cdVolumeLeftRight.data = data;
 			break;
@@ -311,6 +328,14 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 			data = mainVolumeLeftRight.hw.h;
 			break;
 
+		case 0x1f801d84:
+			data = reverbOutputVolumeLeftRight.hw.l;
+			break;
+
+		case 0x1f801d86:
+			data = reverbOutputVolumeLeftRight.hw.h;
+			break;
+
 		case 0x1f801d88:
 			data = voices.tempKeyOn.hw.l;
 			break;
@@ -350,6 +375,18 @@ void spu_t::read16(const uint32_t& addr, uint16_t& data) {
 
 		case 0x1f801d9a:
 			data = voices.channelReverbMode.hw.h;
+			break;
+
+		case 0x1f801d9c:
+			data = voices.channelOnOff.hw.l;
+			break;
+
+		case 0x1f801d9e:
+			data = voices.channelOnOff.hw.h;
+			break;
+
+		case 0x1f801da0:
+			//Unknown??
 			break;
 
 		case 0x1f801da2:
@@ -639,23 +676,28 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801da6:
 			dramDataTransferAddress.data = data;
 			currentAddress = dramDataTransferAddress.data << 3;
-			//if (currentAddress >= DRAM_SIZE) {
-			/*	std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
-					<< std::hex << currentAddress << "\n";*/
-					//g_emulationPaused = true;
-				//}
+
+			std::cout << "[SPU] dramDataTransferAddress : 0x"
+				<< std::hex << currentAddress << "\n";
+
+			if (currentAddress >= DRAM_SIZE) {
+				std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
+					<< std::hex << currentAddress << "\n";
+				g_emulationPaused = true;
+			}
 			break;
 
 		case 0x1f801da8:
 			dramDataTransferFifo.data = data;
-			if (currentAddress >= DRAM_SIZE) {  // spyro 1 sends 0x10 more hw's
-				std::cout << "[SPU] EMULATION PASUED! current address > DRAM_SIZE : 0x"
+
+			if (currentAddress >= DRAM_SIZE) {  // spyro 1 sends 0x10 more hw's and also Monkey Hero //??maybe warping??
+				currentAddress = dramDataTransferAddress.data << 3;//??
+
+				std::cout << "[SPU] current address > DRAM_SIZE : 0x"
 					<< std::hex << currentAddress << " data 0x" << std::hex << data << "\n";
-				//g_emulationPaused = true;
 			}
 			else
 				writeDram16(currentAddress, data);
-
 
 			currentAddress += 2;
 			break;
@@ -684,7 +726,8 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x1f801dac:
 			dramDataTransferControl.data = data;
-			if (data != 0x0004) {
+
+			if (data != 0x04) {
 				std::cout << "[SPU] EMULATION PASUED! unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
 				g_emulationPaused = true;
 			}
@@ -1253,24 +1296,28 @@ output_t spu_t::clock() {
 	if (counter37kHz >= (step37kHz / 2.0f)) {
 		counter37kHz -= step37kHz;
 
-		outputAudioCD.channel0 = 0.0f;
-		outputAudioCD.channel1 = 0.0f;
+		outputCDXA.channel0 = 0.0f;
+		outputCDXA.channel1 = 0.0f;
 		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
-			outputAudioCD = clockXA_ADPCM();
+			outputCDXA = clockXA_ADPCM();
 
 		output_t outputTempXA;
-		outputTempXA.channel0 = outputAudioCD.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
-			+ outputAudioCD.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
-		outputTempXA.channel1 = outputAudioCD.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
-			+ outputAudioCD.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
+		outputTempXA.channel0 = outputCDXA.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
+			+ outputCDXA.channel1 * pBus->pCdDrive->volumeLeftRight / 128.0f;
+		outputTempXA.channel1 = outputCDXA.channel1 * pBus->pCdDrive->volumeRightRight / 128.0f
+			+ outputCDXA.channel0 * pBus->pCdDrive->volumeRightLeft / 128.0f;
 
 		if (outputTempXA.channel0 > 1.0f)
 			outputTempXA.channel0 = 1.0f;
+		else if (outputTempXA.channel0 < -1.0f)
+			outputTempXA.channel0 = -1.0f;
 
 		if (outputTempXA.channel1 > 1.0f)
 			outputTempXA.channel1 = 1.0f;
+		else if (outputTempXA.channel1 < -1.0f)
+			outputTempXA.channel1 = -1.0f;
 
-		outputAudioCD = outputTempXA;
+		outputCDXA = outputTempXA;
 	}
 
 	output_t outputCDDA = { 0,0 };
@@ -1284,11 +1331,15 @@ output_t spu_t::clock() {
 
 	if (outputTempCDDA.channel0 > 1.0f)
 		outputTempCDDA.channel0 = 1.0f;
+	else if (outputTempCDDA.channel0 < -1.0f)
+		outputTempCDDA.channel0 = -1.0f;
 
 	if (outputTempCDDA.channel1 > 1.0f)
 		outputTempCDDA.channel1 = 1.0f;
+	else if (outputTempCDDA.channel1 < -1.0f)
+		outputTempCDDA.channel1 = -1.0f;
 
-	outputAudioCD = outputAudioCD + outputTempCDDA;
+	outputAudioCD = outputCDXA + outputCDDA;
 
 	if (spuControlRegister.elem.cdAudioEnable) {
 		output.channel0 += outputAudioCD.channel0 * (float)((int16_t)cdVolumeLeftRight.hw.l) / 32767.0f;
@@ -1298,8 +1349,8 @@ output_t spu_t::clock() {
 	if (spuControlRegister.elem.cdAudioReverb)
 		inputReverb = inputReverb + outputAudioCD;
 
-	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel0 * 32767.0f));
-	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel1 * 32767.0f));
+	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCDXA.channel0 * 32767.0f));
+	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCDXA.channel1 * 32767.0f));
 	cdAudioBufferCounter++;
 
 	reverbClock(inputReverb, cycle);

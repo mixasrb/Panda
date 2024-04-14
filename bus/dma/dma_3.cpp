@@ -119,6 +119,7 @@ void dma3_t::Clock() {
 	}
 
 	if (choppingClocks) {
+		//pDMAController->isCpuStopped = false;//?? makes graphic bugs in gta 
 		choppingClocks--;
 		return;
 	}
@@ -126,6 +127,7 @@ void dma3_t::Clock() {
 	channelControl.reg.startBusy = 1;
 	clocks--;
 	if (clocks % CLOCKS_PER_WORD_DMA_3 == 0) {
+		//pDMAController->isCpuStopped = true;//?? makes graphic bugs in gta 
 		for (int i = 0; i < 4; i++) {
 			uint8_t cycles;
 			uint8_t data;

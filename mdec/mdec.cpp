@@ -336,7 +336,7 @@ void mdec_t::rl_decode_block(uint16_t* blk, uint16_t* src, uint32_t& srcTracker,
 
 	int16_t val = singned10bit(n & 0x3ff) * qt[k];
 
-	while (k < 64) {
+	while (k < 63) {
 		if (qScale == 0)
 			val = singned10bit(n & 0x3ff) << 1;
 

@@ -5,7 +5,6 @@
 #include <sstream>
 #include <vector>
 #include <list>
-#include <thread>
 #include <algorithm>
 
 #include "../gpu/utils.h"
@@ -18,6 +17,53 @@
 #define size_y 512
 
 class busInterface_t;
+
+template <typename T>
+struct fifo_t { //have some bugs and unintuities
+	fifo_t() {
+		ptr = nullptr;
+		currentPossitionWrite = 0;
+		currentPossitionRead = 0;
+	};
+
+	T* ptr;
+	uint32_t currentPossitionWrite;
+	uint32_t currentPossitionRead;
+
+	void resize(uint32_t newSize) {
+		ptr = new T[newSize];
+	}
+
+	void reset() {
+		currentPossitionWrite = 0;
+		currentPossitionRead = 0;
+	}
+
+	void pushBack(T data) {
+		ptr[currentPossitionWrite] = data;
+		currentPossitionWrite++;
+	}
+
+	void popBack() {
+		currentPossitionWrite--;
+	}
+
+	uint32_t size() {
+		return currentPossitionWrite;
+	}
+
+	bool empty() {
+		return (currentPossitionRead >= currentPossitionWrite) ? true : false;
+	}
+
+	T getNext() {
+		return ptr[currentPossitionRead++];
+	}
+
+	T operator[](uint32_t i) {
+		return ptr[i];
+	}
+};
 
 class gpu_t {
 public:
@@ -216,53 +262,6 @@ public:
 		}
 	};
 
-	template <typename T>
-	struct fifo_t { //have some bugs and unintuities
-		fifo_t() {
-			ptr = nullptr;
-			currentPossitionWrite = 0;
-			currentPossitionRead = 0;
-		};
-
-		T* ptr;
-		uint32_t currentPossitionWrite;
-		uint32_t currentPossitionRead;
-
-		void resize(uint32_t newSize) {
-			ptr = new T[newSize];
-		}
-
-		void reset() {
-			currentPossitionWrite = 0;
-			currentPossitionRead = 0;
-		}
-
-		void pushBack(T data) {
-			ptr[currentPossitionWrite] = data;
-			currentPossitionWrite++;
-		}
-
-		void popBack() {
-			currentPossitionWrite--;
-		}
-
-		uint32_t size() {
-			return currentPossitionWrite;
-		}
-
-		bool empty() {
-			return (currentPossitionRead >= currentPossitionWrite) ? true : false;
-		}
-
-		T getNext() {
-			return ptr[currentPossitionRead++];
-		}
-
-		T operator[](uint32_t i) {
-			return ptr[i];
-		}
-	};
-
 	fifo_t<uint32_t> fifo;
 	uint32_t fifoCount = 0;
 	//uint32_t fifoClocks = 0;
@@ -368,9 +367,9 @@ public:
 		PSX_ANTI_CLOCKWISE
 	};
 
-	void drawPolygon(param_t* p_param);
+	void drawPolygon(const param_t& param);
 
-	void drawTexPolygon(param_t* p_param);
+	void drawTexPolygon(const param_t& p_param);
 
 	void drawLine(const param_t& param);
 	bool bCollectPolylineParam = false;
@@ -384,6 +383,13 @@ public:
 	void copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_height);
 	void copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height);
 	fifo_t<uint32_t> outputFifo;
+
+	void environmentCommand1(const param_t& param);
+	void environmentCommand2(const param_t& param);
+	void environmentCommand3(const param_t& param);
+	void environmentCommand4(const param_t& param);
+	void environmentCommand5(const param_t& param);
+	void environmentCommand6(const param_t& param);
 
 	bool bCollectCopyCpuVramParam = false;
 	uint32_t widthHeight;
@@ -411,6 +417,14 @@ public:
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
 	bool bWasActiveDMA = false;
+
+	/*struct gp0CommandFunc_t {
+		void (gpu_t::* gp0CommandFunc)(const param_t& param);
+		param_t param;
+	};
+
+	fifo_t<gp0CommandFunc_t> gp0CommandFuncs;
+	void executeGp0CommandFuncs();*/
 
 	//debug
 	debugUtilities* p_debugger;

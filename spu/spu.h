@@ -47,6 +47,9 @@ public:
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
 	int16_t reverb[32];
 
+	uint32_t readDram32(const uint32_t& addr);
+	void writeDram32(const uint32_t& addr, const uint32_t& data);
+
 	uint16_t readDram16(const uint32_t& addr);
 	void writeDram16(const uint32_t& addr, const uint16_t& data);
 
@@ -492,6 +495,7 @@ public:
 	const float step44kHz = 1.0f / 7.0f;
 	const float step37kHz = 1.0f / 6.0f;
 	float counter37kHz = 0.0f;
+	output_t outputCDXA;
 	output_t outputAudioCD;
 
 	uint16_t cdAudioBufferCounter = 0;

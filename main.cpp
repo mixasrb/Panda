@@ -33,14 +33,20 @@ public:
 	output_t sampleLR = { 0.0f, 0.0f };
 
 	bool isDebuggerViewed = false;
+	bool bDrawScreenWindow = false;
+
+	/*void executeGp0Commands() {
+		pInstance->psx.gpu.executeGp0CommandFuncs();
+	}*/
 
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
 			if (!g_emulationPaused) {
-				for (int i = 0; i < 0x300; i++)
-					pInstance->psx.clock();
+				/*for (int i = 0; i < 0x300; i++)
+					pInstance->psx.clock();*/
 
 				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
+				//pInstance->psx.gpu.executeGp0CommandFuncs();
 			}
 		}
 
@@ -167,26 +173,26 @@ public:
 		constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 		constexpr uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
 
-		//if (!g_emulationPaused) {
-		//	for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
+		if (!g_emulationPaused) {
+			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
-		//		psx.clock();
+				psx.clock();
 
-		//		/*if ((g_systemClocks % 0x300) == 0)
-		//			psx.bus.spu.clock();*/
+				//if ((g_systemClocks % 0x300) == 0)
+				//	psx.bus.spu.clock();
 
-		//		if (g_emulationPaused) break;
-		//	}
-		//	g_systemFrames++;
-		//	if (g_systemFrames == 60) {
-		//		g_systemFrames = 0;
-		//		g_systemSeconds++;
-		//		if (g_systemSeconds == 60) {
-		//			g_systemSeconds = 0;
-		//			g_systemMinutes++;
-		//		}
-		//	}
-		//}
+				if (g_emulationPaused) break;
+			}
+			g_systemFrames++;
+			if (g_systemFrames == 60) {
+				g_systemFrames = 0;
+				g_systemSeconds++;
+				if (g_systemSeconds == 60) {
+					g_systemSeconds = 0;
+					g_systemMinutes++;
+				}
+			}
+		}
 
 		//debugger
 		bool executeOneInstruction = false;
@@ -246,7 +252,7 @@ public:
 			if (GetKey(olc::Key::R).bPressed)
 				psx.debugger.dump("logs/ram.bin", psx.bus.ram, 2048 * 1024);
 
-			if (GetKey(olc::Key::W).bPressed)
+			if (GetKey(olc::Key::Y).bPressed)
 				psx.debugger.dump("logs/scratchpad.bin", psx.bus.scratchpad, 1024);
 
 			if (GetKey(olc::Key::V).bPressed)
@@ -270,6 +276,9 @@ public:
 			/*if (GetKey(olc::Key::T).bPressed) {
 				psx.cpuSOC.cp0.cop0r[12] |= 1;
 			}*/
+
+			if (GetKey(olc::Key::W).bPressed)
+				bDrawScreenWindow = !bDrawScreenWindow;
 		}
 
 		if (executeOneInstruction) {
@@ -282,199 +291,203 @@ public:
 		if (!isDebuggerViewed) {
 			// main DRAW
 
-			////DrawSprite(0, 0, psx.gpu.getVramSprite());
+			DrawSprite(0, 0, psx.gpu.getVramSprite());
 
-			if (!psx.gpu.gpuStat.elem.displayEnable) {
-				uint16_t x1 = psx.gpu.displayStart.x;
-				uint16_t y1 = psx.gpu.displayStart.y;
-				uint16_t x2;
-				uint16_t y2;
+			uint16_t x1 = psx.gpu.displayStart.x;
+			uint16_t y1 = psx.gpu.displayStart.y;
+			uint16_t x2;
+			uint16_t y2;
 
-				uint16_t horizontalResolution;
-				uint16_t verticalResolution;
-				if (psx.gpu.gpuStat.elem.horizontalRes2) {
-					//x1 = x1 + psx.gpu.screenX1 / 7;
-					horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 7;
-					//horizontalResolution = 368;
-					x2 = x1 + horizontalResolution;
-				}
-				else switch (psx.gpu.gpuStat.elem.horizontalRes1) {
-				case 0:
-					//x1 = x1 + psx.gpu.screenX1 / 10;
-					horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 10;
-					//horizontalResolution = 256;
-					x2 = x1 + horizontalResolution;
-					break;
-				case 1:
-					//x1 = x1 + psx.gpu.screenX1 / 8;
-					horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 8;
-					//horizontalResolution = 320;
-					x2 = x1 + horizontalResolution;
-					break;
-				case 2:
-					//x1 = x1 + psx.gpu.screenX1 / 5;
-					horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 5;
-					//horizontalResolution = 512;
-					x2 = x1 + horizontalResolution;
-					break;
-				case 3:
-					//x1 = x1 + psx.gpu.screenX1 / 4;
-					horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 4;
-					//horizontalResolution = 640;
-					x2 = x1 + horizontalResolution;
-					break;
-				}
-				if (psx.gpu.gpuStat.elem.verticalRes) {
-					verticalResolution = (psx.gpu.screenY2 - psx.gpu.screenY1) * 2;
-					//verticalResolution = 480;
-					y2 = y1 + verticalResolution;
-				}
-				else {
-					verticalResolution = psx.gpu.screenY2 - psx.gpu.screenY1;
-					//verticalResolution = 240;
-					y2 = y1 + verticalResolution;
-				}
+			uint16_t horizontalResolution;
+			uint16_t verticalResolution;
+			if (psx.gpu.gpuStat.elem.horizontalRes2) {
+				//x1 = x1 + psx.gpu.screenX1 / 7;
+				horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 7;
+				//horizontalResolution = 368;
+				x2 = x1 + horizontalResolution;
+			}
+			else switch (psx.gpu.gpuStat.elem.horizontalRes1) {
+			case 0:
+				//x1 = x1 + psx.gpu.screenX1 / 10;
+				horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 10;
+				//horizontalResolution = 256;
+				x2 = x1 + horizontalResolution;
+				break;
+			case 1:
+				//x1 = x1 + psx.gpu.screenX1 / 8;
+				horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 8;
+				//horizontalResolution = 320;
+				x2 = x1 + horizontalResolution;
+				break;
+			case 2:
+				//x1 = x1 + psx.gpu.screenX1 / 5;
+				horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 5;
+				//horizontalResolution = 512;
+				x2 = x1 + horizontalResolution;
+				break;
+			case 3:
+				//x1 = x1 + psx.gpu.screenX1 / 4;
+				horizontalResolution = (psx.gpu.screenX2 - psx.gpu.screenX1) / 4;
+				//horizontalResolution = 640;
+				x2 = x1 + horizontalResolution;
+				break;
+			}
+			if (psx.gpu.gpuStat.elem.verticalRes) {
+				verticalResolution = (psx.gpu.screenY2 - psx.gpu.screenY1) * 2;
+				//verticalResolution = 480;
+				y2 = y1 + verticalResolution;
+			}
+			else {
+				verticalResolution = psx.gpu.screenY2 - psx.gpu.screenY1;
+				//verticalResolution = 240;
+				y2 = y1 + verticalResolution;
+			}
 
-				////ff7 only
-				//x2 = x1 + 368;
+			if (bDrawScreenWindow)
+				DrawRect({ x1, y1 }, { x2 - x1,y2 - y1 });
 
-				if (psx.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
-					olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
-					for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
-						int i = 0; //??
-						for (int y = 0; y < verticalResolution; y++) {
-							olc::Pixel pixel;
-							switch ((/*x1 +*/ x + i) % 3) {
-							case 0: {
-								uint16_t data;
-								gpu_t::vertex_t p;
-								p.x = x1 + x + i;
-								p.y = y1 + y;
-								psx.bus.pGpu->readVram(p, data, true);
-								pixel.r = data & 0xff;
-								pixel.g = (data >> 8) & 0xff;
-								p.x = x1 + x + 1 + i;
-								psx.bus.pGpu->readVram(p, data, true);
-								pixel.b = data & 0xff;
-								break;
-							}
-							case 1: {
-								uint16_t data;
-								gpu_t::vertex_t p;
-								p.x = x1 + x + i;
-								p.y = y1 + y;
-								psx.bus.pGpu->readVram(p, data, true);
-								pixel.r = (data >> 8) & 0xff;
-								p.x = x1 + x + 1 + i;
-								psx.bus.pGpu->readVram(p, data, true);
-								pixel.g = data & 0xff;
-								pixel.b = (data >> 8) & 0xff;
-								break;
-							}
-							case 2:
-								i++;
-								break;
-							}
-							vramView.SetPixel((x + 1) * 2 / 3, y, pixel);
-						}
+			//if (!psx.gpu.gpuStat.elem.displayEnable) {
+
+				//	////ff7 only
+				//	//x2 = x1 + 368;
+
+				//	if (psx.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
+				//		olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
+				//		for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
+				//			int i = 0; //??
+				//			for (int y = 0; y < verticalResolution; y++) {
+				//				olc::Pixel pixel;
+				//				switch ((/*x1 +*/ x + i) % 3) {
+				//				case 0: {
+				//					uint16_t data;
+				//					gpu_t::vertex_t p;
+				//					p.x = x1 + x + i;
+				//					p.y = y1 + y;
+				//					psx.bus.pGpu->readVram(p, data, true);
+				//					pixel.r = data & 0xff;
+				//					pixel.g = (data >> 8) & 0xff;
+				//					p.x = x1 + x + 1 + i;
+				//					psx.bus.pGpu->readVram(p, data, true);
+				//					pixel.b = data & 0xff;
+				//					break;
+				//				}
+				//				case 1: {
+				//					uint16_t data;
+				//					gpu_t::vertex_t p;
+				//					p.x = x1 + x + i;
+				//					p.y = y1 + y;
+				//					psx.bus.pGpu->readVram(p, data, true);
+				//					pixel.r = (data >> 8) & 0xff;
+				//					p.x = x1 + x + 1 + i;
+				//					psx.bus.pGpu->readVram(p, data, true);
+				//					pixel.g = data & 0xff;
+				//					pixel.b = (data >> 8) & 0xff;
+				//					break;
+				//				}
+				//				case 2:
+				//					i++;
+				//					break;
+				//				}
+				//				vramView.SetPixel((x + 1) * 2 / 3, y, pixel);
+				//			}
+				//		}
+				//		decSprite.reset(new olc::Decal(&vramView));
+				//		DrawDecal({ 0, 0 }, decSprite.get(), { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
+				//	}
+				//	else {
+				//		decSprite.reset(new olc::Decal(psx.gpu.getVramSprite()));
+				//		DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
+				//			{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
+				//	}
+				//}
+				//else
+				//	Clear(olc::BLACK);
+			}
+			else {
+				//debugger
+
+				for (int i = 0; i < 32; i++) {
+					uint32_t data;
+					uint8_t cycels;
+
+					psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
+					uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
+					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
+					if (i == 16) {
+						DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
+						DrawString(464, 108 + 36, "pc:", olc::WHITE);
+						DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
 					}
-					decSprite.reset(new olc::Decal(&vramView));
-					DrawDecal({ 0, 0 }, decSprite.get(), { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}
-				else {
-					decSprite.reset(new olc::Decal(psx.gpu.getVramSprite()));
-					DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
-						{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
+				for (int i = 0; i < 32; i++) {
+					std::string s = psx.cpuSOC.executedOpcodes[i];
+					DrawString(489, 0 + 9 * (33 + i), s);
 				}
-			}
-			else
-				Clear(olc::BLACK);
-		}
-		else {
-			//debugger
-
-			for (int i = 0; i < 32; i++) {
-				uint32_t data;
-				uint8_t cycels;
-
-				psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
-				uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
-				DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
-				if (i == 16) {
-					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
-					DrawString(464, 108 + 36, "pc:", olc::WHITE);
-					DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
+				for (int i = 0; i < 32; i++) {
+					std::stringstream ss;
+					if (i < 10)
+						ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+					else
+						ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+					DrawString(0, i * 9, ss.str());
 				}
-			}
-			for (int i = 0; i < 32; i++) {
-				std::string s = psx.cpuSOC.executedOpcodes[i];
-				DrawString(489, 0 + 9 * (33 + i), s);
-			}
-			for (int i = 0; i < 32; i++) {
 				std::stringstream ss;
-				if (i < 10)
-					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
-				else
-					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
-				DrawString(0, i * 9, ss.str());
+				ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
+				DrawString(0, 32 * 9, ss.str());
+				ss.str("\0");
+				ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
+				DrawString(0, 33 * 9, ss.str());
+				ss.str("\0");
+				ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
+				DrawString(0, 34 * 9, ss.str());
+				ss.str("\0");
+				ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
+				DrawString(0, 35 * 9, ss.str());
+				ss.str("\0");
+				ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
+				DrawString(0, 36 * 9, ss.str());
 			}
+
+			if (g_emulationPaused)
+				DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
+
+			if (g_GteInstructionsLogged)
+				DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+
 			std::stringstream ss;
-			ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
-			DrawString(0, 32 * 9, ss.str());
+			ss << "system clocks: " << psx.gpu.cpuClocks;
+			DrawString(0, 512 + 4, ss.str(), olc::WHITE);
 			ss.str("\0");
-			ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
-			DrawString(0, 33 * 9, ss.str());
+			ss << "system frames: " << g_systemFrames;
+			DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
 			ss.str("\0");
-			ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
-			DrawString(0, 34 * 9, ss.str());
+			ss << "system seconds: " << g_systemSeconds;
+			DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
 			ss.str("\0");
-			ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
-			DrawString(0, 35 * 9, ss.str());
-			ss.str("\0");
-			ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
-			DrawString(0, 36 * 9, ss.str());
+			ss << "system minutes: " << g_systemMinutes;
+			DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
+			return true;
 		}
 
-		if (g_emulationPaused)
-			DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
+		bool OnUserDestroy() override {
+			olc::SOUND::DestroyAudio();
+			return true;
+		}
+	};
 
-		if (g_GteInstructionsLogged)
-			DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
+	psxEmulator_t* psxEmulator_t::pInstance = nullptr;
 
-		std::stringstream ss;
-		ss << "system clocks: " << psx.gpu.cpuClocks;
-		DrawString(0, 512 + 4, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system frames: " << g_systemFrames;
-		DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system seconds: " << g_systemSeconds;
-		DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system minutes: " << g_systemMinutes;
-		DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
-		return true;
+	int main(int argumentCount, char* argumetVector[]) {
+
+		if (argumentCount == 2) {
+			g_sideload = true;
+			g_sideloadPath = argumetVector[1];
+		}
+
+		psxEmulator_t emulator;
+		if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
+			//if (emulator.Construct(640, 480, 1, 1, false, true))
+			emulator.Start();
+
+		return EXIT_SUCCESS;
 	}
-
-	bool OnUserDestroy() override {
-		olc::SOUND::DestroyAudio();
-		return true;
-	}
-};
-
-psxEmulator_t* psxEmulator_t::pInstance = nullptr;
-
-int main(int argumentCount, char* argumetVector[]) {
-
-	if (argumentCount == 2) {
-		g_sideload = true;
-		g_sideloadPath = argumetVector[1];
-	}
-
-	psxEmulator_t emulator;
-	//if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
-	if (emulator.Construct(640, 480, 2, 2, false, true))
-		emulator.Start();
-
-	return EXIT_SUCCESS;
-}

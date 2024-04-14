@@ -114,15 +114,21 @@ void dma4_t::Clock() {
 	}
 
 	clocks--;
-	if (clocks < elementCount * 2) {
+	if (clocks < elementCount) {
 		uint8_t cycles;
 		uint16_t data;
 
 		if (channelControl.reg.transDir == toMainRAM) {
 			DMARead16(0x1f801da8, data, cycles);
 			pBus->cpuWrite16(memAddrTemp, data, cycles);
+			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
+			DMARead16(0x1f801da8, data, cycles);
+			pBus->cpuWrite16(memAddrTemp, data, cycles);
 		}
 		else {
+			DMARead16(memAddrTemp, data, cycles);
+			pBus->cpuWrite16(0x1f801da8, data, cycles);
+			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
 			DMARead16(memAddrTemp, data, cycles);
 			pBus->cpuWrite16(0x1f801da8, data, cycles);
 		}
