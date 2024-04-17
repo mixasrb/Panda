@@ -417,7 +417,7 @@ void cdDrive::clock() {
 
 	if (bFirstResponse || bSecondResponse || bDataResponse) {
 
-		if (clocks >= waitClocksFirstResponse + 0x36cd2 * 5 / 20 && bFirstResponse) {
+		if (clocks >= waitClocksFirstResponse /*+ 0x36cd2 * 5 / 20*/ && bFirstResponse) {
 			bFirstResponse = false;
 			clocks = 0;
 
@@ -787,7 +787,7 @@ void cdDrive::readN(const uint8_t& command) {
 		pBus->spu.ammXA = amm;
 		pBus->spu.assXA = ass;
 		pBus->spu.asectXA = asect;
-		pBus->spu.p = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
+		pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
 		pBus->spu.submode.data = 0;
 	}
 
@@ -980,16 +980,6 @@ void cdDrive::getTN(const uint8_t& command) {
 	//uint8_t firstResponse[3] = { stat.data, 0x1, 0x1 };
 	uint8_t firstResponse[3] = { stat.data, fromHex8ToBCD(firstTrack), fromHex8ToBCD(lastTrack) };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 3);
-
-	//Gran Turismo
-	// 
-	//WipEout 2097 (Europe)
-	//std::vector<uint8_t> firstResponse = { stat, 0x1, 0x12 };
-	//std::vector<uint8_t> firstResponse = { stat, 0x1, 0x23 };
-	//mortal kombat 3
-	//std::vector<uint8_t> firstResponse = { stat, 0x1, 0x63 };
-	//old
-	//std::vector<uint8_t> firstResponse = { stat, 0x1, 0x23 };
 }
 
 void cdDrive::getTD(const uint8_t& command) {
@@ -1029,63 +1019,14 @@ void cdDrive::getTD(const uint8_t& command) {
 	firstResponse.resize(3);
 	firstResponse = { stat.data, fromHex8ToBCD(amm), fromHex8ToBCD(ass) };
 
-	/*switch (specifiedTrack) {
-	case 0:
-		firstResponse = { stat.data, 0x47, 0x40 };
-		break;
-	case 1:
-		firstResponse = { stat.data, 0x0, 0x2 };
-		break;
-	case 2:
-		firstResponse = { stat.data, 0x5, 0x32 };
-		break;
-	case 3:
-		firstResponse = { stat.data, 0x10, 0x48 };
-		break;
-	case 4:
-		firstResponse = { stat.data, 0x16, 0x10 };
-		break;
-	case 5:
-		firstResponse = { stat.data, 0x21, 0x16 };
-		break;
-	case 6:
-		firstResponse = { stat.data, 0x26, 0x32 };
-		break;
-	case 7:
-		firstResponse = { stat.data, 0x31, 0x48 };
-		break;
-	case 8:
-		firstResponse = { stat.data, 0x37, 0x7 };
-		break;
-	case 9:
-		firstResponse = { stat.data, 0x42, 0x34 };
-		break;
-	}*/
-
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
-
-	//g_emulationPaused = true;
-
-	//mortal kombat 3
-//std::vector<uint8_t> firstResponse = { stat, 4, 15 };
-
-	//WipEout 2097 (Europe)
-	//firstResponse = { stat, 0x0, 0x2 };
-
-	//Gran Turismo
-	//if (paramFifo[0] == 1)
-	//	firstResponse = { stat, 0x0, 0x0 };
-	//if (paramFifo[0] == 0)
-	//	firstResponse = { stat, 0x63, 0x45 };
-
-	//old
-	//std::vector<uint8_t> firstResponse = { stat, 20, 40 };
-
 }
 
 void cdDrive::seekL(const uint8_t& command) {
-	//stat &= (STAT_READ ^ STAT_READ) | (STAT_PLAY ^ STAT_PLAY);//!!??
-	stat.elem.read = 0;//??
+	bDataResponse = false;
+
+	if (stat.elem.read)
+		stat.elem.read = 0;
 
 	if (bSetLoc) {
 		bSetLoc = false;
@@ -1113,6 +1054,11 @@ void cdDrive::seekL(const uint8_t& command) {
 }
 
 void cdDrive::seekP(const uint8_t& command) {
+	bDataResponse = false;
+
+	if (stat.elem.read)
+		stat.elem.read = 0;
+
 	if (bSetLoc)
 		bSetLoc = false;
 	else {
@@ -1219,7 +1165,7 @@ void cdDrive::readS(const uint8_t& command) {
 		pBus->spu.ammXA = amm;
 		pBus->spu.assXA = ass;
 		pBus->spu.asectXA = asect;
-		pBus->spu.p = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
+		pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
 		pBus->spu.submode.data = 0;
 	}
 

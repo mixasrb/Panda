@@ -3,6 +3,7 @@
 #include "dma_controller.h"
 
 extern bool g_emulationPaused;
+extern uint32_t g_systemClocks;
 
 void dma2_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
@@ -109,6 +110,7 @@ void dma2_t::endDMATransfer() {
 
 	//clocks = 0;
 	triggerIRQ();
+	std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 end" << std::dec << g_systemClocks << std::endl;
 }
 
 void dma2_t::Clock() {

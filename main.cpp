@@ -194,6 +194,8 @@ public:
 			}
 		}
 
+		psx.gpu.cpuScanlineClocks = 0;
+
 		//debugger
 		bool executeOneInstruction = false;
 

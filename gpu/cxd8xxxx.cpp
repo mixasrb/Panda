@@ -402,7 +402,6 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 			break;
 		}
 
-
 		data = gpuStat.data;
 	}
 }
@@ -431,7 +430,6 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 
 			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
 
-
 			if (((gp0Command >> 24) >= 0xa0) && ((gp0Command >> 24) < 0xc0))
 				bCollectCopyCpuVramParam = true;
 			else if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
@@ -447,7 +445,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 
 			decodeExecuteGp0Command(gp0Command);
 
-			if (fifoIndex >= 2) {
+			/*if (fifoIndex >= 2) {
 				if (gpuStat.elem.dmaDir == 2)
 					if (pBus->dma.dma2.channelControl.reg.startBusy) {
 						pBus->dma.dma2.channelControl.reg.startBusy = 0;
@@ -460,7 +458,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 					}
 
 				gpuStat.elem.readyCommand = 0;
-			}
+			}*/
 
 			//??
 			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
@@ -480,19 +478,28 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void gpu_t::videoClock() {
+	if (cpuScanlineClocks == CPU_CLOCKS_TO_HBLANK_NTSC) {
+		//Hblank clocking timer 1
+		pBus->timer0.bHblank = true;
+		pBus->timer0.clock(_HBLANK_CLOCK);
+		pBus->timer1.clock(_HBLANK_CLOCK);
+	}
+
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
 		cpuScanlineClocks = 0;
 		scanlineCount++;
-
-		//Hblank clocking timer 1
-		pBus->timer1.clock(_HBLANK_CLOCK);
-		pBus->timer0.clock(_HBLANK_CLOCK);
+		pBus->timer0.bHblank = false;
 
 		if (gpuStat.elem.verticalInterlace)
 			if (!gpuStat.elem.verticalRes)
 				gpuStat.elem.drawingEvenOddLines = (scanlineCount <= screenY2) ? scanlineCount & 0x1 : 0;
 
 		if (scanlineCount == screenY2) {
+			pBus->timer1.bVblank = true;
+
+			if (g_GpuCommandsLogged)
+				std::cout << "~[GPU] GPU VBlank"<< std::endl;
+
 			//fifoCount = 0;
 			//gpuStat.elem.readyDma = 1;
 			//gpuStat.elem.readyCommand = 1;
@@ -515,7 +522,11 @@ void gpu_t::videoClock() {
 			//vramView.DuplicateUnsafe(pVramViewBuffered);
 		}
 		else if (scanlineCount == scanlineNumber) {
-			scanlineCount = -1;
+			scanlineCount = 0;
+			pBus->timer1.bVblank = false;
+
+			if (g_GpuCommandsLogged)
+				std::cout << "~[GPU] GPU non VBlank" << std::endl;
 
 			//pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
 

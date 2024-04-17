@@ -447,7 +447,7 @@ public:
 	int16_t oldMono = 0;
 	int16_t olderMono = 0;
 
-	uint32_t p = 0;
+	uint32_t currentSample = 0;
 	uint8_t b = 0;
 	uint8_t k = 0;
 	uint32_t counterMono = 0;
@@ -492,8 +492,8 @@ public:
 	bool b8BitsPerSample = false;
 	bool bCycle = false;
 
-	const float step44kHz = 1.0f / 7.0f;
-	const float step37kHz = 1.0f / 6.0f;
+	const float step44kHz = 1.0f / 44100.0f;
+	const float step37kHz = 1.0f / 37800.0f;
 	float counter37kHz = 0.0f;
 	output_t outputCDXA;
 	output_t outputAudioCD;

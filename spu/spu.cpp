@@ -1292,8 +1292,8 @@ output_t spu_t::clock() {
 		output = output + outputTempVoices;
 
 	//nearest neighbor interpolation 
-	counter37kHz += step44kHz; // dont look right but works
-	if (counter37kHz >= (step37kHz / 2.0f)) {
+	counter37kHz += step44kHz;
+	if (counter37kHz >= step37kHz) {
 		counter37kHz -= step37kHz;
 
 		outputCDXA.channel0 = 0.0f;
@@ -1349,8 +1349,8 @@ output_t spu_t::clock() {
 	if (spuControlRegister.elem.cdAudioReverb)
 		inputReverb = inputReverb + outputAudioCD;
 
-	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCDXA.channel0 * 32767.0f));
-	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCDXA.channel1 * 32767.0f));
+	writeDram16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel0 * 32767.0f));
+	writeDram16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputAudioCD.channel1 * 32767.0f));
 	cdAudioBufferCounter++;
 
 	reverbClock(inputReverb, cycle);
@@ -1466,40 +1466,40 @@ output_t spu_t::clockXA_ADPCM() {
 
 	const uint16_t samplesPerSectorXA_ADPCM = 28 * 2 * 4 * 18;
 
-	if (p == samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1)) {
-		if (!submode.elem.endOfFile)
-		{
-			p = 0;
+	if (currentSample == samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1)) {
+		//if (!submode.elem.endOfFile)//??
+		//{
+			currentSample = 0;
 			pBus->pCdDrive->readSectorXA_ADPCM(ammXA, assXA, asectXA, pBufferXA);
 			decodeSectorXA_ADPCM(pBufferXA);
-		}
+		//}
 	}
 
-	if (p < samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1))
+	if (currentSample < samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1))
 		if (bSampleRate18900Hz) {
 			if (bCycle) {
 				if (bStereo) {
-					outputSample.channel0 = samplesLeftXA[p >> 1] / 32767.0f;
-					outputSample.channel1 = samplesRightXA[p >> 1] / 32767.0f;
-					p += 2;
+					outputSample.channel0 = samplesLeftXA[currentSample >> 1] / 32767.0f;
+					outputSample.channel1 = samplesRightXA[currentSample >> 1] / 32767.0f;
+					currentSample += 2;
 				}
 				else {
-					outputSample.channel0 = samplesMonoXA[p] / 32767.0f;
-					outputSample.channel1 = samplesMonoXA[p] / 32767.0f;
-					p++;
+					outputSample.channel0 = samplesMonoXA[currentSample] / 32767.0f;
+					outputSample.channel1 = samplesMonoXA[currentSample] / 32767.0f;
+					currentSample++;
 				}
 			}
 		}
 		else {
 			if (bStereo) {
-				outputSample.channel0 = samplesLeftXA[p >> 1] / 32767.0f;
-				outputSample.channel1 = samplesRightXA[p >> 1] / 32767.0f;
-				p += 2;
+				outputSample.channel0 = samplesLeftXA[currentSample >> 1] / 32767.0f;
+				outputSample.channel1 = samplesRightXA[currentSample >> 1] / 32767.0f;
+				currentSample += 2;
 			}
 			else {
-				outputSample.channel0 = samplesMonoXA[p] / 32767.0f;
-				outputSample.channel1 = samplesMonoXA[p] / 32767.0f;
-				p++;
+				outputSample.channel0 = samplesMonoXA[currentSample] / 32767.0f;
+				outputSample.channel1 = samplesMonoXA[currentSample] / 32767.0f;
+				currentSample++;
 			}
 		}
 
