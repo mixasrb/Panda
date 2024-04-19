@@ -577,10 +577,10 @@ void cpu_t::clock() {
 			r[2] = 1; */
 
 		//Hot Wheels - Turbo Racing (USA)
-		if (pc == 0x80101310)
-			r[2] = 1;
-		/*if (pc == 0x800b42e0)
-			r[2] = 0x200;*/
+		//if (pc == 0x80101310)
+		//	r[2] = 1;
+		///*if (pc == 0x800b42e0)
+		//	r[2] = 0x200;*/
 
 
 		pc += 4;
