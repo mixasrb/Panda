@@ -437,7 +437,7 @@ void cdDrive::clock() {
 		//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 			//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
 																		 //bugs bunny games also  resident evil 1 ??
-		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 14 / 10*/ /*+ 0x36cd2 * 20 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*//* + 0x36cd2 * 14 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			dataClocks = 0;
 
@@ -539,29 +539,31 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
 
 	if (!bPlay)
-		switch (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) {
-		case 0x0:
+		if ((uint8_t)fileDataVect[currentPossition + 0x11] == 0xff)
 			std::cout << "~[CD_DRIVE] unused sector" << std::endl;
-			waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
-			break;
-		case 0x2:
-			std::cout << "~[CD_DRIVE] video sector" << std::endl;
-			waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
-			break;
-		case 0x4:
-			std::cout << "~[CD_DRIVE] audio sector" << std::endl;
-			waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
-			break;
-		case 0x8:
-
-			std::cout << "~[CD_DRIVE] data sector" << std::endl;
-			break;
-		default:
-			std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
-				std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1) << std::endl;
-			g_emulationPaused = true;
-			break;
-		}
+		else
+			switch (((uint8_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) {
+			case 0x0:
+				std::cout << "~[CD_DRIVE] unused sector" << std::endl;
+				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				break;
+			case 0x2:
+				std::cout << "~[CD_DRIVE] video sector" << std::endl;
+				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				break;
+			case 0x4:
+				std::cout << "~[CD_DRIVE] audio sector" << std::endl;
+				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				break;
+			case 0x8:
+				std::cout << "~[CD_DRIVE] data sector" << std::endl;
+				break;
+			default:
+				std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
+					std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1) << std::endl;
+				g_emulationPaused = true;
+				break;
+			}
 	else
 		std::cout << "~[CD_DRIVE] CDDA sector" << std::endl;
 

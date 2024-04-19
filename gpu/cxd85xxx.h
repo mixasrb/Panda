@@ -285,8 +285,8 @@ public:
 		}
 		uint32_t data;
 		struct {
-			uint32_t x : 8;
-			uint32_t y : 8;
+			uint32_t u : 8;
+			uint32_t v : 8;
 			uint32_t attribute : 16;
 		}elem;
 	};

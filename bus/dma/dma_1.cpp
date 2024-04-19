@@ -39,11 +39,16 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 		}
 
 		if (channelControl.reg.startBusy) {
+			bTransferActive = true;
 			pDMAController->isCpuStopped = true;
+			/*pDMAController->isCpuStopped = false;
+			syncClocks = 0x100;*/
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
+				blockWordCount = blockControl.reg.bc_bs;
 				std::cout << "~[DMA1] (MDECout) element count: 0x"
+
 					<< std::hex << elementCount << std::endl;
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_1;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
@@ -95,6 +100,7 @@ void dma1_t::triggerIRQ() {
 }
 
 void dma1_t::endDMATransfer() {
+	bTransferActive = false;
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
 
@@ -104,6 +110,16 @@ void dma1_t::endDMATransfer() {
 }
 
 void dma1_t::Clock() {
+
+	if (pDMAController->isCpuStopped == false) {
+		if (syncClocks == 0) {
+			pDMAController->isCpuStopped = true;
+			channelControl.reg.startBusy = 1;
+		}
+		else
+			syncClocks--;
+		return;
+	}
 
 	if (clocks == 0) {
 		if (channelControl.reg.syncMode == syncBlocks) {
@@ -126,5 +142,14 @@ void dma1_t::Clock() {
 			//Unhandled
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
+
+		/*blockWordCount--;
+		if (blockWordCount == 0) {
+			channelControl.reg.startBusy = 0;
+			blockWordCount = blockControl.reg.bc_bs;
+			pDMAController->isCpuStopped = false;
+			syncClocks = 0x1;
+			memoryAddress.reg.memAddr = memAddrTemp;
+		}*/
 	}
 }

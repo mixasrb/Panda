@@ -88,6 +88,7 @@ extern bool g_GpuCommandsLogged;
 extern int g_mousePossitionX;
 extern int g_mousePossitionY;
 extern bool g_logPixel;
+extern bool g_manualInterruptDMA;
 
 #undef DISABLE_SCALING
 #define DISABLE_SCALING 0
@@ -486,6 +487,13 @@ void gpu_t::videoClock() {
 	}
 
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
+
+		if (g_manualInterruptDMA)
+			if (pBus->dma.interruptRegister.reg.IRQ_enable_dma1)
+				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
+			else
+				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;
+
 		cpuScanlineClocks = 0;
 		scanlineCount++;
 		pBus->timer0.bHblank = false;
@@ -498,7 +506,7 @@ void gpu_t::videoClock() {
 			pBus->timer1.bVblank = true;
 
 			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU VBlank"<< std::endl;
+				std::cout << "~[GPU] GPU VBlank" << std::endl;
 
 			//fifoCount = 0;
 			//gpuStat.elem.readyDma = 1;
@@ -517,6 +525,12 @@ void gpu_t::videoClock() {
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
+
+			/*if (g_manualInterruptDMA)
+				if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4)
+					pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
+				else
+					pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 0;*/
 
 			//not completely tested 	
 			//vramView.DuplicateUnsafe(pVramViewBuffered);
@@ -1510,7 +1524,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 
 	struct {
 		bool bit15;
-		uint8_t devider;
+		uint8_t shifterDevider;
 		uint8_t firstAnder;
 		uint8_t shifter;
 		uint8_t secondAnder;
@@ -1519,26 +1533,26 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 	switch (gpuStat.elem.texPageColors) {
 	case 0: //4bit
 		texBittnesVar.bit15 = false;
-		texBittnesVar.devider = 4;
+		texBittnesVar.shifterDevider = 2;
 		texBittnesVar.firstAnder = 0x3;
 		texBittnesVar.shifter = 2;
 		texBittnesVar.secondAnder = 0xf;
 		break;
 	case 1: //8bit
 		texBittnesVar.bit15 = false;
-		texBittnesVar.devider = 2;
+		texBittnesVar.shifterDevider = 1;
 		texBittnesVar.firstAnder = 0x1;
 		texBittnesVar.shifter = 3;
 		texBittnesVar.secondAnder = 0xff;
 		break;
 	case 2: //15bit
 		texBittnesVar.bit15 = true;
-		texBittnesVar.devider = 1;
+		texBittnesVar.shifterDevider = 0;
 		texBittnesVar.firstAnder = 0x0;
 		break;
 	case 3: //Reserved //Disney's Aladdin in Nasira's Revenge uses
 		texBittnesVar.bit15 = true;
-		texBittnesVar.devider = 1;
+		texBittnesVar.shifterDevider = 0;
 		texBittnesVar.firstAnder = 0x0;
 		break;
 	}
@@ -1561,17 +1575,20 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 	psxColor24_t color3 = param.color3;
 	psxColor24_t color4 = param.color4;
 
-	int u1 = param.texCoord1Palette.elem.x;
-	int v1 = param.texCoord1Palette.elem.y;
-	int u2 = param.texCoord2TexPage.elem.x;
-	int v2 = param.texCoord2TexPage.elem.y;
-	int u3 = param.texCoord3.elem.x;
-	int v3 = param.texCoord3.elem.y;
-	int u4 = param.texCoord4.elem.x;
-	int v4 = param.texCoord4.elem.y;
+	int u1 = param.texCoord1Palette.elem.u;
+	int v1 = param.texCoord1Palette.elem.v;
+	int u2 = param.texCoord2TexPage.elem.u;
+	int v2 = param.texCoord2TexPage.elem.v;
+	int u3 = param.texCoord3.elem.u;
+	int v3 = param.texCoord3.elem.v;
+	int u4 = param.texCoord4.elem.u;
+	int v4 = param.texCoord4.elem.v;
 
 	psxColor24_t blendingColor;
 	psxColor16_t frontPixelColor;
+
+	/*if (u1 & 0x3)
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << (u1 & 0x3) << std::endl;*/
 
 	std::tuple p0{ x1, y1, color1.component.blue, color1.component.green, color1.component.red, u1, v1 };
 	std::tuple p1{ x2, y2, color2.component.blue, color2.component.green, color2.component.red, u2, v2 };
@@ -1579,17 +1596,17 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 
 	DrawPolygonInterpolated(
 		p0, p1, p2,
-		[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint16_t u, uint16_t v) {
+		[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
 			vertex_t p(x, y);
 
 			vertex_t pTex;
 			pTex.y = gpuStat.elem.texPageYBase << 8;
-			pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
+			pTex.y += (v & 255 & (~(texWinMask.y << 3)))
+				| ((texWinOffset.y & texWinMask.y) << 3);
 
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
-				/ texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
-				| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
+			pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
+				| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
 
 			uint16_t data;
 			readVram(pTex, data, true);
@@ -1599,8 +1616,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 			else {
 				vertex_t pClut;
 				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
-						& texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+					((data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 				pClut.y = clut.elem.yCoord;
 				readVram(pClut, frontPixelColor.data, true);
 			}
@@ -1646,17 +1662,17 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 
 		DrawPolygonInterpolated(
 			p0, p1, p2,
-			[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint16_t u, uint16_t v) {
+			[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
 				vertex_t p(x, y);
 
 				vertex_t pTex;
 				pTex.y = gpuStat.elem.texPageYBase << 8;
-				pTex.y += ((int)round(v) & 255 & (~(texWinMask.y << 3))) | ((texWinOffset.y & texWinMask.y) << 3);
+				pTex.y += (v & 255 & (~(texWinMask.y << 3)))
+					| ((texWinOffset.y & texWinMask.y) << 3);
 
 				pTex.x = gpuStat.elem.texPageXBase << 6;
-				pTex.x += (((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
-					/ texBittnesVar.devider & 255 / texBittnesVar.devider) & (~((texWinMask.x << 3) / texBittnesVar.devider)))
-					| ((texWinOffset.x & texWinMask.x) / texBittnesVar.devider << 3));
+				pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
+					| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
 
 				uint16_t data;
 				readVram(pTex, data, true);
@@ -1666,8 +1682,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 				else {
 					vertex_t pClut;
 					pClut.x = (clut.elem.xCoord << 4) +
-						((data >> ((((int)round(u) /*+ ((texBittnesVar.devider == 4) ? ((4 - (u1 & texBittnesVar.firstAnder)) & 0x3) : (u1 & texBittnesVar.firstAnder))*/)
-							& texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
+						((data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 					pClut.y = clut.elem.yCoord;
 					readVram(pClut, frontPixelColor.data, true);
 				}
@@ -1840,8 +1855,8 @@ void gpu_t::drawLine(const param_t& param) { //could be optimized
 
 void gpu_t::drawTexRect15Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
-	int16_t u1 = param.texCoord1Palette.elem.x;
-	int16_t v1 = param.texCoord1Palette.elem.y;
+	int16_t u1 = param.texCoord1Palette.elem.u;
+	int16_t v1 = param.texCoord1Palette.elem.v;
 	int16_t u2 = u1 + (param.size_y_x & 0xffff);
 	int16_t v2 = v1 + ((param.size_y_x >> 16) & 0xffff);
 	uint16_t texData;
@@ -1898,8 +1913,8 @@ void gpu_t::drawTexRect15Bit(const param_t& param) {
 
 void gpu_t::drawTexRect8Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
-	int16_t u1 = param.texCoord1Palette.elem.x;
-	int16_t v1 = param.texCoord1Palette.elem.y;
+	int16_t u1 = param.texCoord1Palette.elem.u;
+	int16_t v1 = param.texCoord1Palette.elem.v;
 	int16_t u2 = u1 + (param.size_y_x & 0xffff);
 	int16_t v2 = v1 + ((param.size_y_x >> 16) & 0xffff);
 	uint16_t texData;
@@ -1961,8 +1976,8 @@ void gpu_t::drawTexRect8Bit(const param_t& param) {
 
 void gpu_t::drawTexRect4Bit(const param_t& param) {
 	psxColor24_t blendingColor = param.commandColor1;
-	int16_t u1 = param.texCoord1Palette.elem.x;
-	int16_t v1 = param.texCoord1Palette.elem.y;
+	int16_t u1 = param.texCoord1Palette.elem.u;
+	int16_t v1 = param.texCoord1Palette.elem.v;
 	int16_t u2 = u1 + (param.size_y_x & 0xffff);
 	int16_t v2 = v1 + ((param.size_y_x >> 16) & 0xffff);
 	uint16_t texData;

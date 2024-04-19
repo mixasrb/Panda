@@ -275,9 +275,8 @@ public:
 			if (GetKey(olc::Key::E).bPressed)
 				isDebuggerViewed = !isDebuggerViewed;
 
-			/*if (GetKey(olc::Key::T).bPressed) {
-				psx.cpuSOC.cp0.cop0r[12] |= 1;
-			}*/
+			if (GetKey(olc::Key::T).bPressed)
+				g_manualInterruptDMA = !g_manualInterruptDMA;
 
 			if (GetKey(olc::Key::W).bPressed)
 				bDrawScreenWindow = !bDrawScreenWindow;

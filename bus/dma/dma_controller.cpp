@@ -199,7 +199,7 @@ void dmaController_t::clock() {
 }
 
 bool dmaController_t::clock0() {
-	if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy) { //??
+	if (controlRegister.reg.mdecIn_master_enable && dma0.bTransferActive) { //??
 		dma0.Clock();
 		return true;
 	}
@@ -207,7 +207,7 @@ bool dmaController_t::clock0() {
 }
 
 bool dmaController_t::clock1() {
-	if (controlRegister.reg.mdecOut_master_enable && dma1.channelControl.reg.startBusy) {//??
+	if (controlRegister.reg.mdecOut_master_enable && dma1.bTransferActive) {//??
 		dma1.Clock();
 		return true;
 	}
@@ -231,7 +231,7 @@ bool dmaController_t::clock3() {
 }
 
 bool dmaController_t::clock4() {
-	if (controlRegister.reg.spu_master_enable && dma4.channelControl.reg.startBusy) {//??
+	if (controlRegister.reg.spu_master_enable && dma4.bTransferActive) {//??
 		dma4.Clock();
 		return true;
 	}

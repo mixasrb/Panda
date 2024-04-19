@@ -35,5 +35,9 @@ public:
 	uint64_t clocks = 0;
 	uint32_t memAddrTemp;
 	uint32_t elementCount;
+
+	bool bTransferActive = false;
+	uint32_t blockWordCount = 0;
+	uint32_t syncClocks = 0;
 };
 
