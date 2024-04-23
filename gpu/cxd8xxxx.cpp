@@ -488,11 +488,17 @@ void gpu_t::videoClock() {
 
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
 
-		if (g_manualInterruptDMA)
+		/*if (g_manualInterruptDMA)
+			if (pBus->dma.interruptRegister.reg.IRQ_enable_dma0)
+				pBus->dma.interruptRegister.reg.IRQ_flag_dma0 = 1;
+			else
+				pBus->dma.interruptRegister.reg.IRQ_flag_dma0 = 0;*/
+
+		/*if (g_manualInterruptDMA)
 			if (pBus->dma.interruptRegister.reg.IRQ_enable_dma1)
 				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
 			else
-				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;
+				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;*/
 
 		cpuScanlineClocks = 0;
 		scanlineCount++;
@@ -536,6 +542,7 @@ void gpu_t::videoClock() {
 			//vramView.DuplicateUnsafe(pVramViewBuffered);
 		}
 		else if (scanlineCount == scanlineNumber) {
+
 			scanlineCount = 0;
 			pBus->timer1.bVblank = false;
 

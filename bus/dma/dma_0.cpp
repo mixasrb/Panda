@@ -46,7 +46,7 @@ void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
 				blockWordCount = blockControl.reg.bc_bs;
-				std::cout << "~[DMA0] (MDECin) element count: 0x"
+				std::cout << "~[DMA0] Start (MDECin) element count: 0x"
 
 					<< std::hex << elementCount << std::endl;
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_0;
@@ -106,6 +106,7 @@ void dma0_t::endDMATransfer() {
 	pDMAController->currentClockFunction = 8;
 
 	triggerIRQ();
+	std::cout << "@@@@@@@DMA0 end" << std::endl;
 }
 
 void dma0_t::Clock() {

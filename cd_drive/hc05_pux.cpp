@@ -55,7 +55,7 @@ cdDrive::cdDrive() {
 	uint32_t temp_mm = secondsCount / 60;
 
 	currentTrack.index1End = currentTrack.index1Start;
-	addSector(currentTrack.index1End, (uint16_t)temp_mm, (uint16_t)temp_ss, (uint16_t)temp_sect - 1);
+	addSector(currentTrack.index1End, temp_mm, temp_ss, temp_sect - 1);
 
 	std::stringstream ss1;
 	ss1 << "(Track 01).bin";
@@ -142,24 +142,24 @@ void cdDrive::readCdDrive8(const uint32_t& addr, uint8_t& data) {
 	case 0x1f801800:
 		//Set stat flags
 		if (paramFifo.empty())
-			indexStatus.reg.prmempt = 1;
+			indexStatus.elem.prmempt = 1;
 		else
-			indexStatus.reg.prmempt = 0;
+			indexStatus.elem.prmempt = 0;
 
 		if (paramFifo.size() == 16)
-			indexStatus.reg.prmwrdy = 0;
+			indexStatus.elem.prmwrdy = 0;
 		else
-			indexStatus.reg.prmwrdy = 1;
+			indexStatus.elem.prmwrdy = 1;
 
 		if (responseFifo.empty())
-			indexStatus.reg.rslrrdy = 0;
+			indexStatus.elem.rslrrdy = 0;
 		else
-			indexStatus.reg.rslrrdy = 1;
+			indexStatus.elem.rslrrdy = 1;
 
 		if (bufferCounter == 0)
-			indexStatus.reg.drqsts = 0;
+			indexStatus.elem.drqsts = 0;
 		else
-			indexStatus.reg.drqsts = 1;
+			indexStatus.elem.drqsts = 1;
 
 		data = indexStatus.data;
 		break;
@@ -176,14 +176,14 @@ void cdDrive::readCdDrive8(const uint32_t& addr, uint8_t& data) {
 		break;
 
 	case 0x1f801803:
-		switch (indexStatus.reg.index) {
+		switch (indexStatus.elem.index) {
 		case 0:
 		case 2:
 			data = interruptEnable.data;
 			break;
 		case 1:
 		case 3:
-			data = 0xe0 | irqFlagRead.reg.int_1_7 | (irqFlagRead.reg.int_8 << 3) | (irqFlagRead.reg.int_10 << 4);
+			data = 0xe0 | irqFlagRead.elem.int_1_7 | (irqFlagRead.elem.int_8 << 3) | (irqFlagRead.elem.int_10 << 4);
 			break;
 		}
 		break;
@@ -193,11 +193,11 @@ void cdDrive::readCdDrive8(const uint32_t& addr, uint8_t& data) {
 void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 	switch (addr) {
 	case 0x1f801800:
-		indexStatus.reg.index = data << 6 >> 6;
+		indexStatus.elem.index = data << 6 >> 6;
 		break;
 
 	case 0x1f801801:
-		switch (indexStatus.reg.index) {
+		switch (indexStatus.elem.index) {
 		case 0:
 			commandVector.push_back(data);
 			std::cout << "~[CD_DRIVE] command sent : " << commandLookup[data].name << std::endl;
@@ -221,7 +221,7 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 		break;
 
 	case 0x1f801802:
-		switch (indexStatus.reg.index) {
+		switch (indexStatus.elem.index) {
 		case 0:
 			paramFifo.insert(paramFifo.begin(), data);
 			std::cout << "~[CD_DRIVE] param 0x" << (uint16_t)data << std::endl;
@@ -243,28 +243,28 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 		break;
 
 	case 0x1f801803:
-		switch (indexStatus.reg.index) {
+		switch (indexStatus.elem.index) {
 		case 0:
 
 			requestReg.data = data;
 
-			if (requestReg.reg.smen) {
+			if (requestReg.elem.smen) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! unhandled SMEN 0x1f801803 index 0\n";
 				g_emulationPaused = true;
 			}
 
-			if (requestReg.reg.bfwr) {
+			if (requestReg.elem.bfwr) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! unhandled BFWR 0x1f801803 index 0\n";
 				g_emulationPaused = true;
 			}
 
-			if (requestReg.reg.bfrd) {
+			if (requestReg.elem.bfrd) {
 				//bufferCounter = sectorSize; //!?
-				indexStatus.reg.drqsts = 1; //!?
+				indexStatus.elem.drqsts = 1; //!?
 				std::cout << "~[CD_DRIVE] load data fifo\n";
 			}
 			else {
-				indexStatus.reg.drqsts = 0;
+				indexStatus.elem.drqsts = 0;
 				std::cout << "~[CD_DRIVE] reset data fifo\n";
 			}
 
@@ -272,19 +272,19 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 		case 1:
 
 			if ((data & 0x7) == 0x7) {
-				if (irqFlagRead.reg.int_1_7)
-					std::cout << "~[CD_DRIVE] acknowledged INT" << (uint16_t)irqFlagRead.reg.int_1_7 << std::endl;
-				irqFlagRead.reg.int_1_7 = 0;
+				if (irqFlagRead.elem.int_1_7)
+					std::cout << "~[CD_DRIVE] acknowledged INT" << (uint16_t)irqFlagRead.elem.int_1_7 << std::endl;
+				irqFlagRead.elem.int_1_7 = 0;
 			}
 			if (data & 0x8) {
-				if (irqFlagRead.reg.int_8)
+				if (irqFlagRead.elem.int_8)
 					std::cout << "~[CD_DRIVE] acknowledged INT8" << std::endl;
-				irqFlagRead.reg.int_8 = 0;
+				irqFlagRead.elem.int_8 = 0;
 			}
 			if (data & 0x10) {
-				if (irqFlagRead.reg.int_10)
+				if (irqFlagRead.elem.int_10)
 					std::cout << "~[CD_DRIVE] acknowledged INT10" << std::endl;
-				irqFlagRead.reg.int_10 = 0;
+				irqFlagRead.elem.int_10 = 0;
 			}
 			if (data & 0x40) {
 				std::cout << "~[CD_DRIVE] parameter fifo reseted" << std::endl;
@@ -390,16 +390,16 @@ void cdDrive::clock() {
 
 	bool bDeliverResponseINT = !responsesINT.empty() && (irqFlagRead.data == 0);
 	if (bDeliverResponseINT) {
-		irqFlagRead.reg.int_1_7 = responsesINT[0];
+		irqFlagRead.elem.int_1_7 = responsesINT[0];
 		responsesINT.erase(responsesINT.begin());
-		if (irqFlagRead.reg.int_1_7)
-			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irqFlagRead.reg.int_1_7) << " flag" << std::endl;
-		if (irqFlagRead.reg.int_8)
+		if (irqFlagRead.elem.int_1_7)
+			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irqFlagRead.elem.int_1_7) << " flag" << std::endl;
+		if (irqFlagRead.elem.int_8)
 			std::cout << "~[CD_DRIVE] sent INT8" << " flag" << std::endl;
-		if (irqFlagRead.reg.int_10)
+		if (irqFlagRead.elem.int_10)
 			std::cout << "~[CD_DRIVE] sent INT10" << " flag" << std::endl;
 
-		if ((interruptEnable.reg.enableBits & 0x7) >= irqFlagRead.reg.int_1_7) {
+		if ((interruptEnable.elem.enableBits & 0x7) >= irqFlagRead.elem.int_1_7) {
 			pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
 			std::cout << "~[CD_DRIVE] sent IRQ" << std::endl;
 		}
@@ -410,7 +410,7 @@ void cdDrive::clock() {
 	if (bExecuteCommand) {
 		clocks = 0;
 
-		indexStatus.reg.busysts = 1;
+		indexStatus.elem.busysts = 1;
 		executeCommand(commandVector[0]);
 		commandVector.erase(commandVector.begin());
 	}
@@ -421,7 +421,7 @@ void cdDrive::clock() {
 			bFirstResponse = false;
 			clocks = 0;
 
-			indexStatus.reg.busysts = 0;
+			indexStatus.elem.busysts = 0;
 			sendResponseINT(firstResponseINT, tempFirstResponseVector.data(), tempFirstResponseVector.size());
 			tempFirstResponseVector.clear();
 		}
@@ -529,7 +529,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	bufferCounter = sectorSize;
 
 	if ((mode.elem.xa_adpcm) && (fileDataVect[currentPossition + 0x12] & 0x4))
-		indexStatus.reg.adpbusy = 1;
+		indexStatus.elem.adpbusy = 1;
 
 	waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
 	//waitClocksDataResponse += 0x36cd2 * 10 / 10;
@@ -627,12 +627,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	}
 }
 
-void cdDrive::setDriveMode() {
-	sectorSize = mode.elem.sectorSize ? 0x924 : 0x800;
-
-	if (mode.elem.xa_adpcm == 0)
-		indexStatus.reg.adpbusy = 0;
-
+void cdDrive::printDriveMode() {
 	std::cout << std::hex << "~[CD_DRIVE] mode: " << (uint16_t)mode.data << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] speed: " << (uint16_t)mode.elem.speed << std::endl;
 	std::cout << std::hex << "~[CD_DRIVE] XA-ADCPM: " << (uint16_t)mode.elem.xa_adpcm << std::endl;
@@ -666,6 +661,7 @@ void cdDrive::getStat(const uint8_t& command) {
 
 void cdDrive::play(const uint8_t& command) {
 	bPlay = true;
+	bDataResponse = true;
 
 	//stat.elem.read = 0;//??
 
@@ -724,7 +720,6 @@ void cdDrive::play(const uint8_t& command) {
 	stat.elem.seek = 0; //~ used for gran turismo 2
 	stat.elem.play = 1;
 
-	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
 }
 
@@ -830,8 +825,10 @@ void cdDrive::stop(const uint8_t& command) {
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
 	stat.elem.spindleMotor = 0;
+
 	uint8_t secondResponse[1] = { stat.data };
 	uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 / 40 : 0x21181c / 40; //??
+	//	uint32_t secondWaitClocks = mode.elem.speed ? 0x0d38aca : 0x18a6076; //should be
 	setSecondResponse(secondWaitClocks, INT2, secondResponse, 1);
 }
 
@@ -857,7 +854,7 @@ void cdDrive::init(const uint8_t& command) {
 	bPlay = false;//??
 
 	mode.data = 0x20;
-	setDriveMode();
+	printDriveMode();
 
 	sectorSize = 0x924;
 	uint8_t firstResponse[1] = { stat.data };
@@ -899,7 +896,12 @@ void cdDrive::setFilter(const uint8_t& command) {
 void cdDrive::setMode(const uint8_t& command) {
 	mode.data = paramFifo.back();
 	paramFifo.pop_back();
-	setDriveMode();
+
+	sectorSize = mode.elem.sectorSize ? 0x924 : 0x800;
+	if (mode.elem.xa_adpcm == 0)
+		indexStatus.elem.adpbusy = 0;
+
+	printDriveMode();
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -1026,9 +1028,12 @@ void cdDrive::getTD(const uint8_t& command) {
 
 void cdDrive::seekL(const uint8_t& command) {
 	bDataResponse = false;
+	bPlay = false; //??
 
 	if (stat.elem.read)
 		stat.elem.read = 0;
+	if (stat.elem.play)
+		stat.elem.play = 0;
 
 	if (bSetLoc) {
 		bSetLoc = false;
@@ -1057,9 +1062,12 @@ void cdDrive::seekL(const uint8_t& command) {
 
 void cdDrive::seekP(const uint8_t& command) {
 	bDataResponse = false;
+	bPlay = false; //??
 
 	if (stat.elem.read)
 		stat.elem.read = 0;
+	if (stat.elem.play)
+		stat.elem.play = 0;
 
 	if (bSetLoc)
 		bSetLoc = false;
@@ -1193,16 +1201,19 @@ void cdDrive::readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uin
 
 	while (!bSectorFound) {
 		if (fileDataVect.size() < (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x930)) {
-			asect = 0;
-			ass = 2;
-			amm = 0;
+			src = pNullSrc;
+			std::cout << "[CD_DRIVE] Unable to find requested XA_ADPCM sector";
+			//g_emulationPaused = true;
+			break; // fixes problem in SaGa Frontier (USA) but why
 		}
 
 		uint32_t currentPossition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
 
 		src = (uint8_t*)fileDataVect.data() + currentPossition;
 
-		if (fileDataVect[currentPossition + 0x10 + 0x02] & 0x04)
+		if ((fileDataVect[currentPossition + 0x0f] == 0x02) &&
+			(fileDataVect[currentPossition + 0x10 + 0x02] & 0x04) &&
+			(fileDataVect[currentPossition + 0x10 + 0x02] & 0x40))
 			if (mode.elem.xa_filter)
 				bSectorFound = (fileDataVect[currentPossition + 0x10] == filterFile) &&
 				(fileDataVect[currentPossition + 0x10 + 0x01] == filterChannel);

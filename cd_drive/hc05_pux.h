@@ -47,8 +47,8 @@ public:
 			uint8_t prmwrdy : 1;
 			uint8_t rslrrdy : 1;
 			uint8_t drqsts : 1;
-			uint8_t busysts : 1; //not emulated
-		}reg;
+			uint8_t busysts : 1;
+		}elem;
 	};
 
 	indexStatus_t indexStatus = { 0 };
@@ -60,11 +60,11 @@ public:
 	union requestRegister_t {
 		uint8_t data;
 		struct {
-			uint8_t enableBits : 5;
+			uint8_t notUsed : 5;
 			uint8_t smen : 1;
 			uint8_t bfwr : 1;
 			uint8_t bfrd : 1;
-		}reg;
+		}elem;
 	};
 	requestRegister_t requestReg = { 0 };
 
@@ -80,7 +80,7 @@ public:
 		struct {
 			uint8_t enableBits : 5;
 			uint8_t : 3;
-		}reg;
+		}elem;
 	};
 
 	interruptEnable_t interruptEnable = { 0 };
@@ -92,7 +92,7 @@ public:
 			uint8_t int_8 : 1;
 			uint8_t int_10 : 1;
 			uint8_t : 3;
-		}reg;
+		}elem;
 	};
 	irqFlagRead_t irqFlagRead = { 0 };
 
@@ -225,7 +225,7 @@ public:
 		}elem;
 	}mode;
 
-	void setDriveMode();
+	void printDriveMode();
 
 	uint8_t filterFile;
 	uint8_t filterChannel;
@@ -253,7 +253,18 @@ public:
 	size_t fileSize;
 	std::vector<cdTrack_t> cdTracks;
 
-	void addSector(cdSector_t& sector, uint16_t mm, uint16_t ss, uint16_t sect) {
+	void addSector(cdSector_t& sector, int8_t mm, int8_t ss, int8_t sect) {
+		if (sect < 0)
+			if (ss == 0) {
+				mm--;
+				ss = 59;
+				sect = 74;
+			}
+			else {
+				ss--;
+				sect = 74;
+			}
+
 		sector.asect += sect;
 		sector.ass += (sector.asect / 75) + ss;
 		sector.asect %= 75;
@@ -279,7 +290,7 @@ public:
 	uint16_t volumeRightRight = 0;
 	uint16_t volumeRightLeft = 0;
 
-	uint8_t* pNullSrc = (uint8_t*)calloc(0x920, sizeof(uint8_t));
+	uint8_t* pNullSrc = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
 	debugUtilities* p_debugger;

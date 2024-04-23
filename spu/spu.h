@@ -428,7 +428,7 @@ public:
 	output_t clockXA_ADPCM();
 
 	output_t outputSamplesBufferXA[7];
-	output_t OldoutputSampleXA;
+	output_t OldOutputSampleXA;
 
 	uint8_t asectXA;
 	uint8_t assXA;

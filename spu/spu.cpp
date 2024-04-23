@@ -1321,7 +1321,8 @@ output_t spu_t::clock() {
 	}
 
 	output_t outputCDDA = { 0,0 };
-	outputCDDA = clockCDDA();
+	if (pBus->pCdDrive->mode.elem.cdda && pBus->pCdDrive->bPlay)
+		outputCDDA = clockCDDA();
 
 	output_t outputTempCDDA;
 	outputTempCDDA.channel0 = outputCDDA.channel0 * pBus->pCdDrive->volumeLeftLeft / 128.0f
@@ -1462,16 +1463,16 @@ void spu_t::decodeSectorXA_ADPCM(uint8_t*& src) {
 }
 
 output_t spu_t::clockXA_ADPCM() {
-	output_t outputSample = OldoutputSampleXA;
+	output_t outputSample = OldOutputSampleXA;
 
 	const uint16_t samplesPerSectorXA_ADPCM = 28 * 2 * 4 * 18;
 
 	if (currentSample == samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1)) {
 		//if (!submode.elem.endOfFile)//??
 		//{
-			currentSample = 0;
-			pBus->pCdDrive->readSectorXA_ADPCM(ammXA, assXA, asectXA, pBufferXA);
-			decodeSectorXA_ADPCM(pBufferXA);
+		currentSample = 0;
+		pBus->pCdDrive->readSectorXA_ADPCM(ammXA, assXA, asectXA, pBufferXA);
+		decodeSectorXA_ADPCM(pBufferXA);
 		//}
 	}
 
@@ -1504,7 +1505,7 @@ output_t spu_t::clockXA_ADPCM() {
 		}
 
 	bCycle = !bCycle;
-	OldoutputSampleXA = outputSample;
+	OldOutputSampleXA = outputSample;
 
 	return outputSample;
 }

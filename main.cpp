@@ -213,7 +213,7 @@ public:
 			if (GetKey(olc::Key::Q).bHeld) {
 
 				//Metal Slug DMA 2 linked list loop bypass
-				psx.bus.dma.dma2.channelControl.reg.startBusy = ~psx.bus.dma.dma2.channelControl.reg.startBusy;
+				//psx.bus.dma.dma2.channelControl.reg.startBusy = ~psx.bus.dma.dma2.channelControl.reg.startBusy;
 				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
 					psx.cpuSOC.clock();
