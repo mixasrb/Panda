@@ -221,7 +221,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
 	//}
 
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 #endif
@@ -445,7 +445,7 @@ void cpu_t::reset() {
 void cpu_t::clock() {
 
 	//SIDELOAD debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
 		sideLoad();
 #endif
@@ -486,7 +486,7 @@ void cpu_t::clock() {
 		}
 
 		//debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 		setBiosCallFlag();
 		pc_old = pc;
 #endif
@@ -594,7 +594,7 @@ void cpu_t::clock() {
 		clocks += memoryClocks + gteClocks;
 
 		//debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 		printBiosCall();
 		isInstructionExecuted = true;
 #endif

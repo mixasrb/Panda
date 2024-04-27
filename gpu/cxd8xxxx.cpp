@@ -82,6 +82,63 @@ void DrawPolygonInterpolated(
 		});
 }
 
+template<typename PlotFunc, typename T, std::size_t Size = std::tuple_size_v<T>>
+void DrawTinyTriangleInterpolated(
+	T p0,
+	T p1,
+	T p2,
+	PlotFunc&& Plot)
+{
+	using SlopeData = std::array<Slope, Size - 1>; // All input units except y
+
+	RasterizeTriangle(
+		&p0, &p1, &p2,
+		// GetXY: Retrieve std::tuple<int,int> or std::array<int,2> from a PointType
+		[&](const auto& p) { return std::tuple{ int(std::get<0>(p)), int(std::get<1>(p)) }; },
+		// Slope generator
+		[&](const T* from, const T* to, int num_steps)
+		{
+			SlopeData result;
+			// Number of steps = number of scanlines
+			// Retrieve X coordinates for begin and end
+			result[0] = Slope(std::get<0>(*from), std::get<0>(*to), num_steps);
+			// Take the rest of the props
+			[&] <std::size_t...p>(std::index_sequence<p...>)
+			{
+				// Retrieve begin to end for each prop. The +2 skips x and y.
+				((result[p + 1] = Slope(std::get<p + 2>(*from), std::get<p + 2>(*to), num_steps)), ...);
+			}
+			(std::make_index_sequence<Size - 2>{});
+			return result;
+		},
+		// Scanline function
+		[&](int y, SlopeData& left, SlopeData& right)
+		{
+			float leftx = left[0].get(), endx = right[0].get();
+			auto intleftx = std::floor(leftx + .5f), rounding_error = intleftx - leftx + .5f;
+
+			// Number of steps = number of pixels on this scanline = endx-x
+			std::array<Slope, Size - 2> props;
+			for (unsigned p = 0; p < Size - 2; ++p)
+			{
+				props[p] = Slope(left[p + 1].get(), right[p + 1].get(), endx - leftx);
+				props[p].advance(rounding_error);
+			}
+
+			for (int x = intleftx, e = endx + .5f; x <= e; ++x) // Render each pixel
+			{
+				std::apply([&](auto... args) { Plot(x, y, args.get()...); }, props);
+
+				// After each pixel, update the props by their step-sizes
+				for (auto& prop : props) prop.advance();
+			}
+
+			// After the scanline is drawn, update the X coordinate and props on both sides
+			for (auto& slope : left) slope.advance();
+			for (auto& slope : right) slope.advance();
+		});
+}
+
 
 extern bool g_emulationPaused;
 extern bool g_GpuCommandsLogged;
@@ -494,11 +551,11 @@ void gpu_t::videoClock() {
 			else
 				pBus->dma.interruptRegister.reg.IRQ_flag_dma0 = 0;*/
 
-		/*if (g_manualInterruptDMA)
-			if (pBus->dma.interruptRegister.reg.IRQ_enable_dma1)
-				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
-			else
-				pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;*/
+				/*if (g_manualInterruptDMA)
+					if (pBus->dma.interruptRegister.reg.IRQ_enable_dma1)
+						pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
+					else
+						pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;*/
 
 		cpuScanlineClocks = 0;
 		scanlineCount++;
@@ -538,8 +595,8 @@ void gpu_t::videoClock() {
 				else
 					pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 0;*/
 
-			//not completely tested 	
-			//vramView.DuplicateUnsafe(pVramViewBuffered);
+					//not completely tested 	
+					//vramView.DuplicateUnsafe(pVramViewBuffered);
 		}
 		else if (scanlineCount == scanlineNumber) {
 
@@ -575,7 +632,7 @@ void gpu_t::videoClock() {
 
 	cpuScanlineClocks++;
 
-	if (fifoIndex < 2) {
+	/*if (fifoIndex < 2) {
 		if (gpuStat.elem.dmaDir == 2)
 			if (bWasActiveDMA) {
 				bWasActiveDMA = false;
@@ -600,7 +657,7 @@ void gpu_t::videoClock() {
 			if ((int32_t)fifoClocks[0] < 0)
 				fifoClocks[0] = 0;
 		}
-	}
+	}*/
 
 	/*if (fifoIndex) {
 		fifoClocks[fifoIndex]--;
@@ -1474,55 +1531,41 @@ void gpu_t::drawPolygon(const param_t& param) {
 	std::tuple p1{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
 	std::tuple p2{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
 
-	DrawPolygonInterpolated(
-		p0, p1, p2,
-		[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r) {
-			vertex_t p(x, y);
+	auto plot = [&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r) {
+		vertex_t p(x, y);
 
-			if (param.shadingType == GOURAUD_SHADING) {
-				calculatedPixelColor.component.red = r;
-				calculatedPixelColor.component.blue = b;
-				calculatedPixelColor.component.green = g;
-			}
-			else
-				calculatedPixelColor = param.commandColor1;
+		if (param.shadingType == GOURAUD_SHADING) {
+			calculatedPixelColor.component.red = r;
+			calculatedPixelColor.component.blue = b;
+			calculatedPixelColor.component.green = g;
+		}
+		else
+			calculatedPixelColor = param.commandColor1;
 
-			frontPixelColor.data = format24to16Color(calculatedPixelColor.data);
+		frontPixelColor.data = format24to16Color(calculatedPixelColor.data);
 
-			if (param.transpanencyType == SEMI_TRANSPARENT)
-				calculateTransparency(p, frontPixelColor);
+		if (param.transpanencyType == SEMI_TRANSPARENT)
+			calculateTransparency(p, frontPixelColor);
 
-			writeVram(p, frontPixelColor.data);
-		});
+		writeVram(p, frontPixelColor.data);
+		};
 
+	DrawPolygonInterpolated(p0, p1, p2, plot);
 
 	if (vertexCount == 4) {
 
-		std::tuple p0{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
-		std::tuple p1{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
-		std::tuple p2{ vert4.x, vert4.y, color4.component.blue, color4.component.green, color4.component.red };
+		std::tuple p2{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
+		std::tuple p3{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
+		std::tuple p4{ vert4.x, vert4.y, color4.component.blue, color4.component.green, color4.component.red };
 
-		DrawPolygonInterpolated(
-			p0, p1, p2,
-			[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r) {
-				vertex_t p(x, y);
-
-				if (param.shadingType == GOURAUD_SHADING) {
-					calculatedPixelColor.component.red = r;
-					calculatedPixelColor.component.blue = b;
-					calculatedPixelColor.component.green = g;
-				}
-				else
-					calculatedPixelColor = param.commandColor1;
-
-				frontPixelColor.data = format24to16Color(calculatedPixelColor.data);
-
-				if (param.transpanencyType == SEMI_TRANSPARENT)
-					calculateTransparency(p, frontPixelColor);
-
-				writeVram(p, frontPixelColor.data);
-			});
+		DrawPolygonInterpolated(p2, p3, p4, plot);
 	}
+}
+
+template<typename T>
+static void swap(T& a, T& b) {
+	T c = b;
+	b = a; a = c;
 }
 
 void gpu_t::drawTexPolygon(const param_t& param) {
@@ -1568,165 +1611,524 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 
 	const uint8_t vertexCount = param.verticesNumber;
 
-	int x1 = param.vert1.x;
-	int y1 = param.vert1.y;
-	int x2 = param.vert2.x;
-	int y2 = param.vert2.y;
-	int x3 = param.vert3.x;
-	int y3 = param.vert3.y;
-	int x4 = param.vert4.x;
-	int y4 = param.vert4.y;
+	int16_t x1 = param.vert1.x;
+	int16_t y1 = param.vert1.y;
+	int16_t x2 = param.vert2.x;
+	int16_t y2 = param.vert2.y;
+	int16_t x3 = param.vert3.x;
+	int16_t y3 = param.vert3.y;
+	int16_t x4 = param.vert4.x;
+	int16_t y4 = param.vert4.y;
 
 	psxColor24_t color1 = param.commandColor1;
 	psxColor24_t color2 = param.color2;
 	psxColor24_t color3 = param.color3;
 	psxColor24_t color4 = param.color4;
 
-	int u1 = param.texCoord1Palette.elem.u;
-	int v1 = param.texCoord1Palette.elem.v;
-	int u2 = param.texCoord2TexPage.elem.u;
-	int v2 = param.texCoord2TexPage.elem.v;
-	int u3 = param.texCoord3.elem.u;
-	int v3 = param.texCoord3.elem.v;
-	int u4 = param.texCoord4.elem.u;
-	int v4 = param.texCoord4.elem.v;
+	uint8_t u1 = param.texCoord1Palette.elem.u;
+	uint8_t v1 = param.texCoord1Palette.elem.v;
+	uint8_t u2 = param.texCoord2TexPage.elem.u;
+	uint8_t v2 = param.texCoord2TexPage.elem.v;
+	uint8_t u3 = param.texCoord3.elem.u;
+	uint8_t v3 = param.texCoord3.elem.v;
+	uint8_t u4 = param.texCoord4.elem.u;
+	uint8_t v4 = param.texCoord4.elem.v;
+
+	/*if (u1 & 0x3)
+		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << (u1 & 0x3) << std::endl;*/
+
 
 	psxColor24_t blendingColor;
 	psxColor16_t frontPixelColor;
 
-	/*if (u1 & 0x3)
-		std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << (u1 & 0x3) << std::endl;*/
+	uint8_t min_u;
+	uint8_t max_u;
+	uint8_t min_v;
+	uint8_t max_v;
+
+
+	auto plot = [&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
+
+		vertex_t p(x, y);
+
+		vertex_t pTex;
+
+		if (u < min_u)
+			u = min_u;
+
+		if (u > max_u)
+			u = max_u;
+
+		if (v < min_v)
+			v = min_v;
+
+		if (v > max_v)
+			v = max_v;
+
+		pTex.y = gpuStat.elem.texPageYBase << 8;
+		pTex.y += (v & 255 & (~(texWinMask.y << 3)))
+			| ((texWinOffset.y & texWinMask.y) << 3);
+
+		pTex.x = gpuStat.elem.texPageXBase << 6;
+		pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
+			| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
+
+		uint16_t data;
+		readVram(pTex, data, true);
+
+		if (texBittnesVar.bit15)
+			frontPixelColor.data = data;
+		else {
+			vertex_t pClut;
+
+			pClut.y = clut.elem.yCoord;
+
+			pClut.x = clut.elem.xCoord << 4;
+			pClut.x += (data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
+
+			readVram(pClut, frontPixelColor.data, true);
+		}
+
+		if (frontPixelColor.data) {
+			if (param.shadingType == GOURAUD_SHADING) {
+				blendingColor.component.red = r;
+				blendingColor.component.blue = b;
+				blendingColor.component.green = g;
+			}
+			else
+				blendingColor = param.commandColor1;
+
+			if (param.modulationType == TEXTURE_BLENDING) {
+				//Old 160pin GPU v0
+				/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
+				uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
+				uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
+				frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+				frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+				frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
+				//New 208pin GPU v2
+				uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
+				uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
+				uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
+				frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+				frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+				frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
+			}
+
+			if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+				calculateTransparency(p, frontPixelColor);
+
+			writeVram(p, frontPixelColor.data);
+		}
+		};
 
 	std::tuple p0{ x1, y1, color1.component.blue, color1.component.green, color1.component.red, u1, v1 };
 	std::tuple p1{ x2, y2, color2.component.blue, color2.component.green, color2.component.red, u2, v2 };
 	std::tuple p2{ x3, y3, color3.component.blue, color3.component.green, color3.component.red, u3, v3 };
 
-	DrawPolygonInterpolated(
-		p0, p1, p2,
-		[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
-			vertex_t p(x, y);
+	min_u = u1;
+	if (min_u > u2)
+		min_u = u2;
+	if (min_u > u3)
+		min_u = u3;
 
-			vertex_t pTex;
-			pTex.y = gpuStat.elem.texPageYBase << 8;
-			pTex.y += (v & 255 & (~(texWinMask.y << 3)))
-				| ((texWinOffset.y & texWinMask.y) << 3);
+	max_u = u1;
+	if (max_u < u2)
+		max_u = u2;
+	if (max_u < u3)
+		max_u = u3;
 
-			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
-				| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
+	min_v = v1;
+	if (min_v > v2)
+		min_v = v2;
+	if (min_v > v3)
+		min_v = v3;
 
-			uint16_t data;
-			readVram(pTex, data, true);
+	max_v = v1;
+	if (max_v < v2)
+		max_v = v2;
+	if (max_v < v3)
+		max_v = v3;
 
-			if (texBittnesVar.bit15)
-				frontPixelColor.data = data;
-			else {
-				vertex_t pClut;
-				pClut.x = (clut.elem.xCoord << 4) +
-					((data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
-				pClut.y = clut.elem.yCoord;
-				readVram(pClut, frontPixelColor.data, true);
-			}
 
-			if (frontPixelColor.data) {
-				if (param.shadingType == GOURAUD_SHADING) {
-					blendingColor.component.red = r;
-					blendingColor.component.blue = b;
-					blendingColor.component.green = g;
-				}
-				else
-					blendingColor = param.commandColor1;
+	DrawPolygonInterpolated(p0, p1, p2, plot);
 
-				if (param.modulationType == TEXTURE_BLENDING) {
-					//Old 160pin GPU v0
-					/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
-					uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
-					uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
-					frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
-					frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
-					frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
-					//New 208pin GPU v2
-					uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
-					uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
-					uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
-					frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
-					frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
-					frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
-				}
+	//for Doom
+	//DrawTinyTriangleInterpolated(p0, p1, p2, plot);
 
-				if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
-					calculateTransparency(p, frontPixelColor);
-
-				writeVram(p, frontPixelColor.data);
-			}
-		});
 
 	if (vertexCount == 4) {
 
-		std::tuple p0{ x2, y2, color2.component.blue, color2.component.green, color2.component.red, u2, v2 };
-		std::tuple p1{ x3, y3, color3.component.blue, color3.component.green, color3.component.red, u3, v3 };
-		std::tuple p2{ x4, y4, color4.component.blue, color4.component.green, color4.component.red, u4, v4 };
+		min_u = u2;
+		if (min_u > u3)
+			min_u = u3;
+		if (min_u > u4)
+			min_u = u4;
 
-		DrawPolygonInterpolated(
-			p0, p1, p2,
-			[&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
-				vertex_t p(x, y);
+		max_u = u2;
+		if (max_u < u3)
+			max_u = u3;
+		if (max_u < u4)
+			max_u = u4;
 
-				vertex_t pTex;
-				pTex.y = gpuStat.elem.texPageYBase << 8;
-				pTex.y += (v & 255 & (~(texWinMask.y << 3)))
-					| ((texWinOffset.y & texWinMask.y) << 3);
+		min_v = v2;
+		if (min_v > v3)
+			min_v = v3;
+		if (min_v > v4)
+			min_v = v4;
 
-				pTex.x = gpuStat.elem.texPageXBase << 6;
-				pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
-					| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
+		max_v = v2;
+		if (max_v < v3)
+			max_v = v3;
+		if (max_v < v4)
+			max_v = v4;
 
-				uint16_t data;
-				readVram(pTex, data, true);
+		std::tuple p2{ x2, y2, color2.component.blue, color2.component.green, color2.component.red, u2, v2 };
+		std::tuple p3{ x3, y3, color3.component.blue, color3.component.green, color3.component.red, u3, v3 };
+		std::tuple p4{ x4, y4, color4.component.blue, color4.component.green, color4.component.red, u4, v4 };
 
-				if (texBittnesVar.bit15)
-					frontPixelColor.data = data;
-				else {
-					vertex_t pClut;
-					pClut.x = (clut.elem.xCoord << 4) +
-						((data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
-					pClut.y = clut.elem.yCoord;
-					readVram(pClut, frontPixelColor.data, true);
-				}
+		DrawPolygonInterpolated(p2, p3, p4, plot);
 
-				if (frontPixelColor.data) {
-					if (param.shadingType == GOURAUD_SHADING) {
-						blendingColor.component.red = r;
-						blendingColor.component.blue = b;
-						blendingColor.component.green = g;
-					}
-					else
-						blendingColor = param.commandColor1;
-
-					if (param.modulationType == TEXTURE_BLENDING) {
-						//Old 160pin GPU v0
-						/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
-						uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
-						uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
-						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
-						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
-						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
-						//New 208pin GPU v2
-						uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
-						uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
-						uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
-						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
-						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
-						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
-					}
-
-					if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
-						calculateTransparency(p, frontPixelColor);
-
-					writeVram(p, frontPixelColor.data);
-				}
-			});
+		//for Doom
+		//DrawTinyTriangleInterpolated(p2, p3, p4, plot);
 	}
+
+
+	//////gpuStat.data = (gpuStat.data & 0xfffffe00) | (param.texCoord2TexPage.elem.attribute & 0x7ff);
+	//////gpuStat.elem.texDis = (param.texCoord2TexPage.elem.attribute & 0x800) ? 0 : 1;
+
+	//////clut_t clut = param.texCoord1Palette.elem.attribute;
+
+	//////const uint8_t vertexCount = param.verticesNumber;
+	//////const shadingType_t shadingType = param.shadingType;
+	//////const transpanencyType_t transparencyType = param.transpanencyType;
+
+	//////int x1 = param.vert1.x;
+	//////int y1 = param.vert1.y;
+	//////int u1 = param.texCoord1Palette.elem.u;
+	//////int v1 = (gpuStat.elem.texPageYBase << 8) + param.texCoord1Palette.elem.v;
+
+	//////int x2 = param.vert2.x;
+	//////int y2 = param.vert2.y;
+	//////int u2 = param.texCoord2TexPage.elem.u;
+	//////int v2 = (gpuStat.elem.texPageYBase << 8) + param.texCoord2TexPage.elem.v;
+
+	//////int x3 = param.vert3.x;
+	//////int y3 = param.vert3.y;
+	//////int u3 = param.texCoord3.elem.u;
+	//////int v3 = (gpuStat.elem.texPageYBase << 8) + param.texCoord3.elem.v;
+
+	//////psxColor24_t blendingColor = param.commandColor1;
+	//////psxColor16_t frontPixelColor;
+
+	//////auto drawTexTriangle = [&]() {
+	//////	if (y2 < y1) {
+	//////		swap(y1, y2);
+	//////		swap(x1, x2);
+	//////		swap(u1, u2);
+	//////		swap(v1, v2);
+	//////	}
+
+	//////	if (y3 < y1) {
+	//////		swap(y1, y3);
+	//////		swap(x1, x3);
+	//////		swap(u1, u3);
+	//////		swap(v1, v3);
+	//////	}
+
+	//////	if (y3 < y2) {
+	//////		swap(y2, y3);
+	//////		swap(x2, x3);
+	//////		swap(u2, u3);
+	//////		swap(v2, v3);
+	//////	}
+
+	//////	int dy1 = y2 - y1;
+	//////	int dx1 = x2 - x1;
+	//////	int dv1 = v2 - v1;
+	//////	int du1 = u2 - u1;
+
+	//////	int dy2 = y3 - y1;
+	//////	int dx2 = x3 - x1;
+	//////	float dv2 = v3 - v1;
+	//////	float du2 = u3 - u1;
+
+	//////	float tex_u, tex_v;
+
+	//////	float dax_step = 0, dbx_step = 0,
+	//////		du1_step = 0, dv1_step = 0,
+	//////		du2_step = 0, dv2_step = 0;
+
+	//////	if (dy1) dax_step = dx1 / (float)abs(dy1);
+	//////	if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+	//////	if (dy1) du1_step = du1 / (float)abs(dy1);
+	//////	if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+	//////	if (dy2) du2_step = du2 / (float)abs(dy2);
+	//////	if (dy2) dv2_step = dv2 / (float)abs(dy2);
+
+	//////	if (dy1) {
+	//////		for (int i = y1; i <= y2; i++) {
+	//////			int ax = x1 + (float)(i - y1) * dax_step;
+	//////			int bx = x1 + (float)(i - y1) * dbx_step;
+
+	//////			float tex_su = u1 + (float)(i - y1) * du1_step;
+	//////			float tex_sv = v1 + (float)(i - y1) * dv1_step;
+
+	//////			float tex_eu = u1 + (float)(i - y1) * du2_step;
+	//////			float tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+	//////			if (ax > bx) {
+	//////				swap(ax, bx);
+	//////				swap(tex_su, tex_eu);
+	//////				swap(tex_sv, tex_ev);
+	//////			}
+
+	//////			tex_u = tex_su;
+	//////			tex_v = tex_sv;
+
+	//////			float tstep = 1.0f / ((float)(bx - ax));
+	//////			float t = 0.0f;
+
+	//////			for (int j = ax; j < bx; j++) {
+	//////				tex_u = (1.0f - t) * tex_su + t * tex_eu;
+	//////				tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+	//////				vertex_t p(j, i);
+
+	//////				vertex_t pTex;
+
+	//////				pTex.y = gpuStat.elem.texPageYBase << 8;
+	//////				pTex.y += ((uint16_t)tex_v & 255 & (~(texWinMask.y << 3)))
+	//////					| ((texWinOffset.y & texWinMask.y) << 3);
+
+	//////				pTex.x = gpuStat.elem.texPageXBase << 6;
+	//////				pTex.x += ((((uint16_t)tex_u & 255 & (~((texWinMask.x << 3))))
+	//////					| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
+
+	//////				uint16_t data;
+	//////				readVram(pTex, data, true);
+
+	//////				if (texBittnesVar.bit15)
+	//////					frontPixelColor.data = data;
+	//////				else {
+	//////					vertex_t pClut;
+
+	//////					pClut.y = clut.elem.yCoord;
+
+	//////					pClut.x = clut.elem.xCoord << 4;
+	//////					pClut.x += (data >> (((uint16_t)tex_u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
+
+	//////					readVram(pClut, frontPixelColor.data, true);
+	//////				}
+
+	//////				if (frontPixelColor.data) {
+	//////					/*	if (param.shadingType == GOURAUD_SHADING) {
+	//////							blendingColor.component.red = r;
+	//////							blendingColor.component.blue = b;
+	//////							blendingColor.component.green = g;
+	//////						}
+	//////						else*/
+	//////					blendingColor = param.commandColor1;
+
+	//////					if (param.modulationType == TEXTURE_BLENDING) {
+	//////						//Old 160pin GPU v0
+	//////						/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
+	//////						uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
+	//////						uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
+	//////						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+	//////						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+	//////						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
+	//////						//New 208pin GPU v2
+	//////						uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
+	//////						uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
+	//////						uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
+	//////						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+	//////						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+	//////						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
+	//////					}
+
+	//////					if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+	//////						calculateTransparency(p, frontPixelColor);
+
+	//////					writeVram(p, frontPixelColor.data);
+	//////				}
+
+	//////				/*uint16_t data;
+	//////				vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 4, tex_v);
+	//////				readVram(tex_p, data, true);
+	//////				vertex_t pClut;
+	//////				pClut.x = (clut.elem.xCoord << 4) + ((data >> (((uint16_t)tex_u & 0x3) << 2)) & 0xf);
+	//////				pClut.y = clut.elem.yCoord;
+	//////				readVram(pClut, frontPixelColor.data, true);
+
+	//////				vertex_t p(j, i);
+	//////				if (frontPixelColor.data) {
+	//////					if (param.modulationType == TEXTURE_BLENDING) {
+	//////						frontPixelColor.component.red = (frontPixelColor.component.red * blendingColor.component.red / 0x80) > 0xff ? 0xff : frontPixelColor.component.red * blendingColor.component.red / 0x80;
+	//////						frontPixelColor.component.green = (frontPixelColor.component.green * blendingColor.component.green / 0x80) > 0xff ? 0xff : frontPixelColor.component.green * blendingColor.component.green / 0x80;
+	//////						frontPixelColor.component.blue = (frontPixelColor.component.blue * blendingColor.component.blue / 0x80) > 0xff ? 0xff : frontPixelColor.component.blue * blendingColor.component.blue / 0x80;
+	//////					}
+
+	//////					if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+	//////						calculateTransparency(p, frontPixelColor);
+	//////					writeVram(p, frontPixelColor.data);
+	//////				}*/
+
+	//////				t += tstep;
+	//////			}
+
+
+	//////		}
+	//////	}
+
+	//////	dy1 = y3 - y2;
+	//////	dx1 = x3 - x2;
+	//////	dv1 = v3 - v2;
+	//////	du1 = u3 - u2;
+
+	//////	if (dy1) dax_step = dx1 / (float)abs(dy1);
+	//////	if (dy2) dbx_step = dx2 / (float)abs(dy2);
+
+	//////	du1_step = 0, dv1_step = 0;
+	//////	if (dy1) du1_step = du1 / (float)abs(dy1);
+	//////	if (dy1) dv1_step = dv1 / (float)abs(dy1);
+
+	//////	if (dy1)
+	//////	{
+	//////		for (int i = y2; i <= y3; i++)
+	//////		{
+	//////			int ax = x2 + (float)(i - y2) * dax_step;
+	//////			int bx = x1 + (float)(i - y1) * dbx_step;
+
+	//////			int tex_su = u2 + (float)(i - y2) * du1_step;
+	//////			int tex_sv = v2 + (float)(i - y2) * dv1_step;
+
+	//////			int tex_eu = u1 + (float)(i - y1) * du2_step;
+	//////			int tex_ev = v1 + (float)(i - y1) * dv2_step;
+
+	//////			if (ax > bx) {
+	//////				swap(ax, bx);
+	//////				swap(tex_su, tex_eu);
+	//////				swap(tex_sv, tex_ev);
+	//////			}
+
+	//////			tex_u = tex_su;
+	//////			tex_v = tex_sv;
+
+	//////			float tstep = 1.0f / ((float)(bx - ax));
+	//////			float t = 0.0f;
+
+	//////			for (int j = ax; j < bx; j++) {
+	//////				tex_u = (1.0f - t) * tex_su + t * tex_eu;
+	//////				tex_v = (1.0f - t) * tex_sv + t * tex_ev;
+
+	//////				vertex_t p(j, i);
+
+	//////				vertex_t pTex;
+
+	//////				pTex.y = gpuStat.elem.texPageYBase << 8;
+	//////				pTex.y += ((uint16_t)tex_v & 255 & (~(texWinMask.y << 3)))
+	//////					| ((texWinOffset.y & texWinMask.y) << 3);
+
+	//////				pTex.x = gpuStat.elem.texPageXBase << 6;
+	//////				pTex.x += ((((uint16_t)tex_u & 255 & (~((texWinMask.x << 3))))
+	//////					| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
+
+	//////				uint16_t data;
+	//////				readVram(pTex, data, true);
+
+	//////				if (texBittnesVar.bit15)
+	//////					frontPixelColor.data = data;
+	//////				else {
+	//////					vertex_t pClut;
+
+	//////					pClut.y = clut.elem.yCoord;
+
+	//////					pClut.x = clut.elem.xCoord << 4;
+	//////					pClut.x += (data >> (((uint16_t)tex_u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
+
+	//////					readVram(pClut, frontPixelColor.data, true);
+	//////				}
+
+	//////				if (frontPixelColor.data) {
+	//////					/*	if (param.shadingType == GOURAUD_SHADING) {
+	//////							blendingColor.component.red = r;
+	//////							blendingColor.component.blue = b;
+	//////							blendingColor.component.green = g;
+	//////						}
+	//////						else*/
+	//////					blendingColor = param.commandColor1;
+
+	//////					if (param.modulationType == TEXTURE_BLENDING) {
+	//////						//Old 160pin GPU v0
+	//////						/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
+	//////						uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
+	//////						uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
+	//////						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+	//////						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+	//////						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
+	//////						//New 208pin GPU v2
+	//////						uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
+	//////						uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
+	//////						uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
+	//////						frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
+	//////						frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
+	//////						frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
+	//////					}
+
+	//////					if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+	//////						calculateTransparency(p, frontPixelColor);
+
+	//////					writeVram(p, frontPixelColor.data);
+	//////				}
+
+	//////				/*uint16_t data;
+	//////				vertex_t tex_p((gpuStat.elem.texPageXBase << 6) + tex_u / 4, tex_v);
+	//////				readVram(tex_p, data, true);
+	//////				vertex_t pClut;
+	//////				pClut.x = (clut.elem.xCoord << 4) + ((data >> (((uint16_t)tex_u & 0x3) << 2)) & 0xf);
+	//////				pClut.y = clut.elem.yCoord;
+	//////				readVram(pClut, frontPixelColor.data, true);
+
+	//////				vertex_t p(j, i);
+	//////				if (frontPixelColor.data) {
+	//////					if (param.modulationType == TEXTURE_BLENDING) {
+	//////						frontPixelColor.component.red = (frontPixelColor.component.red * blendingColor.component.red / 0x80) > 0xff ? 0xff : frontPixelColor.component.red * blendingColor.component.red / 0x80;
+	//////						frontPixelColor.component.green = (frontPixelColor.component.green * blendingColor.component.green / 0x80) > 0xff ? 0xff : frontPixelColor.component.green * blendingColor.component.green / 0x80;
+	//////						frontPixelColor.component.blue = (frontPixelColor.component.blue * blendingColor.component.blue / 0x80) > 0xff ? 0xff : frontPixelColor.component.blue * blendingColor.component.blue / 0x80;
+	//////					}
+
+	//////					if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
+	//////						calculateTransparency(p, frontPixelColor);
+	//////					writeVram(p, frontPixelColor.data);
+	//////				}*/
+
+	//////				t += tstep;
+	//////			}
+	//////		}
+	//////	}
+	//////	};
+
+	//////drawTexTriangle();
+	//////if (vertexCount == 4) {
+	//////	x1 = param.vert2.x;
+	//////	y1 = param.vert2.y;
+	//////	u1 = param.texCoord2TexPage.elem.u;
+	//////	v1 = (gpuStat.elem.texPageYBase << 8) + param.texCoord2TexPage.elem.v;
+
+	//////	x2 = param.vert3.x;
+	//////	y2 = param.vert3.y;
+	//////	u2 = param.texCoord3.elem.u;
+	//////	v2 = (gpuStat.elem.texPageYBase << 8) + param.texCoord3.elem.v;
+
+	//////	x3 = param.vert4.x;
+	//////	y3 = param.vert4.y;
+	//////	u3 = param.texCoord4.elem.u;
+	//////	v3 = (gpuStat.elem.texPageYBase << 8) + param.texCoord4.elem.v;
+	//////	drawTexTriangle();
+	//////}
 }
 
 void gpu_t::drawMonochromeRect(const param_t& param) {
@@ -1746,21 +2148,6 @@ void gpu_t::drawMonochromeRect(const param_t& param) {
 
 			writeVram(p, frontPixelColor.data);
 		}
-}
-
-static void swap(int& a, int& b) {
-	int c = b;
-	b = a; a = c;
-}
-
-static void swap(uint32_t& a, uint32_t& b) {
-	int c = b;
-	b = a; a = c;
-}
-
-static void swap(float& a, float& b) {
-	float c = b;
-	b = a; a = c;
 }
 
 void gpu_t::drawLine(const param_t& param) { //could be optimized

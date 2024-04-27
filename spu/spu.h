@@ -434,7 +434,7 @@ public:
 	uint8_t assXA;
 	uint8_t ammXA;
 
-	uint8_t* pBufferXA = new uint8_t[XA_ADPCM_SECTOR_SIZE];
+	uint8_t* pBufferXA_ADPCM = new uint8_t[XA_ADPCM_SECTOR_SIZE];
 
 	int16_t samplesMonoXA[56 * 0x12 * 8];
 	int16_t samplesLeftXA[28 * 0x12 * 8];

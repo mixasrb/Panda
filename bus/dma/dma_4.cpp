@@ -42,7 +42,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			bTransferActive = true;
 			pDMAController->isCpuStopped = true;
 			pDMAController->isCpuStopped = false;
-			syncClocks = 0x100;
+			syncClocks = 0x90; //breaks Castlevania Chronicles (USA) with value 0x100
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;

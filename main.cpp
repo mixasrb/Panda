@@ -16,6 +16,14 @@ uint32_t g_systemFrames = 0;
 uint32_t g_systemSeconds = 0;
 uint32_t g_systemMinutes = 0;
 
+//bool g_manualInterruptDMA = false;
+//
+////clocker settings
+//constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
+//constexpr uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
+//constexpr uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
+//constexpr uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCKS_PER_FRAME_NTSC;
+
 int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
 
@@ -42,7 +50,7 @@ public:
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
 			if (!g_emulationPaused) {
-				/*for (int i = 0; i < 0x300; i++)
+			/*	for (int i = 0; i < 0x300; i++)
 					pInstance->psx.clock();*/
 
 				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
@@ -60,7 +68,7 @@ public:
 
 	bool OnUserCreate() override {
 
-#ifndef CONSOLE_LOGGING
+#if !CONSOLE_LOGGING
 		std::cout.setstate(std::ios_base::failbit);
 #endif
 
@@ -170,9 +178,6 @@ public:
 		}
 
 		//clocker
-		constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-		constexpr uint32_t CPU_CLOCKS_PER_FRAME = ((float)CPU_CLOCK / 59.29f);
-
 		if (!g_emulationPaused) {
 			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
@@ -183,6 +188,8 @@ public:
 
 				if (g_emulationPaused) break;
 			}
+			psx.gpu.cpuScanlineClocks = 0;
+
 			g_systemFrames++;
 			if (g_systemFrames == 60) {
 				g_systemFrames = 0;
@@ -194,7 +201,6 @@ public:
 			}
 		}
 
-		psx.gpu.cpuScanlineClocks = 0;
 
 		//debugger
 		bool executeOneInstruction = false;
@@ -291,9 +297,9 @@ public:
 
 		if (!isDebuggerViewed) {
 			// main DRAW
-
+#if !SCREEN
 			DrawSprite(0, 0, psx.gpu.getVramSprite());
-
+#endif
 			uint16_t x1 = psx.gpu.displayStart.x;
 			uint16_t y1 = psx.gpu.displayStart.y;
 			uint16_t x2;
@@ -343,152 +349,158 @@ public:
 				//verticalResolution = 240;
 				y2 = y1 + verticalResolution;
 			}
-
+#if !SCREEN
 			if (bDrawScreenWindow)
 				DrawRect({ x1, y1 }, { x2 - x1,y2 - y1 });
+#endif
+#if SCREEN
+			if (!psx.gpu.gpuStat.elem.displayEnable) {
 
-			//if (!psx.gpu.gpuStat.elem.displayEnable) {
+				////ff7 only
+				//x2 = x1 + 368;
 
-				//	////ff7 only
-				//	//x2 = x1 + 368;
-
-				//	if (psx.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
-				//		olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
-				//		for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
-				//			int i = 0; //??
-				//			for (int y = 0; y < verticalResolution; y++) {
-				//				olc::Pixel pixel;
-				//				switch ((/*x1 +*/ x + i) % 3) {
-				//				case 0: {
-				//					uint16_t data;
-				//					gpu_t::vertex_t p;
-				//					p.x = x1 + x + i;
-				//					p.y = y1 + y;
-				//					psx.bus.pGpu->readVram(p, data, true);
-				//					pixel.r = data & 0xff;
-				//					pixel.g = (data >> 8) & 0xff;
-				//					p.x = x1 + x + 1 + i;
-				//					psx.bus.pGpu->readVram(p, data, true);
-				//					pixel.b = data & 0xff;
-				//					break;
-				//				}
-				//				case 1: {
-				//					uint16_t data;
-				//					gpu_t::vertex_t p;
-				//					p.x = x1 + x + i;
-				//					p.y = y1 + y;
-				//					psx.bus.pGpu->readVram(p, data, true);
-				//					pixel.r = (data >> 8) & 0xff;
-				//					p.x = x1 + x + 1 + i;
-				//					psx.bus.pGpu->readVram(p, data, true);
-				//					pixel.g = data & 0xff;
-				//					pixel.b = (data >> 8) & 0xff;
-				//					break;
-				//				}
-				//				case 2:
-				//					i++;
-				//					break;
-				//				}
-				//				vramView.SetPixel((x + 1) * 2 / 3, y, pixel);
-				//			}
-				//		}
-				//		decSprite.reset(new olc::Decal(&vramView));
-				//		DrawDecal({ 0, 0 }, decSprite.get(), { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
-				//	}
-				//	else {
-				//		decSprite.reset(new olc::Decal(psx.gpu.getVramSprite()));
-				//		DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
-				//			{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
-				//	}
-				//}
-				//else
-				//	Clear(olc::BLACK);
-			}
-			else {
-				//debugger
-
-				for (int i = 0; i < 32; i++) {
-					uint32_t data;
-					uint8_t cycels;
-
-					psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
-					uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
-					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
-					if (i == 16) {
-						DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
-						DrawString(464, 108 + 36, "pc:", olc::WHITE);
-						DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
+				if (psx.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
+					olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
+					for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
+						int i = 0; //??
+						for (int y = 0; y < verticalResolution; y++) {
+							olc::Pixel pixel;
+							switch ((/*x1 +*/ x + i) % 3) {
+							case 0: {
+								uint16_t data;
+								gpu_t::vertex_t p;
+								p.x = x1 + x + i;
+								p.y = y1 + y;
+								psx.bus.pGpu->readVram(p, data, true);
+								pixel.r = data & 0xff;
+								pixel.g = (data >> 8) & 0xff;
+								p.x = x1 + x + 1 + i;
+								psx.bus.pGpu->readVram(p, data, true);
+								pixel.b = data & 0xff;
+								break;
+							}
+							case 1: {
+								uint16_t data;
+								gpu_t::vertex_t p;
+								p.x = x1 + x + i;
+								p.y = y1 + y;
+								psx.bus.pGpu->readVram(p, data, true);
+								pixel.r = (data >> 8) & 0xff;
+								p.x = x1 + x + 1 + i;
+								psx.bus.pGpu->readVram(p, data, true);
+								pixel.g = data & 0xff;
+								pixel.b = (data >> 8) & 0xff;
+								break;
+							}
+							case 2:
+								i++;
+								break;
+							}
+							vramView.SetPixel((x + 1) * 2 / 3, y, pixel);
+						}
 					}
+					decSprite.reset(new olc::Decal(&vramView));
+					DrawDecal({ 0, 0 }, decSprite.get(), { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}
-				for (int i = 0; i < 32; i++) {
-					std::string s = psx.cpuSOC.executedOpcodes[i];
-					DrawString(489, 0 + 9 * (33 + i), s);
+				else {
+					decSprite.reset(new olc::Decal(psx.gpu.getVramSprite()));
+					DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
+						{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}
-				for (int i = 0; i < 32; i++) {
-					std::stringstream ss;
-					if (i < 10)
-						ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
-					else
-						ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
-					DrawString(0, i * 9, ss.str());
-				}
-				std::stringstream ss;
-				ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
-				DrawString(0, 32 * 9, ss.str());
-				ss.str("\0");
-				ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
-				DrawString(0, 33 * 9, ss.str());
-				ss.str("\0");
-				ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
-				DrawString(0, 34 * 9, ss.str());
-				ss.str("\0");
-				ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
-				DrawString(0, 35 * 9, ss.str());
-				ss.str("\0");
-				ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
-				DrawString(0, 36 * 9, ss.str());
 			}
+			else
+				Clear(olc::BLACK);
+#endif
+		}
+		else {
+			//debugger
 
-			if (g_emulationPaused)
-				DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
+			for (int i = 0; i < 32; i++) {
+				uint32_t data;
+				uint8_t cycels;
 
-			if (g_GteInstructionsLogged)
-				DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
-
+				psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
+				uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
+				DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
+				if (i == 16) {
+					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
+					DrawString(464, 108 + 36, "pc:", olc::WHITE);
+					DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
+				}
+			}
+			for (int i = 0; i < 32; i++) {
+				std::string s = psx.cpuSOC.executedOpcodes[i];
+				DrawString(489, 0 + 9 * (33 + i), s);
+			}
+			for (int i = 0; i < 32; i++) {
+				std::stringstream ss;
+				if (i < 10)
+					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+				else
+					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+				DrawString(0, i * 9, ss.str());
+			}
 			std::stringstream ss;
-			ss << "system clocks: " << psx.gpu.cpuClocks;
-			DrawString(0, 512 + 4, ss.str(), olc::WHITE);
+			ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
+			DrawString(0, 32 * 9, ss.str());
 			ss.str("\0");
-			ss << "system frames: " << g_systemFrames;
-			DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
+			ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
+			DrawString(0, 33 * 9, ss.str());
 			ss.str("\0");
-			ss << "system seconds: " << g_systemSeconds;
-			DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
+			ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
+			DrawString(0, 34 * 9, ss.str());
 			ss.str("\0");
-			ss << "system minutes: " << g_systemMinutes;
-			DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
-			return true;
+			ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
+			DrawString(0, 35 * 9, ss.str());
+			ss.str("\0");
+			ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
+			DrawString(0, 36 * 9, ss.str());
 		}
 
-		bool OnUserDestroy() override {
-			olc::SOUND::DestroyAudio();
-			return true;
-		}
-	};
+		if (g_emulationPaused)
+			DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
 
-	psxEmulator_t* psxEmulator_t::pInstance = nullptr;
+		if (g_GteInstructionsLogged)
+			DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
 
-	int main(int argumentCount, char* argumetVector[]) {
+		std::stringstream ss;
+		ss << "system clocks: " << psx.gpu.cpuClocks;
+		DrawString(0, 512 + 4, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system frames: " << g_systemFrames;
+		DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system seconds: " << g_systemSeconds;
+		DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
+		ss.str("\0");
+		ss << "system minutes: " << g_systemMinutes;
+		DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
+		return true;
+	}
 
-		if (argumentCount == 2) {
-			g_sideload = true;
-			g_sideloadPath = argumetVector[1];
-		}
+	bool OnUserDestroy() override {
+		olc::SOUND::DestroyAudio();
+		return true;
+	}
+};
 
-		psxEmulator_t emulator;
-		if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
-			//if (emulator.Construct(640, 480, 1, 1, false, true))
+psxEmulator_t* psxEmulator_t::pInstance = nullptr;
+
+int main(int argumentCount, char* argumetVector[]) {
+
+	if (argumentCount == 2) {
+		g_sideload = true;
+		g_sideloadPath = argumetVector[1];
+	}
+
+	psxEmulator_t emulator;
+#if !SCREEN
+	if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
+#endif
+#if SCREEN
+		if (emulator.Construct(640, 480, 2, 2, false, false))
+#endif
 			emulator.Start();
 
-		return EXIT_SUCCESS;
-	}
+	return EXIT_SUCCESS;
+}

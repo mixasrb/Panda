@@ -182,7 +182,7 @@ void dmaController_t::clock() {
 		}*/
 
 		if (currentClockFunction != 8)
-			while(!(this->*clockFunctionsArray[currentClockFunction])());
+			(this->*clockFunctionsArray[currentClockFunction])();
 
 		//if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy)//??
 		//	dma0.Clock();

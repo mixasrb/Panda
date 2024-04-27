@@ -224,7 +224,7 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 		switch (indexStatus.elem.index) {
 		case 0:
 			paramFifo.insert(paramFifo.begin(), data);
-			std::cout << "~[CD_DRIVE] param 0x" << (uint16_t)data << std::endl;
+			std::cout << "~[CD_DRIVE] param 0x" << std::hex << (uint16_t)data << std::endl;
 			break;
 		case 1:
 			interruptEnable.data = data;
@@ -421,7 +421,9 @@ void cdDrive::clock() {
 			bFirstResponse = false;
 			clocks = 0;
 
-			indexStatus.elem.busysts = 0;
+			if (!bSecondResponse)
+				indexStatus.elem.busysts = 0;
+
 			sendResponseINT(firstResponseINT, tempFirstResponseVector.data(), tempFirstResponseVector.size());
 			tempFirstResponseVector.clear();
 		}
@@ -430,6 +432,11 @@ void cdDrive::clock() {
 			!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			bSecondResponse = false;
 			clocks = 0;
+
+			//if (stat.elem.seek == 1)
+			//	stat.elem.seek = 0;
+
+			indexStatus.elem.busysts = 0;
 
 			sendResponseINT(secondResponseINT, tempSecondResponseVector.data(), tempSecondResponseVector.size());
 			tempFirstResponseVector.clear();
@@ -448,32 +455,35 @@ void cdDrive::clock() {
 			printStat();
 
 			if (bSendINT1) {
-				stat.elem.seek = 0;
+				stat.elem.seek = 0; //??
 				if (!bPlay) {
 					uint8_t dataResponse[1] = { stat.data };
 					setDataResponse(INT1, dataResponse, 1);
+					sendResponseINT(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
+					tempFirstResponseVector.clear();
 				}
-				else { // Play Report	                                                                                        
-					uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA),
-						fromHex8ToBCD(pBus->spu.asectCDDA), 0x7f, 0x00 };//??
+				else { // Play Report	 
+					if ((stored_asect % 10) == 0) {
+						uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm), fromHex8ToBCD(stored_ass),
+							fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
 
-					//uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm),
-					//	fromHex8ToBCD(stored_ass), fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
-					//peaklo,peakhi??
+						//uint8_t dataResponse[8] = { stat.data, track, 0x1, fromHex8ToBCD(stored_amm),
+						//	fromHex8ToBCD(stored_ass), fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
+						//peaklo,peakhi??
 
-					setDataResponse(INT1, dataResponse, 8);
+						setDataResponse(INT1, dataResponse, 8);
+						sendResponseINT(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
+						tempFirstResponseVector.clear();
+					}
 				}
-				sendResponseINT(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
-				tempFirstResponseVector.clear();
 			}
 		}
-
-
-		if (bSecondResponse || bFirstResponse)
-			clocks++;
-		if (bDataResponse)
-			dataClocks++;
 	}
+
+	if (bSecondResponse || bFirstResponse)
+		clocks++;
+	if (bDataResponse)
+		dataClocks++;
 }
 
 void cdDrive::executeCommand(const uint8_t& command) {
@@ -510,10 +520,12 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		return;
 	}
 
-	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter && (fileDataVect[currentPossition + 0x12] & 0x04))
-		|| (stat.elem.play && (mode.elem.report == 0)))
+	bSendINT1 = false;
+	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter && (fileDataVect[currentPossition + 0x12] & 0x04)) ||
+		(stat.elem.play && (mode.elem.report == 0)))
 		bSendINT1 = false;
-	else if (!bPlay) {
+	else if ((!bPlay) ||
+		(bPlay && mode.elem.report)) {
 		bSendINT1 = true;
 		pBuffer = (uint8_t*)fileDataVect.data() + (currentPossition + (mode.elem.sectorSize ? 0x0c : 0x18));
 	}
@@ -521,6 +533,24 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 	if (!bPlay)
 		for (int i = 0; i < 8; i++)
 			storedSectorHeader[i] = fileDataVect[currentPossition + 0x0c + i];
+
+	auto fillBufferXA_ADPCM = [&]() {
+		pBus->spu.pBufferXA_ADPCM = (uint8_t*)fileDataVect.data() + currentPossition;
+		pBus->spu.decodeSectorXA_ADPCM(pBus->spu.pBufferXA_ADPCM);
+		pBus->spu.currentSample = 0;
+		};
+
+	if (mode.elem.xa_adpcm &&
+		(fileDataVect[currentPossition + 0x0f] == 0x02) &&
+		(fileDataVect[currentPossition + 0x10 + 0x02] & 0x04) &&
+		(fileDataVect[currentPossition + 0x10 + 0x02] & 0x40))
+		if (mode.elem.xa_filter) {
+			if ((fileDataVect[currentPossition + 0x10] == filterFile) &&
+				(fileDataVect[currentPossition + 0x10 + 0x01] == filterChannel))
+				fillBufferXA_ADPCM();
+		}
+		else
+			fillBufferXA_ADPCM();
 
 	stored_amm = amm;
 	stored_ass = ass;
@@ -684,6 +714,9 @@ void cdDrive::play(const uint8_t& command) {
 			}
 		}
 
+		if (stat.elem.play)
+			stat.elem.play = 0;
+
 		stat.elem.seek = 1;
 	}
 	else if (!paramFifo.empty()) { //parameter track
@@ -693,6 +726,9 @@ void cdDrive::play(const uint8_t& command) {
 		amm = cdTracks[track - 1].index1Start.amm;
 		ass = cdTracks[track - 1].index1Start.ass;
 		asect = cdTracks[track - 1].index1Start.asect;
+
+		if (stat.elem.play)
+			stat.elem.play = 0;
 
 		stat.elem.seek = 1;
 	}
@@ -765,6 +801,14 @@ void cdDrive::setLoc(const uint8_t& command) {
 void cdDrive::readN(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
 
+	bDataResponse = false;
+	bPlay = false; //??
+
+	if (stat.elem.read)
+		stat.elem.read = 0;
+	if (stat.elem.play)
+		stat.elem.play = 0;
+
 	//bPlay = false;//??
 	//stat.elem.play = 0;//??
 
@@ -789,7 +833,17 @@ void cdDrive::readN(const uint8_t& command) {
 	}
 
 	uint8_t firstResponse[1] = { stat.data };
-	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
+	uint32_t firstResponseClocks = 0xc4e1;
+	//if (stat.elem.seek)
+	//	firstResponseClocks += mode.elem.speed ? 0x3ab2b / 2 : 0x72732 / 2;
+
+	setFirstResponse(firstResponseClocks, INT3, firstResponse, 1);
+
+	if (stat.elem.seek) { //?? break gran turismo 2
+		//stat.elem.seek = 0;
+		uint8_t secondResponse[1] = { stat.data };
+		setSecondResponse(0x1c421, INT2, secondResponse, 1);
+	}
 
 	//stat.elem.seek = 0; //~ used for gran turismo 2
 
@@ -968,12 +1022,11 @@ void cdDrive::getLocP(const uint8_t& command) {
 	if (bPlay)
 		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA), fromHex8ToBCD(pBus->spu.asectCDDA),
 			fromHex8ToBCD(pBus->spu.ammCDDA), fromHex8ToBCD(pBus->spu.assCDDA), fromHex8ToBCD(pBus->spu.asectCDDA) };
-	else
-		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA),
-			fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) }; //??
-
-	/*std::vector<uint8_t> firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(mm), fromHex8ToBCD(ss), fromHex8ToBCD(sect),
-		fromHex8ToBCD(amm), fromHex8ToBCD(ass), fromHex8ToBCD(asect) };*/
+	else //tomb raider needs index 0
+		//firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA),
+		//	fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) }; //??
+		firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), fromHex8ToBCD(mm), fromHex8ToBCD(ss), fromHex8ToBCD(sect),
+			fromHex8ToBCD(amm), fromHex8ToBCD(ass), fromHex8ToBCD(asect) };
 
 	setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 }
@@ -1182,6 +1235,11 @@ void cdDrive::readS(const uint8_t& command) {
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
+	if (stat.elem.seek) { //??
+		uint8_t secondResponse[1] = { stat.data };
+		setSecondResponse(0x1c421, INT2, secondResponse, 1);
+	}
+
 	//stat.elem.seek = 0; //~ used for gran turismo 2
 
 	bDataResponse = true;
@@ -1202,7 +1260,7 @@ void cdDrive::readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uin
 	while (!bSectorFound) {
 		if (fileDataVect.size() < (((amm * 60 + ass - 2) * 75 + asect) * 0x930 + 0x930)) {
 			src = pNullSrc;
-			std::cout << "[CD_DRIVE] Unable to find requested XA_ADPCM sector";
+			std::cout << "[CD_DRIVE] Unable to find requested XA_ADPCM sector" << std::endl;
 			//g_emulationPaused = true;
 			break; // fixes problem in SaGa Frontier (USA) but why
 		}
@@ -1297,6 +1355,6 @@ void cdDrive::printStat() {
 		(stat.elem.read && stat.elem.play) ||
 		(stat.elem.seek && stat.elem.play)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! Play/Seek/Read status bits set at the same time!\n";
-		//g_emulationPaused = true;
+		g_emulationPaused = true;
 	}
 }

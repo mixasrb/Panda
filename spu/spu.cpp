@@ -806,8 +806,10 @@ void spu_t::write8(const uint32_t& addr, const uint8_t& data) {
 
 void spu_t::irqSend() {
 	if (spuControlRegister.elem.irq9Enable) { //metal gear solid
-		pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-		spuStatusRegister.elem.irq9Flag = 1;
+		if (spuStatusRegister.elem.irq9Flag == 0) {
+			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			spuStatusRegister.elem.irq9Flag = 1;
+		}
 	}
 }
 
@@ -1260,7 +1262,7 @@ output_t spu_t::clock() {
 	output_t outputTempVoices = { 0.0f, 0.0f };
 	output_t inputReverb = { 0.0f, 0.0f };
 
-	for (int voice = 0; voice < 24; voice++) {
+	for (uint8_t voice = 0; voice < 24; voice++) {
 		output_t outputVoice = voices.voiceRegisters[voice].envelope(voices.output(voice));
 
 		if (voice == 1) {
@@ -1427,7 +1429,14 @@ void spu_t::decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint
 }
 
 void spu_t::decodeSectorXA_ADPCM(uint8_t*& src) {
+	submode.data = src[0x10 + 0x02];
+	codinginfo.data = src[0x10 + 0x03];
+	bStereo = codinginfo.elem.monoStereo;
+	bSampleRate18900Hz = codinginfo.elem.sampleRate;
+	b8BitsPerSample = codinginfo.elem.bitsPerSample;
+
 	src += 0x0c + 0x04 + 0x08;
+
 	counterMono = 0;
 	counterLeft = 0;
 	counterRight = 0;
@@ -1468,12 +1477,12 @@ output_t spu_t::clockXA_ADPCM() {
 	const uint16_t samplesPerSectorXA_ADPCM = 28 * 2 * 4 * 18;
 
 	if (currentSample == samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1)) {
-		//if (!submode.elem.endOfFile)//??
-		//{
-		currentSample = 0;
-		pBus->pCdDrive->readSectorXA_ADPCM(ammXA, assXA, asectXA, pBufferXA);
-		decodeSectorXA_ADPCM(pBufferXA);
-		//}
+		////if (!submode.elem.endOfFile)//??
+		////{
+		//currentSample = 0;
+		//pBus->pCdDrive->readSectorXA_ADPCM(ammXA, assXA, asectXA, pBufferXA_ADPCM);
+		//decodeSectorXA_ADPCM(pBufferXA_ADPCM);
+		////}
 	}
 
 	if (currentSample < samplesPerSectorXA_ADPCM / (b8BitsPerSample ? 2 : 1))

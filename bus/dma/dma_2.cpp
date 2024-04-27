@@ -139,7 +139,7 @@ void dma2_t::endDMATransfer() {
 
 void dma2_t::Clock() {
 
-	if (pDMAController->isCpuStopped == false) {
+	/*if (pDMAController->isCpuStopped == false) {
 		if (syncClocks == 0) {
 			channelControl.reg.startBusy = 1;
 			pDMAController->isCpuStopped = true;
@@ -147,7 +147,7 @@ void dma2_t::Clock() {
 		else
 			syncClocks--;
 		return;
-	}
+	}*/
 
 	if (clocks == 0) {
 
