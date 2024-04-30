@@ -600,7 +600,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 				break;
 			default:
 				std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
-					std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1) << std::endl;
+					std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) << std::endl;
 				g_emulationPaused = true;
 				break;
 			}

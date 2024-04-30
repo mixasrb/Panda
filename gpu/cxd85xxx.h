@@ -265,6 +265,8 @@ public:
 	};
 
 	fifo_t<uint32_t> fifo;
+	fifo_t<uint32_t> fifoTemp;
+	void loopGp0();
 	uint32_t fifoCount = 0;
 	//uint32_t fifoClocks = 0;
 	uint32_t fifoClocks[5] = { 0, 0, 0, 0, 0 };

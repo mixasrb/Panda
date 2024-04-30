@@ -158,6 +158,7 @@ gpu_t::gpu_t() {
 	gpuStat.data = 0x14000000;
 
 	fifo.resize(size_x * size_y);
+	fifoTemp.resize(1024 * 1024);
 
 	outputFifo.resize(size_x * size_y);
 
@@ -522,6 +523,8 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
 				fifoCount++;*/
 		}
+
+		//fifoTemp.pushBack(data);
 		return;
 	}
 
@@ -2598,3 +2601,52 @@ void gpu_t::environmentCommand6(const param_t& param) {
 //	}
 //	gp0CommandFuncs.reset();*/
 //};
+
+void gpu_t::loopGp0(){
+
+	while (!fifoTemp.empty()) {
+		uint32_t data = fifoTemp.getNext();
+
+		if (collectCount) {
+			fifo.pushBack(data);
+			collectCount--;
+			if ((collectCount == 0) && (bCollectPolylineParam))
+				if ((data & 0xf000f000) == 0x50005000)
+					bCollectPolylineParam = false;
+				else
+					collectCount = 1;
+		}
+		else {
+			gp0Command = data;
+			if (!fifo.empty()) {
+				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << fifo.size() << std::endl;
+				g_emulationPaused = true;
+			}
+			fifo.reset();
+
+			collectCount = gp0Lookup[gp0Command >> 24].collectCount - 1;
+
+			if (((gp0Command >> 24) >= 0xa0) && ((gp0Command >> 24) < 0xc0))
+				bCollectCopyCpuVramParam = true;
+			else if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
+				bCollectPolylineParam = true;
+		}
+
+		if (collectCount == 0) {
+
+			if (g_GpuCommandsLogged) {
+				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command << " " << gp0Lookup[gp0Command >> 24].name << std::endl;
+				std::cout << "~[GPU] memAdrTemp: 0x" << std::hex << pBus->dma.dma2.memAddrTemp << std::endl;
+			}
+
+			decodeExecuteGp0Command(gp0Command);
+		}
+	}
+
+	if (fifoTemp.empty()) {
+		if(!(pBus->dma.controlRegister.reg.gpu_master_enable 
+			&& pBus->dma.dma2.bTransferActive))
+		fifoTemp.reset();
+		return;
+	}
+}

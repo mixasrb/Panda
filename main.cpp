@@ -50,11 +50,13 @@ public:
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
 			if (!g_emulationPaused) {
-			/*	for (int i = 0; i < 0x300; i++)
-					pInstance->psx.clock();*/
+				/*	for (int i = 0; i < 0x300; i++)
+						pInstance->psx.clock();*/
+
+
 
 				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
-				//pInstance->psx.gpu.executeGp0CommandFuncs();
+				//pInstance->psx.gpu.loopGp0();
 			}
 		}
 

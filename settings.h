@@ -96,8 +96,14 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin"); // get stuck //needs but stil dont boot/*if (pc == 0x80101310) r[2] = 1; */
 
 
+//have gamebreaking bugs
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
+
+//worked before
 
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It).bin"); //does not pass loading screen
 
 //Working ones
 
@@ -197,10 +203,10 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tony Hawk's Pro Skater 2 (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tony Hawk's Pro Skater (USA).bin");//very low fps
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alien Resurrection (Europe) (En,Fr,De,Es,It)/Alien Resurrection (Europe) (En,Fr,De,Es,It) (Track 1).bin");//screen problem
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alien Resurrection (Europe) (En,Fr,De,Es,It)/Alien Resurrection (Europe) (En,Fr,De,Es,It) (Track 1).bin");//screen problem fixed??
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter (USA) (v1.1).bin");// DMA 2 linked-list loop
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve II (USA) (Disc 1).bin"); //sound not ending problem
@@ -234,19 +240,19 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Skullmonkeys (Europe).bin"); // works with patch read32 0x800131FC to 0;
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman 2 - The Great Escape (USA) (En,Fr,Es)/Rayman 2 - The Great Escape (USA) (En,Fr,Es) (Track 1).bin"); // [CP0] EMULATION PAUSED! triggered exception code: 0xc -> cut scenes must be skipped // causes by spu irq
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman Rush (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman 2 - The Great Escape (USA) (En,Fr,Es)/Rayman 2 - The Great Escape (USA) (En,Fr,Es) (Track 1).bin"); // [CP0] EMULATION PAUSED! triggered exception code: 0xc -> cut scenes must be skipped // causes by spu irq //sync problem
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rayman/Rayman (USA) (Track 01).bin");//VSync: timeout // needs auto pause //mising sounds in fmv fixed??//one pixel offset graphic bug//no music in gameplay
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Yu-Gi-Oh! - Forbidden Memories (Europe).bin");//probably stucked because unhandled spu regs
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot?? // crashes if cpu is too fast //acceseing inaccesable sectors because og getTD
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Black Dawn/Black Dawn (USA) (Track 01).bin");//SsVabOpenHead : failed! ~needs spu to boot?? // crashes if cpu is too fast //acceseing inaccesable sectors because og getTD//EMULATION PAUSED! invalid setlock ass value 0x61
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tiny Tank [U] [SCUS-94427].bin");//problem with input// fixed with implemted spu??
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1.1).bin");//stuck // problem with mem card//hangs maybe spu regs?? needs reverb
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (USA).bin");//stuck // problem with mem card // like no input// maybe spu regs ?? needs reverb
 
 
@@ -308,7 +314,6 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Oddworld - Abe's Oddysee (Europe).bin"); // DMA3 CDROM 0x11400100h (chopped)..//but woks //mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Oddworld - Abe's Exoddus (USA) (Disc 1).bin"); // DMA3 CDROM 0x11400100h (chopped)
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/007 - Tomorrow Never Dies (USA).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mega Man X3/Mega Man X3 (Europe) (Track 01).bin"); // DMA3 CDROM 0x11400100h (chopped)
@@ -355,9 +360,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Silent Hill (v1
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Aladdin in Nasira's Revenge.bin");//gte // no input!!! if cpu is too fast //spu irq problem
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It).bin");
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's 102 Dalmatians - Puppies to the Rescue (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's 102 Dalmatians - Puppies to the Rescue (USA).bin"); // has some strange draging
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Atlantis - The Lost Empire (USA)/Disney's Atlantis - The Lost Empire (USA) (Track 1).bin");
 
