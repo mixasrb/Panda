@@ -944,7 +944,6 @@ int16_t spu_t::voices_t::output(const uint8_t& voice) {
 	currentVoiceRegisters.sample = currentVoiceRegisters.samples[currentSampleNumber];
 	currentVoiceRegisters.pushSample(currentVoiceRegisters.sample);
 
-	//this is making sound artefacts
 	currentVoiceRegisters.out = ((int32_t)p_spu->gauss[0x0ff - i] * currentVoiceRegisters.voiceOldest) >> 15;
 	currentVoiceRegisters.out += ((int32_t)p_spu->gauss[0x1ff - i] * currentVoiceRegisters.voiceOlder) >> 15;
 	currentVoiceRegisters.out += ((int32_t)p_spu->gauss[0x100 + i] * currentVoiceRegisters.voiceOld) >> 15;
@@ -1341,6 +1340,8 @@ output_t spu_t::clock() {
 		outputTempCDDA.channel1 = 1.0f;
 	else if (outputTempCDDA.channel1 < -1.0f)
 		outputTempCDDA.channel1 = -1.0f;
+
+	outputCDDA = outputTempCDDA;
 
 	outputAudioCD = outputCDXA + outputCDDA;
 

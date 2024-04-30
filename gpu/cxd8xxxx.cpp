@@ -1397,7 +1397,7 @@ void gpu_t::updateVramView(const vertex_t& possition, const psxColor16_t& color1
 	}*/
 }
 
-void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea) {
+void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea, const bool bDithering) {
 	if (bIgnoreDrawingArea) {
 		/*if ((position.x < 0) || (position.y < 0)) {
 			std::cout << "~[GPU] EMULATION PAUSED! Write Vram out of bounds!" << std::dec << " (x,y) (" << position.x << "," <<
@@ -1421,9 +1421,24 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		((position.x) <= drawAreaBottomRight.x) &&
 		((position.y) <= drawAreaBottomRight.y)) {
 
+		psxColor16_t pixelColor16;
+		pixelColor16.data = data;
+
+		if (bDithering) {
+			int16_t ditheringOffset = ditheringLookup[position.x & 0x3 + ((position.y & 0x3) << 2)];
+			int16_t red = ((uint16_t)pixelColor16.component.red << 3) + ditheringOffset;
+			int16_t green = ((uint16_t)pixelColor16.component.green << 3) + ditheringOffset;
+			int16_t blue = ((uint16_t)pixelColor16.component.blue << 3) + ditheringOffset;
+
+			pixelColor16.component.red = ((red < 0) ? 0 : ((red > 0xff) ? 0xff : red)) >> 3;
+			pixelColor16.component.green = ((green < 0) ? 0 : ((green > 0xff) ? 0xff : green)) >> 3;
+			pixelColor16.component.blue = ((blue < 0) ? 0 : ((blue > 0xff) ? 0xff : blue)) >> 3;
+		}
+
+		uint16_t data = pixelColor16.data;
+
 		uint16_t backPixel;
 		readVram(position, backPixel, bIgnoreDrawingArea);
-
 		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
 			*((uint16_t*)(vram + ((position.x & 1023) << 1) + ((position.y & 511) << 11))) = data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			updateVramView(position, data);
@@ -1527,9 +1542,10 @@ void gpu_t::drawPolygon(const param_t& param) {
 	psxColor16_t frontPixelColor;
 	psxColor24_t calculatedPixelColor;
 
-	std::tuple p0{ vert1.x, vert1.y, color1.component.blue, color1.component.green, color1.component.red };
-	std::tuple p1{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
-	std::tuple p2{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
+	bool bDithering = (param.shadingType == GOURAUD_SHADING ||
+		param.modulationType == TEXTURE_BLENDING) &&
+		gpuStat.elem.dither24To15;
+
 
 	auto plot = [&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r) {
 		vertex_t p(x, y);
@@ -1547,8 +1563,12 @@ void gpu_t::drawPolygon(const param_t& param) {
 		if (param.transpanencyType == SEMI_TRANSPARENT)
 			calculateTransparency(p, frontPixelColor);
 
-		writeVram(p, frontPixelColor.data);
+		writeVram(p, frontPixelColor.data, false, bDithering);
 		};
+
+	std::tuple p0{ vert1.x, vert1.y, color1.component.blue, color1.component.green, color1.component.red };
+	std::tuple p1{ vert2.x, vert2.y, color2.component.blue, color2.component.green, color2.component.red };
+	std::tuple p2{ vert3.x, vert3.y, color3.component.blue, color3.component.green, color3.component.red };
 
 	DrawPolygonInterpolated(p0, p1, p2, plot);
 
@@ -1646,6 +1666,9 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 	uint8_t min_v;
 	uint8_t max_v;
 
+	bool bDithering = (param.shadingType == GOURAUD_SHADING ||
+		param.modulationType == TEXTURE_BLENDING) &&
+		gpuStat.elem.dither24To15;
 
 	auto plot = [&](int16_t x, int16_t y, uint8_t b, uint8_t g, uint8_t r, uint8_t u, uint8_t v) {
 
@@ -1702,14 +1725,13 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 				//Old 160pin GPU v0
 				/*uint32_t red = (blendingColor.component.red >> 3) * frontPixelColor.component.red >> 4;
 				uint32_t green = (blendingColor.component.green >> 3) * frontPixelColor.component.green >> 4;
-				uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;
-				frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
-				frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
-				frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;*/
+				uint32_t blue = (blendingColor.component.blue >> 3) * frontPixelColor.component.blue >> 4;*/
+
 				//New 208pin GPU v2
 				uint32_t red = blendingColor.component.red * frontPixelColor.component.red >> 7;
 				uint32_t green = blendingColor.component.green * frontPixelColor.component.green >> 7;
 				uint32_t blue = blendingColor.component.blue * frontPixelColor.component.blue >> 7;
+
 				frontPixelColor.component.red = red > 0x1f ? 0x1f : red;
 				frontPixelColor.component.green = green > 0x1f ? 0x1f : green;
 				frontPixelColor.component.blue = blue > 0x1f ? 0x1f : blue;
@@ -1718,7 +1740,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 			if ((param.transpanencyType == SEMI_TRANSPARENT) && (frontPixelColor.component.semiTransparencyFlag))
 				calculateTransparency(p, frontPixelColor);
 
-			writeVram(p, frontPixelColor.data);
+			writeVram(p, frontPixelColor.data, false, bDithering);
 		}
 		};
 
@@ -2162,6 +2184,8 @@ void gpu_t::drawLine(const param_t& param) { //could be optimized
 
 	psxColor16_t frontPixelColor;
 
+	bool bDithering = gpuStat.elem.dither24To15;
+
 
 	if (y2 < y1) {
 		swap(y1, y2);
@@ -2211,7 +2235,7 @@ void gpu_t::drawLine(const param_t& param) { //could be optimized
 			if (param.transpanencyType == SEMI_TRANSPARENT)
 				calculateTransparency(p, frontPixelColor);
 
-			writeVram(p, frontPixelColor.data);
+			writeVram(p, frontPixelColor.data, false, bDithering);
 		}
 	}
 	else if ((k < 1.0f) && (k > -1.0f)) {
@@ -2242,7 +2266,7 @@ void gpu_t::drawLine(const param_t& param) { //could be optimized
 			if (param.transpanencyType == SEMI_TRANSPARENT)
 				calculateTransparency(p, frontPixelColor);
 
-			writeVram(p, frontPixelColor.data);
+			writeVram(p, frontPixelColor.data, false, bDithering);
 		}
 	}
 }

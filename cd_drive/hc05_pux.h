@@ -244,10 +244,8 @@ public:
 
 	struct cdTrack_t {
 		uint8_t track;
-		cdSector_t index0Start;
-		cdSector_t index0End;
-		cdSector_t index1Start;
-		cdSector_t index1End;
+		cdSector_t trackStart;
+		cdSector_t trackEnd;
 	};
 
 	size_t fileSize;

@@ -398,6 +398,13 @@ public:
 	uint32_t destCoord;
 	uint32_t sourceCoord;
 
+	int16_t ditheringLookup[4 * 4] = {
+		-4, +0, -3, +1,
+		+2, -2, +3, -1,
+		-3, +1, -4, +0,
+		+3, -1, +2, -2
+	};
+
 	void decodeExecuteGp1Command(const uint32_t& command);
 
 	uint32_t gp1Command;
@@ -410,7 +417,7 @@ public:
 
 	uint8_t* vram = new uint8_t[size_x_b * size_y];
 
-	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false);
+	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false, const bool bDithering = false);
 	void readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
 
 	olc::Sprite* getVramSprite();

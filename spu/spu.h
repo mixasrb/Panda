@@ -448,8 +448,6 @@ public:
 	int16_t olderMono = 0;
 
 	uint32_t currentSample = 0;
-	uint8_t b = 0;
-	uint8_t k = 0;
 	uint32_t counterMono = 0;
 	uint32_t counterLeft = 0;
 	uint32_t counterRight = 0;
