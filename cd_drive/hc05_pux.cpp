@@ -192,8 +192,18 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 	case 0x1f801801:
 		switch (indexStatus.elem.index) {
 		case 0:
-			commandVector.push_back(data);
 			std::cout << "~[CD_DRIVE] command sent : " << commandLookup[data].name << std::endl;
+
+			if (!commandVector.empty() || indexStatus.elem.busysts) {
+				std::cout << "~[CD_DRIVE] EMULATION PAUSED! command sent before previous one is executed\n";
+				g_emulationPaused = true;
+
+				bFirstResponse = false;
+				bSecondResponse = false;
+				responsesINT.clear();
+			}
+
+			commandVector.push_back(data);
 			break;
 		case 1:
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index1 - Sound Map Data Out (W) 0x"
@@ -338,9 +348,8 @@ void cdDrive::setFirstResponse(const uint32_t& waitClocks, const responseINT_t& 
 	printStat();
 
 	//tempFirstResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++) {
+	for (uint8_t i = 1; i <= responseCount; i++)
 		tempFirstResponseVector.push_back(pResponses[responseCount - i]);
-	}
 
 	firstResponseINT = responseINT;
 }
@@ -354,19 +363,21 @@ void cdDrive::setSecondResponse(const uint32_t& waitClocks, const responseINT_t&
 	printStat();
 
 	tempSecondResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++) {
+	for (uint8_t i = 1; i <= responseCount; i++)
 		tempSecondResponseVector.push_back(pResponses[responseCount - i]);
-	}
 
 	secondResponseINT = responseINT;
 }
 
 void cdDrive::setDataResponse(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
 
+	//debug
+	std::cout << "~[CD_DRIVE] data response" << std::endl;
+	printStat();
+
 	tempDataResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++) {
+	for (uint8_t i = 1; i <= responseCount; i++)
 		tempDataResponseVector.push_back(pResponses[responseCount - i]);
-	}
 
 	dataResponseINT = responseINT;
 }
@@ -385,6 +396,7 @@ void cdDrive::clock() {
 	if (bDeliverResponseINT) {
 		irqFlagRead.elem.int_1_7 = responsesINT[0];
 		responsesINT.erase(responsesINT.begin());
+
 		if (irqFlagRead.elem.int_1_7)
 			std::cout << "~[CD_DRIVE] sent INT" << uint16_t(irqFlagRead.elem.int_1_7) << " flag" << std::endl;
 		if (irqFlagRead.elem.int_8)
@@ -410,45 +422,35 @@ void cdDrive::clock() {
 
 	if (bFirstResponse || bSecondResponse || bDataResponse) {
 
-		if (clocks >= waitClocksFirstResponse /*+ 0x36cd2 * 5 / 20*/ && bFirstResponse) {
+		if (clocks >= waitClocksFirstResponse /*+ 0x36cd2 * 2 / 20*/ && bFirstResponse
+			&& responsesINT.empty() && (irqFlagRead.data == 0)) {
 			bFirstResponse = false;
 			clocks = 0;
 
-			if (!bSecondResponse)
-				indexStatus.elem.busysts = 0;
-
 			sendResponseINT(firstResponseINT, tempFirstResponseVector.data(), tempFirstResponseVector.size());
 			tempFirstResponseVector.clear();
+
+			indexStatus.elem.busysts = 0;
 		}
 		// Doom
-		else if (clocks >= (waitClocksSecondResponse /*+ 0x36cd2 * 1 / 10*/) && bSecondResponse &&
+		if (clocks >= (waitClocksSecondResponse /*+ 0x36cd2 * 1 / 10*/) && bSecondResponse &&
 			!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			bSecondResponse = false;
 			clocks = 0;
-
-			//if (stat.elem.seek == 1)
-			//	stat.elem.seek = 0;
-
-			indexStatus.elem.busysts = 0;
 
 			sendResponseINT(secondResponseINT, tempSecondResponseVector.data(), tempSecondResponseVector.size());
 			tempFirstResponseVector.clear();
 		}
 		//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
 			//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-																		 //bugs bunny games also  resident evil 1 ??
+																		 //resident evil 1 ??
 		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*//* + 0x36cd2 * 14 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
 			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			dataClocks = 0;
 
 			readSector(amm, ass, asect);
 
-			//debug
-			std::cout << "~[CD_DRIVE] data response" << std::endl;
-			printStat();
-
 			if (bSendINT1) {
-				stat.elem.seek = 0; //??
 				if (!bPlay) {
 					uint8_t dataResponse[1] = { stat.data };
 					setDataResponse(INT1, dataResponse, 1);
@@ -613,13 +615,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 			(asect == cdTracks[i].trackEnd.asect)) {
 
 			if (mode.elem.autoPause) { //Pause
-				bDataResponse = false;
-				bPlay = false;
-
-				if (stat.elem.read)
-					stat.elem.read = 0;
-				if (stat.elem.play)
-					stat.elem.play = 0;
+				cancelReading();
 
 				uint8_t secondResponse[1] = { stat.data };
 				uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 : 0x21181c;
@@ -628,13 +624,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 				std::cout << "~[CD_DRIVE] auto pause" << std::endl;
 			}
 			else if (i == cdTracks.size() - 1) { //Stop
-				bDataResponse = false;//??
-				bPlay = false; //??
-
-				if (stat.elem.read)
-					stat.elem.read = 0;
-				if (stat.elem.play)
-					stat.elem.play = 0;
+				cancelReading();
 
 				stat.elem.spindleMotor = 0;
 				uint8_t secondResponse[1] = { stat.data };
@@ -665,6 +655,14 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 			amm++;
 		}
 	}
+}
+
+void cdDrive::cancelReading() {
+	bDataResponse = false;
+	bPlay = false;
+
+	stat.elem.read = 0;
+	stat.elem.play = 0;
 }
 
 void cdDrive::printDriveMode() {
@@ -700,32 +698,22 @@ void cdDrive::getStat(const uint8_t& command) {
 }
 
 void cdDrive::play(const uint8_t& command) {
-	bPlay = true;
-	bDataResponse = true;
-
-	//stat.elem.read = 0;//??
-
 	stat.elem.spindleMotor = 1;
-	if (bSetLoc) {
-		bSetLoc = false;
+
+	if (!bSetLocIssued && paramFifo.empty()) {
+		amm = stored_amm;
+		ass = stored_ass;
+		asect = stored_asect;
+
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued Play without setLoc!\n";
+		g_emulationPaused = true;
+	}
+	else if (bSetLocUnprocessed) {
+		bSetLocUnprocessed = false;
 
 		amm = unprocessed_amm;
 		ass = unprocessed_ass;
 		asect = unprocessed_asect;
-
-		for (int i = 0; i < cdTracks.size(); i++) {
-			if (((amm * 60 * 75 + ass * 75 + asect) >=
-				(cdTracks[i].trackStart.amm * 60 * 75 + cdTracks[i].trackStart.ass * 75 + cdTracks[i].trackStart.asect)) &&
-				((amm * 60 * 75 + ass * 75 + asect) <=
-					(cdTracks[i].trackEnd.amm * 60 * 75 + cdTracks[i].trackEnd.ass * 75 + cdTracks[i].trackEnd.asect))) {
-
-				track = i + 1;
-				break;
-			}
-		}
-
-		if (stat.elem.play)
-			stat.elem.play = 0;
 
 		stat.elem.seek = 1;
 	}
@@ -737,23 +725,12 @@ void cdDrive::play(const uint8_t& command) {
 		ass = cdTracks[track - 1].trackStart.ass;
 		asect = cdTracks[track - 1].trackStart.asect;
 
-		if (stat.elem.play)
-			stat.elem.play = 0;
-
 		stat.elem.seek = 1;
 	}
-	else {
-		for (int i = 0; i < cdTracks.size(); i++) {
-			if (((amm * 60 * 75 + ass * 75 + asect) >=
-				(cdTracks[i].trackStart.amm * 60 * 75 + cdTracks[i].trackStart.ass * 75 + cdTracks[i].trackStart.asect)) &&
-				((amm * 60 * 75 + ass * 75 + asect) <=
-					(cdTracks[i].trackEnd.amm * 60 * 75 + cdTracks[i].trackEnd.ass * 75 + cdTracks[i].trackEnd.asect))) {
 
-				track = i + 1;
-				break;
-			}
-		}
-	}
+	bSetLocIssued = false;
+
+	cancelReading();
 
 	pBus->spu.ammCDDA = amm;
 	pBus->spu.assCDDA = ass;
@@ -766,11 +743,14 @@ void cdDrive::play(const uint8_t& command) {
 	stat.elem.seek = 0; //~ used for gran turismo 2
 	stat.elem.play = 1;
 
+	bPlay = true;
+	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
 }
 
 void cdDrive::setLoc(const uint8_t& command) {
-	bSetLoc = true;
+	bSetLocIssued = true;
+	bSetLocUnprocessed = true;
 
 	uint8_t temp;
 
@@ -811,51 +791,50 @@ void cdDrive::setLoc(const uint8_t& command) {
 void cdDrive::readN(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
 
-	bDataResponse = false;
-	bPlay = false; //??
+	//seeking 
+	if (!bSetLocIssued) {
+		amm = stored_amm;
+		ass = stored_ass;
+		asect = stored_asect;
 
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued ReadN without setLoc!\n";
+		g_emulationPaused = true;
+	}
+	else {
+		if (bSetLocUnprocessed) {
+			bSetLocUnprocessed = false;
 
-	//bPlay = false;//??
-	//stat.elem.play = 0;//??
+			amm = unprocessed_amm;
+			ass = unprocessed_ass;
+			asect = unprocessed_asect;
 
-	//seek 
-	if (bSetLoc) {
-		bSetLoc = false;
-
-		amm = unprocessed_amm;
-		ass = unprocessed_ass;
-		asect = unprocessed_asect;
-
-		stat.elem.read = 0; //??
-		stat.elem.seek = 1;
+			stat.elem.seek = 1;
+		}
 	}
 
-	if (mode.elem.xa_adpcm) {
-		pBus->spu.ammXA = amm;
-		pBus->spu.assXA = ass;
-		pBus->spu.asectXA = asect;
-		pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
-		pBus->spu.submode.data = 0;
-	}
+	bSetLocIssued = false;
+
+	cancelReading();
+
+	//if (mode.elem.xa_adpcm) {
+	//	pBus->spu.ammXA = amm;
+	//	pBus->spu.assXA = ass;
+	//	pBus->spu.asectXA = asect;
+	//	pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
+	//	pBus->spu.submode.data = 0;
+	//}
 
 	uint8_t firstResponse[1] = { stat.data };
 	uint32_t firstResponseClocks = 0xc4e1;
-	//if (stat.elem.seek)
-	//	firstResponseClocks += mode.elem.speed ? 0x3ab2b / 2 : 0x72732 / 2;
 
 	setFirstResponse(firstResponseClocks, INT3, firstResponse, 1);
 
-	if (stat.elem.seek) { //?? break gran turismo 2
-		//stat.elem.seek = 0;
+	if (stat.elem.seek) { //?? break gran turismo 2, Ace Combat 2 (USA)
+		/*std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadN\n";
+		g_emulationPaused = true;*/
 		uint8_t secondResponse[1] = { stat.data };
 		setSecondResponse(0x1c421, INT2, secondResponse, 1);
 	}
-
-	//stat.elem.seek = 0; //~ used for gran turismo 2
 
 	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
@@ -877,13 +856,14 @@ void cdDrive::motorOn(const uint8_t& command) {
 }
 
 void cdDrive::stop(const uint8_t& command) {
-	bDataResponse = false;//??
-	bPlay = false; //??
+	uint32_t secondWaitClocks;
 
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
+	if (bDataResponse)
+		secondWaitClocks = mode.elem.speed ? 0x18a6076 : 0x0d38aca;
+	else
+		secondWaitClocks = 0x0001d7b;
+
+	cancelReading();
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -891,57 +871,61 @@ void cdDrive::stop(const uint8_t& command) {
 	stat.elem.spindleMotor = 0;
 
 	uint8_t secondResponse[1] = { stat.data };
-	uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 / 40 : 0x21181c / 40; //??
-	//	uint32_t secondWaitClocks = mode.elem.speed ? 0x0d38aca : 0x18a6076; //should be
+
 	setSecondResponse(secondWaitClocks, INT2, secondResponse, 1);
 }
 
 void cdDrive::pause(const uint8_t& command) {
-	bDataResponse = false;
-	bPlay = false;
+	uint32_t secondWaitClocks;
+
+	if (bDataResponse)
+		secondWaitClocks = mode.elem.speed ? 0x010bd93 : 0x021181c;
+	else
+		secondWaitClocks = 0x0001df2;
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
+	cancelReading();
 
 	uint8_t secondResponse[1] = { stat.data };
-	uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 / 40 : 0x21181c / 40; //??
+
 	setSecondResponse(secondWaitClocks, INT2, secondResponse, 1);
 }
 
 void cdDrive::init(const uint8_t& command) {
-	bDataResponse = false;//??
-	bPlay = false;//??
+	stat.elem.spindleMotor = 1;
 
 	mode.data = 0x20;
+	sectorSize = mode.elem.sectorSize ? 0x924 : 0x800;
+	if (mode.elem.xa_adpcm == 0)
+		indexStatus.elem.adpbusy = 0;
+
+	bMuted = false;
+
 	printDriveMode();
 
-	sectorSize = 0x924;
+	cancelReading();
+
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0x13cce, INT3, firstResponse, 1);
-
-	stat.elem.spindleMotor = 1;
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
 
 	uint8_t secondResponse[1] = { stat.data };
 	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 }
 
 void cdDrive::mute(const uint8_t& command) {
-	uint8_t response[1] = { stat.data };
-	setFirstResponse(0xc4e1, INT3, response, 1);
+	bMuted = true;
+
+	uint8_t firstResponse[1] = { stat.data };
+	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 }
 
 void cdDrive::demute(const uint8_t& command) {
+	bMuted = false;
+
 	uint8_t firstResponse[1] = { stat.data };
-	setFirstResponse(0x5cce, INT3, firstResponse, 1);
+	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 }
 
 void cdDrive::setFilter(const uint8_t& command) {
@@ -950,6 +934,7 @@ void cdDrive::setFilter(const uint8_t& command) {
 	filterFile = paramFifo.back();
 	paramFifo.pop_back();
 	std::cout << std::hex << "~[CD_DRIVE] file: 0x" << (uint16_t)filterFile << std::endl;
+
 	filterChannel = paramFifo.back();
 	paramFifo.pop_back();
 	std::cout << std::hex << "~[CD_DRIVE] channel: 0x" << (uint16_t)filterChannel << std::endl;
@@ -983,7 +968,6 @@ void cdDrive::getLocL(const uint8_t& command) {
 }
 
 void cdDrive::getLocP(const uint8_t& command) {
-
 	uint8_t track = 0xff;
 	uint8_t index = 0;
 	uint8_t mm;
@@ -1010,8 +994,40 @@ void cdDrive::getLocP(const uint8_t& command) {
 			sect = diff;
 
 			index = 0;
-			if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75))
+			if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 0))
 				index = 1;
+
+			//Vib-Ribbon
+			/*if (track == 1)
+				index = 1;
+			else if (track == 2) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (11 * 75 + 8))
+					index = 1;
+			}
+			else if (track == 3) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 3))
+					index = 1;
+			}
+			else if (track == 4) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 31))
+					index = 1;
+			}
+			else if (track == 5) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 0))
+					index = 1;
+			}
+			else if (track == 6) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 18))
+					index = 1;
+			}
+			else if (track == 7) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 66))
+					index = 1;
+			}
+			else if (track == 8) {
+				if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75 + 61))
+					index = 1;
+			}*/
 		}
 	}
 
@@ -1037,7 +1053,6 @@ void cdDrive::getLocP(const uint8_t& command) {
 void cdDrive::getTN(const uint8_t& command) {
 	uint8_t firstTrack = 1;
 	uint8_t lastTrack = (uint8_t)cdTracks.size();
-	//uint8_t firstResponse[3] = { stat.data, 0x1, 0x1 };
 	uint8_t firstResponse[3] = { stat.data, fromHex8ToBCD(firstTrack), fromHex8ToBCD(lastTrack) };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 3);
 }
@@ -1058,18 +1073,85 @@ void cdDrive::getTD(const uint8_t& command) {
 		return;
 	}
 
+	uint8_t asect;
 	uint8_t ass;
 	uint8_t amm;
 
 	if (specifiedTrack == 0x00) {
+		asect = cdTracks[cdTracks.size() - 1].trackEnd.asect;
 		ass = cdTracks[cdTracks.size() - 1].trackEnd.ass;
 		amm = cdTracks[cdTracks.size() - 1].trackEnd.amm;
 	}
 	else {
+		asect = cdTracks[specifiedTrack - 1].trackStart.asect;
 		ass = cdTracks[specifiedTrack - 1].trackStart.ass;
 		amm = cdTracks[specifiedTrack - 1].trackStart.amm;
-		if (specifiedTrack > 1) //relative to index 1
-			ass += 0x2;
+		if (specifiedTrack > 1) { //relative to index 1
+			asect += 0;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+
+		//Vib-Ribbon
+		/*if (specifiedTrack == 2) {
+			asect += 8;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 11;
+		}
+		else if (specifiedTrack == 3) {
+			asect += 3;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+		else if (specifiedTrack == 4) {
+			asect += 31;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+		else if (specifiedTrack == 5) {
+			asect += 0;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+		else if (specifiedTrack == 6) {
+			asect += 18;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+		else if (specifiedTrack == 7) {
+			asect += 66;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}
+		else if (specifiedTrack == 8) {
+			asect += 61;
+			if (asect >= 75) {
+				asect -= 75;
+				ass++;
+			}
+			ass += 2;
+		}*/
 	}
 
 	firstResponse.resize(3);
@@ -1079,30 +1161,22 @@ void cdDrive::getTD(const uint8_t& command) {
 }
 
 void cdDrive::seekL(const uint8_t& command) {
-	bDataResponse = false;
-	bPlay = false; //??
+	stat.elem.spindleMotor = 1;
 
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
+	cancelReading();
 
-	if (bSetLoc) {
-		bSetLoc = false;
-
-		amm = unprocessed_amm;
-		ass = unprocessed_ass;
-		asect = unprocessed_asect;
-
-		stat.elem.seek = 1;
-	}
+	if (bSetLocUnprocessed)
+		bSetLocUnprocessed = false;
 	else {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekL before Setlock!\n";
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekL before setLoc!\n";
 		g_emulationPaused = true;
 	}
 
-	stat.elem.spindleMotor = 1;
+	amm = unprocessed_amm;
+	ass = unprocessed_ass;
+	asect = unprocessed_asect;
 
+	stat.elem.seek = 1;
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
@@ -1113,18 +1187,14 @@ void cdDrive::seekL(const uint8_t& command) {
 }
 
 void cdDrive::seekP(const uint8_t& command) {
-	bDataResponse = false;
-	bPlay = false; //??
+	stat.elem.spindleMotor = 1;
 
-	if (stat.elem.read)
-		stat.elem.read = 0;
-	if (stat.elem.play)
-		stat.elem.play = 0;
+	cancelReading();
 
-	if (bSetLoc)
-		bSetLoc = false;
+	if (bSetLocUnprocessed)
+		bSetLocUnprocessed = false;
 	else {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekP before Setlock!\n";//??
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekP before setLoc!\n";
 		g_emulationPaused = true;
 	}
 
@@ -1132,14 +1202,12 @@ void cdDrive::seekP(const uint8_t& command) {
 	ass = unprocessed_ass;
 	asect = unprocessed_asect;
 
-	stat.elem.spindleMotor = 1;
 	stat.elem.seek = 1;
 
 	uint8_t firstResponse[1] = { stat.data };
 	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
 
 	stat.elem.seek = 0;
-	stat.elem.play = 0;//??
 	uint8_t secondResponse[1] = { stat.data };
 	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 }
@@ -1153,14 +1221,14 @@ void cdDrive::test(const uint8_t& command) {
 		break;
 	}
 	case 0x05: {
-		std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash skip
+		std::vector<uint8_t> firstResponse = { 0x20, 0x00 }; //crash bash antipiracy skip
 		//std::vector<uint8_t> firstResponse = { 0x01, 0x01 };
 		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 		break;
 	}
 	case 0x20: {
-		//std::vector<uint8_t> firstResponse = { 0x94, 0x09, 0x19, 0xc0 };
-		std::vector<uint8_t> firstResponse = { 0xa1, 0x03, 0x06, 0xc3 };
+		//std::vector<uint8_t> firstResponse = { 0x94, 0x09, 0x19, 0xc0 }; //oldest cd drive
+		std::vector<uint8_t> firstResponse = { 0xa1, 0x03, 0x06, 0xc3 }; //newest cd drive
 		setFirstResponse(0xc4e1, INT3, firstResponse.data(), firstResponse.size());
 		break;
 	}
@@ -1202,44 +1270,56 @@ void cdDrive::getID(const uint8_t& command) {
 		break;
 	}
 
-	setSecondResponse(0x4a00, secondINT, secondResponse.data(), secondResponse.size());
+	setSecondResponse(0x0004a00, secondINT, secondResponse.data(), secondResponse.size());
 }
 
 void cdDrive::readS(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
 
-	bPlay = false;//??
-	stat.elem.play = 0;//??
-	stat.elem.read = 0;//??
+	//seeking 
+	if (!bSetLocIssued) {
+		amm = stored_amm;
+		ass = stored_ass;
+		asect = stored_asect;
 
-	//seek 
-	if (bSetLoc) {
-		bSetLoc = false;
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued ReadS without setLoc!\n";
+		g_emulationPaused = true;
+	}
+	else {
+		if (bSetLocUnprocessed) {
+			bSetLocUnprocessed = false;
 
-		amm = unprocessed_amm;
-		ass = unprocessed_ass;
-		asect = unprocessed_asect;
+			amm = unprocessed_amm;
+			ass = unprocessed_ass;
+			asect = unprocessed_asect;
 
-		stat.elem.seek = 1;
+			stat.elem.seek = 1;
+		}
 	}
 
-	if (mode.elem.xa_adpcm) {
-		pBus->spu.ammXA = amm;
-		pBus->spu.assXA = ass;
-		pBus->spu.asectXA = asect;
-		pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
-		pBus->spu.submode.data = 0;
-	}
+	bSetLocIssued = false;
+
+	cancelReading();
+
+	//if (mode.elem.xa_adpcm) {
+	//	pBus->spu.ammXA = amm;
+	//	pBus->spu.assXA = ass;
+	//	pBus->spu.asectXA = asect;
+	//	pBus->spu.currentSample = 28 * 2 * 4 * 18 / (pBus->spu.b8BitsPerSample ? 2 : 1);
+	//	pBus->spu.submode.data = 0;
+	//}
 
 	uint8_t firstResponse[1] = { stat.data };
-	setFirstResponse(0xc4e1, INT3, firstResponse, 1);
+	uint32_t firstResponseClocks = 0xc4e1;
 
-	if (stat.elem.seek) { //??
+	setFirstResponse(firstResponseClocks, INT3, firstResponse, 1);
+
+	if (stat.elem.seek) { //breaks gran turismo 1
+		//std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadS\n";
+		//g_emulationPaused = true;
 		uint8_t secondResponse[1] = { stat.data };
 		setSecondResponse(0x1c421, INT2, secondResponse, 1);
 	}
-
-	//stat.elem.seek = 0; //~ used for gran turismo 2
 
 	bDataResponse = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
@@ -1303,20 +1383,6 @@ void cdDrive::readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t
 	uint32_t currentPossition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
 	src = (uint8_t*)fileDataVect.data() + currentPossition;
 
-	/*for (int i = 0; i < cdTracks.size(); i++) {
-		if (((amm * 60 * 75 + ass * 75 + asect) >=
-			(cdTracks[i].index1Start.amm * 60 * 75 + cdTracks[i].index1Start.ass * 75 + cdTracks[i].index1Start.asect)) &&
-			((amm * 60 * 75 + ass * 75 + asect) <=
-				(cdTracks[i].index1End.amm * 60 * 75 + cdTracks[i].index1End.ass * 75 + cdTracks[i].index1End.asect))) {
-
-			trackCDDA = i + 1;
-			break;
-		}
-	}
-
-	if (trackCDDA == 1)
-		src = pNullSrc;*/
-
 	if (++asect == 75) {
 		asect = 0;
 		if (++ass == 60) {
@@ -1326,8 +1392,8 @@ void cdDrive::readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t
 	}
 }
 
-//debug
 
+//debug
 
 void cdDrive::printStat() {
 	std::cout << "~[CD_DRIVE] stat: 0x" << std::hex << (uint16_t)stat.data << std::endl;

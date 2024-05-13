@@ -10,6 +10,12 @@
 #include <vector>
 #include <map>
 
+#undef ENABLE_DITHERING
+#define ENABLE_DITHERING 0
+
+#undef DISABLE_SCALING
+#define DISABLE_SCALING 0
+
 class Slope
 {
 	float begin, step;
@@ -147,8 +153,6 @@ extern int g_mousePossitionY;
 extern bool g_logPixel;
 extern bool g_manualInterruptDMA;
 
-#undef DISABLE_SCALING
-#define DISABLE_SCALING 0
 
 static uint16_t signed11bit(uint16_t val) {
 	return ((int16_t)(val << 5)) >> 5;
@@ -443,24 +447,23 @@ void gpu_t::readGpu32(const uint32_t& addr, uint32_t& data) {
 	}
 
 	if (addr == 0x1f801814) {
-		switch (gpuStat.elem.dmaDir) {
+		switch (gpuStat.elem.directionDMA) {
 		case 0:
-			gpuStat.elem.dataRequest = 0;
+			gpuStat.elem.dataRequestDMA = 0;
 			break;
 		case 1:
 			if (fifoIndex >= 2)
-				gpuStat.elem.dataRequest = 0;
+				gpuStat.elem.dataRequestDMA = 0;
 			else
-				gpuStat.elem.dataRequest = 1;
+				gpuStat.elem.dataRequestDMA = 1;
 			break;
 		case 2:
-			gpuStat.elem.dataRequest = gpuStat.elem.readyDma;
+			gpuStat.elem.dataRequestDMA = gpuStat.elem.readyBlockDMA;
 			break;
 		case 3:
-			gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
+			gpuStat.elem.dataRequestDMA = gpuStat.elem.readyVramCpu;
 			break;
 		}
-
 		data = gpuStat.data;
 	}
 }
@@ -1178,7 +1181,7 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 
 		gpuStat.elem.displayEnable = 0;
 
-		gpuStat.elem.dmaDir = 0;
+		gpuStat.elem.directionDMA = 0;
 
 		displayStart.x = 0;
 		displayStart.y = 0;
@@ -1263,7 +1266,7 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.data = 0x14802000;
 		break;
 	case 0x1:
-		//std::cout << "~[GPU] unhandled properly GPU1 command: Reset Command Buffer" << std::endl;
+		std::cout << "~[GPU] Unhandled GPU1 command: Reset Command Buffer" << std::endl;
 		break;
 	case 0x2:
 		gpuStat.elem.irq1 = 0;
@@ -1272,21 +1275,7 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.displayEnable = command & 0x1;
 		break;
 	case 0x4:
-		gpuStat.elem.dmaDir = command & 0x3;
-		/*switch (command & 0x3) {
-		case 0:
-			gpuStat.elem.dataRequest = 0;
-			break;
-		case 1:
-			gpuStat.elem.dataRequest = (fifoCount >= 16) ? 0 : 1;
-			break;
-		case 2:
-			gpuStat.elem.dataRequest = gpuStat.elem.readyDma;
-			break;
-		case 3:
-			gpuStat.elem.dataRequest = gpuStat.elem.readyVramCpu;
-			break;
-		}*/
+		gpuStat.elem.directionDMA = command & 0x3;
 		break;
 	case 0x5:
 		displayStart.x = command & 0x3ff;
@@ -1427,6 +1416,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 		psxColor16_t pixelColor16;
 		pixelColor16.data = data;
 
+#if ENABLE_DITHERING
 		if (bDithering) {
 			int16_t ditheringOffset = ditheringLookup[position.x & 0x3 + ((position.y & 0x3) << 2)];
 			int16_t red = ((uint16_t)pixelColor16.component.red << 3) + ditheringOffset;
@@ -1437,6 +1427,7 @@ void gpu_t::writeVram(const vertex_t& position, const uint16_t& data, const bool
 			pixelColor16.component.green = ((green < 0) ? 0 : ((green > 0xff) ? 0xff : green)) >> 3;
 			pixelColor16.component.blue = ((blue < 0) ? 0 : ((blue > 0xff) ? 0xff : blue)) >> 3;
 		}
+#endif
 
 		uint16_t data = pixelColor16.data;
 
@@ -2602,7 +2593,7 @@ void gpu_t::environmentCommand6(const param_t& param) {
 //	gp0CommandFuncs.reset();*/
 //};
 
-void gpu_t::loopGp0(){
+void gpu_t::loopGp0() {
 
 	while (!fifoTemp.empty()) {
 		uint32_t data = fifoTemp.getNext();
@@ -2644,9 +2635,9 @@ void gpu_t::loopGp0(){
 	}
 
 	if (fifoTemp.empty()) {
-		if(!(pBus->dma.controlRegister.reg.gpu_master_enable 
+		if (!(pBus->dma.controlRegister.reg.gpu_master_enable
 			&& pBus->dma.dma2.bTransferActive))
-		fifoTemp.reset();
+			fifoTemp.reset();
 		return;
 	}
 }

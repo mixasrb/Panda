@@ -5,6 +5,7 @@
 
 extern bool g_emulationPaused;
 extern uint32_t g_systemClocks;
+extern bool g_manualInterruptDMA;
 
 void dma2_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
@@ -57,6 +58,7 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
 			else if (channelControl.reg.syncMode == linkedList) {
+				i = 0;
 				memAddrTemp = memoryAddress.reg.memAddr /*& 0x00fffffc*/;
 				//if (memoryAddress.reg.memAddr & 0x3) { //??
 				//	endDMATransfer();
@@ -125,16 +127,17 @@ void dma2_t::triggerIRQ() {
 }
 
 void dma2_t::endDMATransfer() {
+	clocks = 0;
 	bTransferActive = false;
 	channelControl.reg.startBusy = 0;
+	//pDMAController->pbus->pGpu->gpuStat.elem.readyDma = 0;
 	pDMAController->isCpuStopped = false;
 	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
 
 	pDMAController->currentClockFunction = 8;
 
-	//clocks = 0;
 	triggerIRQ();
-	std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 end" << std::dec << g_systemClocks << std::endl;
+	//std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 end" << std::dec << g_systemClocks << std::endl;
 }
 
 void dma2_t::Clock() {
@@ -163,27 +166,58 @@ void dma2_t::Clock() {
 
 		if (channelControl.reg.syncMode == linkedList) {
 			memAddrTemp = memoryAddress.reg.memAddr /*& 0x00fffffc*/;
-			if (memoryAddress.reg.memAddr & 0x3) { //??
-				endDMATransfer();
-				return;
-			}
+			//if (memoryAddress.reg.memAddr & 0x3) { //??
+			//	endDMATransfer();
+			//	return;
+			//}
 			uint8_t cycles;
 			uint32_t node;
 			DMARead32(memAddrTemp, node, cycles);
+			memoryAddress.data = node & 0x00fffffc;
+
+			//if (memAddrTemp == memoryAddress.reg.memAddr) {
+			//	clocks = 0;
+			//	bTransferActive = false;
+			//	//channelControl.reg.startBusy = 0;
+			//	pDMAController->isCpuStopped = false;
+			//	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
+
+			//	pDMAController->currentClockFunction = 8;
+
+			//	std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 self-referencing end" << std::dec << g_systemClocks << std::endl;
+			//}
+
 			memAddrTemp += 4;
-			memoryAddress.data = node & 0x00ffffff;
 			elementCount = node >> 24;
 			float clks = elementCount * CLOCKS_PER_WORD_DMA_2;
 			clocks = round(clks) == clks ? clks : round(clks) + 1;
 
+
+			//i++;
+			//if (i > 16384) {
+			//	//pDMAController->pbus->pGpu->gpuStat.elem.readyCommand = 0;
+			//	//pDMAController->pbus->pGpu->gpuStat.elem.readyDma = 0;
+			//	clocks = 0;
+			//	bTransferActive = false;
+			//	//channelControl.reg.startBusy = 0;
+			//	pDMAController->isCpuStopped = false;
+			//	//std::cout << "~[DMA2] (GPU) finished" << std::endl;
+
+			//	pDMAController->currentClockFunction = 8;
+
+			//	std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 self-referencing end" << std::dec << g_systemClocks << std::endl;
+			//}
+
 			//metal slug x, Syphon Filter (USA) (v1.1), Valkyrie Profile (Disc 1) helps a bit
 			//if (abs((float)memAddrTemp - (float)memoryAddress.reg.memAddr) > (float)elementCount) {
 			//	//channelControl.reg.startBusy = 0;
-				/*pDMAController->isCpuStopped = false;
-				syncClocks = 0x0;*/
+			/*pDMAController->isCpuStopped = false;
+			syncClocks = 0x0;*/
 			//}
 			//g_emulationPaused = true;
-			//std::cout << "@@@@@@@@@@DMA2 node end 0x" << std::hex << memoryAddress.data << std::endl;
+
+			if (g_manualInterruptDMA)
+				std::cout << "@@@@@@@@@@DMA2 node end 0x" << std::hex << memoryAddress.data << std::endl;
 
 			return;
 		}

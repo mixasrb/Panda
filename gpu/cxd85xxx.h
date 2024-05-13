@@ -87,8 +87,7 @@ public:
 	const uint32_t CPU_CLOCKS_TO_HBLANK_NTSC = CPU_CLOCKS_PER_SCANLINE_NTSC * 3 / 4;
 	const uint32_t CPU_CLOCKS_TO_HBLANK_PAL = CPU_CLOCKS_PER_SCANLINE_PAL * 3 / 4;
 
-	const uint32_t cpuDotClocks[5] =
-	{
+	const uint32_t cpuDotClocks[5] = {
 		CPU_CLOCK / 10,
 		CPU_CLOCK / 8,
 		CPU_CLOCK / 5,
@@ -96,8 +95,7 @@ public:
 		CPU_CLOCK / 7
 	};
 
-	const uint32_t dotsPerScanline[5] =
-	{
+	const uint32_t dotsPerScanline[5] = {
 		341,
 		426,
 		682,
@@ -137,11 +135,11 @@ public:
 			uint32_t verticalInterlace : 1;
 			uint32_t displayEnable : 1;
 			uint32_t irq1 : 1;
-			uint32_t dataRequest : 1;
+			uint32_t dataRequestDMA : 1;
 			uint32_t readyCommand : 1;
 			uint32_t readyVramCpu : 1;
-			uint32_t readyDma : 1;
-			uint32_t dmaDir : 2;
+			uint32_t readyBlockDMA : 1;
+			uint32_t directionDMA : 2;
 			uint32_t drawingEvenOddLines : 1;
 		}elem;
 	}gpuStat;

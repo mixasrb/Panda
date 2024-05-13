@@ -1,8 +1,7 @@
 #pragma once
 
 #define CONSOLE_LOGGING 1
-#define CPU_DEBUG 0
-#define SCREEN 1
+#define SCREEN 0
 
 bool g_emulationPaused = false;
 bool g_executedCpuInstructionsLogged = false;
@@ -64,7 +63,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //Games that are not working
 
-//Panzer Bandit, Galaxian 3,Conveni Special
+//Panzer Bandit, Conveni Special
 //Gunners Heaven
 //tokimeki memorial 2
 
@@ -72,13 +71,15 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
-
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Madness (USA) (Disc 1)/Shadow Madness (USA) (Disc 1) (Track 1).bin"); // get stuck on mdec
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Rebel Assault II - The Hidden Empire (USA) (Disc 1).bin");// DMA3 CDROM 0x11400100h //unhandled timer0 mode 0x14b //mdec //hangs??->mdec
-
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Koudelka (USA) (Disc 1).bin"); //no fmvs and ?gets stuck? //sound buffer overflow 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vampire Hunter D (USA).bin");//no menue graphic
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spot Goes to Hollywood (USA)/Spot Goes to Hollywood (USA) (Track 01).bin");
@@ -93,27 +94,35 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Perfect Assassin (Europe) (EnFrDeEsIt)/Perfect Assassin (Europe) (En,Fr,De,Es,It) (Track 1).bin"); //no sound //gets stuck or something doesnt work in gameplay
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin"); // get stuck //needs but stil dont boot/*if (pc == 0x80101310) r[2] = 1; */
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Hot Wheels - Turbo Racing (USA)/Hot Wheels - Turbo Racing (USA) (Track 01).bin"); // get stuck //needs but stil doesnt boot/*if (pc == 0x80101310) r[2] = 1; */
 
 
-//have gamebreaking bugs
+//have game breaking bugs
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
 
 //worked before
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It).bin"); //does not pass loading screen
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It).bin"); //does not pass loading screen get stuck //last time tested 9.5.2024
+
+
 
 //Working ones
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WWF Attitude (USA)/WWF Attitude (USA) (Track 1).bin");
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Koudelka (USA) (Disc 1).bin"); //no fmvs, mdec-dma timing //sound buffer overflow, Pitch Modulation
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Ace Combat 2 (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Air Combat (USA)/Air Combat (USA) (Track 01).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harry Potter and the Sorcerer's Stone (USA) (En,Fr,Es).bin");//spu IRQ senzitive and crashes emulator
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
 // //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte //problems with drawing after implementing new rasterizer algorithm
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (USA)/Vigilante 8 - 2nd Offense (USA) (Track 01).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (Europe)/Vigilante 8 - 2nd Offense (Europe) (Track 01).bin");// get stuck
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (USA)/Vigilante 8 - 2nd Offense (USA) (Track 01).bin");// uses sweep
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (Europe)/Vigilante 8 - 2nd Offense (Europe) (Track 01).bin");// get stuck// uses sweep
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/NHL FaceOff 2000 (USA).bin"); // needs waitClocksDataResponse + 0x36cd2 * 14 / 10, and crashes //fixed
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/NHL FaceOff 2001.bin"); //crashes//fixed
@@ -162,8 +171,6 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
 
-
-
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Master (USA)/Shadow Master (USA) (Track 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/True Pinball (USA)/True Pinball (USA) (Track 01).bin");
@@ -206,11 +213,11 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alien Resurrection (Europe) (En,Fr,De,Es,It)/Alien Resurrection (Europe) (En,Fr,De,Es,It) (Track 1).bin");//screen problem fixed??
 
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter (USA) (v1.1).bin");// DMA 2 linked-list loop
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Motocross 2001 featuring Ricky Carmichael (USA).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Syphon Filter (USA) (v1.1).bin");// DMA 2 linked-list loop // screen position problem
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve II (USA) (Disc 1).bin"); //sound not ending problem
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve (USA) (Disc 1).bin");// [BUS] EMULATION PASUED!unhandled read8 0x1f801d68 [BUS] EMULATION PASUED!unhandled read8 0x1f801d78
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Parasite Eve (USA) (Disc 1).bin");// [BUS] EMULATION PASUED!unhandled read8 0x1f801d68 [BUS] EMULATION PASUED!unhandled read8 0x1f801d78 //Pitch Modulation
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vib-Ribbon/Vib-Ribbon (Europe) (En,Fr,De,Es,It) (Track 1).bin");//getlocp loop or gte // problem with tracks // no level generation //spu irq problem // does not play tracks sets spuControlRegister.elem.cdAudioEnable to 0 and cd volume to zero
@@ -262,9 +269,9 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Mo
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Metal Gear Solid (Disc 1) (v1.1).bin"); //gte // np input //changeThreadHandle //faster code execution then audio can break game (more fps then 60)
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Wipeout XL (USA)/Wipeout XL (USA) (Track 01).bin"); //get stuck disk read errors // uses sweep // //sound buffer overflow //uses serial
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Wipeout XL (USA)/Wipeout XL (USA) (Track 01).bin"); //get stuck disk read errors // uses sweep // //sound buffer overflow //uses serial //muting cd audio
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout (USA)/WipEout (USA) (Track 1).bin"); // can be bypassed with tracks 1 1 and amm 0 ass 2 getTD and getTN // uses sweep // //sound buffer overflow //uses serial
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout 2097 (Europe)/WipEout 2097 (Europe) (Track 01).bin"); //DMA2 LOOP???// something goes wrong with gpu fifo// can be bypassed with tracks 1 and amm 0 ass 2 getTD and getTN // uses sweep // //sound buffer overflow //uses serial
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/WipEout 2097 (Europe)/WipEout 2097 (Europe) (Track 01).bin");// something goes wrong with gpu fifo// can be bypassed with tracks 1 and amm 0 ass 2 getTD and getTN // uses sweep // //sound buffer overflow //uses serial
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mickey's Wild Adventure (Europe)/Mickey's Wild Adventure (Europe) (Track 01).bin"); // hangs fixed?? // can be bypassed with tracks 1 and amm 0 ass 2 getTD and getTN fixed
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Demolition (USA)/Star Wars - Demolition (USA) (Track 01).bin"); //get stuck // can be bypassed with tracks 1 and amm 0 ass 2 getTD and getTN
@@ -303,7 +310,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Mo
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");//gte
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (Europe) (En,Fr,De,Es,It) (Disc 1) (Arcade Mode).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive // get stuck on exiting sometimes// crashs when exiting race sometimes
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo 2 (USA) (Simulation Mode) (Rev 1).bin");//gte //senzitive to stat bits of cd drive // get stuck on exiting sometimes// crashs when exiting race sometimes seems memcard timings fixes it// no intro fmv
 //case 0xc:
 //data = voices.voiceRegisters[voiceIndex].adsrLevel = 0;
 //break;
@@ -327,7 +334,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Championship Mo
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Mortal Kombat 4.bin");//mdec //no input/gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombat3/Mortal Kombat 3 (Track 01).bin"); //mdec //test event cdrom (waitClocksDataResponse + 0x36cd2*2) // cache  //SeekP //play?? exeption 04//problem with getTn getTd probably needs cue parser fixed??//match ending screen ends too fast 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/mortal_kombatII/Mortal Kombat II (Japan) (Track 1).bin");//gets too hard too quickly
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot Collection.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/ctr.bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT) SPU:T/O [wait (IRQ/OFF)] //crashes sometimes

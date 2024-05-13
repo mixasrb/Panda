@@ -195,9 +195,7 @@ public:
 	uint8_t amm;
 	uint8_t ass;
 	uint8_t asect;
-	uint8_t ammOld;
-	uint8_t assOld;
-	uint8_t asectOld;
+	uint8_t track;
 
 	uint8_t stored_amm;
 	uint8_t stored_ass;
@@ -206,9 +204,10 @@ public:
 	uint8_t unprocessed_amm;
 	uint8_t unprocessed_ass;
 	uint8_t unprocessed_asect;
-	uint8_t track;
 
 	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
+	void cancelReading();
+
 	uint16_t sectorSize;
 
 	union mode_t {
@@ -234,7 +233,9 @@ public:
 	bool bPlay = false;
 	bool bSendINT1 = true;
 	char storedSectorHeader[8];
-	bool bSetLoc = false;
+	bool bSetLocIssued = false;
+	bool bSetLocUnprocessed = false;
+	bool bMuted = true;
 
 	struct cdSector_t {
 		uint16_t amm;
@@ -273,8 +274,6 @@ public:
 	void readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
 
 	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
-
-	uint8_t trackCDDA = 1;
 
 	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 

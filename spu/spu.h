@@ -319,7 +319,8 @@ public:
 	};
 
 	uint32_t reverbCurrentBufferAddress;
-	void reverbClock(const output_t& input, const uint8_t& cycle);
+	bool bReverbCycle = false;
+	void reverbClock(const output_t& input);
 	output_t reverbOutput = { 0, 0 };
 
 	voices_t voices;
@@ -418,12 +419,8 @@ public:
 	std::vector<int16_t> gauss;
 	std::vector<int16_t> table;
 
-	uint8_t cycle = 0;
-	int i = 0;
-	float outTemp = 0;
 	uint32_t irqAddress = 0;
 	void irqSend();
-
 
 	output_t clockXA_ADPCM();
 
@@ -494,7 +491,7 @@ public:
 	const float step37kHz = 1.0f / 37800.0f;
 	float counter37kHz = 0.0f;
 	output_t outputCDXA;
-	output_t outputAudioCD;
+	output_t outputCD_DriveAudio;
 
 	uint16_t cdAudioBufferCounter = 0;
 	uint16_t voice1MonoBufferCounter = 0;

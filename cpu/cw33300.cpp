@@ -1,6 +1,9 @@
 #include "cw33300.h"
 #include "../bus/bus_interface.h"
 
+#undef CPU_DEBUG
+#define CPU_DEBUG 1
+
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
 extern bool g_biosCallbacksLogged;
