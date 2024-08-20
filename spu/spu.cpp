@@ -266,7 +266,11 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfc)) {
 		*((uint32_t*)(reverb + addr - 0x1f801dc0)) = data;
 	}
-	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
+	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) { //TO DO
+		std::cout << "[SPU] EMULATION PASUED! unhandled write32 mapped adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
+		g_emulationPaused = true;
+	}
+	else {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
 		g_emulationPaused = true;
 	}

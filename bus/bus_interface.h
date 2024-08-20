@@ -7,7 +7,7 @@
 #include "../bus/dma/dma_controller.h"
 #include "../mdec/mdec.h"
 #include "../cd_drive/hc05_pux.h"
-#include "../gpu/cxd85xxx.h"
+#include "../gpu/cxdxxxxx.h"
 #include "../bios_chip/bios_chip.h"
 #include "../timers/timer.h"
 #include "../timers/timer_0.h"
