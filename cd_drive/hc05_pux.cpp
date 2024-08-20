@@ -196,7 +196,7 @@ void cdDrive::writeCdDrive8(const uint32_t& addr, const uint8_t& data) {
 
 			if (!commandVector.empty() || indexStatus.elem.busysts) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! command sent before previous one is executed\n";
-				g_emulationPaused = true;
+				//g_emulationPaused = true;
 
 				bFirstResponse = false;
 				bSecondResponse = false;
@@ -422,7 +422,7 @@ void cdDrive::clock() {
 
 	if (bFirstResponse || bSecondResponse || bDataResponse) {
 
-		if (clocks >= waitClocksFirstResponse /*+ 0x36cd2 * 2 / 20*/ && bFirstResponse
+		if (clocks >= waitClocksFirstResponse && bFirstResponse
 			&& responsesINT.empty() && (irqFlagRead.data == 0)) {
 			bFirstResponse = false;
 			clocks = 0;
@@ -433,7 +433,7 @@ void cdDrive::clock() {
 			indexStatus.elem.busysts = 0;
 		}
 		// Doom
-		if (clocks >= (waitClocksSecondResponse /*+ 0x36cd2 * 1 / 10*/) && bSecondResponse &&
+		if (clocks >= waitClocksSecondResponse && bSecondResponse &&
 			!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			bSecondResponse = false;
 			clocks = 0;
@@ -441,10 +441,7 @@ void cdDrive::clock() {
 			sendResponseINT(secondResponseINT, tempSecondResponseVector.data(), tempSecondResponseVector.size());
 			tempFirstResponseVector.clear();
 		}
-		//if (dataClocks >= (waitClocksDataResponse + 0x36cd2 * 9 / 4) && bDataResponse &&
-			//if (dataClocks >= (mode.elem.speed ? 0x3ab2b*3 : 0x72732*2) && bDataResponse &&
-																		 //resident evil 1 ??
-		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*//* + 0x36cd2 * 14 / 10*/) && bDataResponse &&   //castlevania SOF requires 15/10 or less??
+		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*/) && bDataResponse &&
 			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
 			dataClocks = 0;
 
@@ -791,6 +788,8 @@ void cdDrive::setLoc(const uint8_t& command) {
 void cdDrive::readN(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
 
+	waitClocksDataResponse = 0;
+
 	//seeking 
 	if (!bSetLocIssued) {
 		amm = stored_amm;
@@ -809,6 +808,8 @@ void cdDrive::readN(const uint8_t& command) {
 			asect = unprocessed_asect;
 
 			stat.elem.seek = 1;
+
+			waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732) * 5;
 		}
 	}
 
@@ -829,15 +830,16 @@ void cdDrive::readN(const uint8_t& command) {
 
 	setFirstResponse(firstResponseClocks, INT3, firstResponse, 1);
 
-	if (stat.elem.seek) { //?? break gran turismo 2, Ace Combat 2 (USA)
-		/*std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadN\n";
-		g_emulationPaused = true;*/
-		uint8_t secondResponse[1] = { stat.data };
-		setSecondResponse(0x1c421, INT2, secondResponse, 1);
-	}
+	//if (stat.elem.seek) { //?? break gran turismo 2, Ace Combat 2 (USA)
+	//	/*std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadN\n";
+	//	g_emulationPaused = true;*/
+	//	uint8_t secondResponse[1] = { stat.data };
+	//	setSecondResponse(0x1c421, INT2, secondResponse, 1);
+	//}
 
 	bDataResponse = true;
-	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
+
+	waitClocksDataResponse += mode.elem.speed ? 0x3ab2b : 0x72732;
 }
 
 void cdDrive::motorOn(const uint8_t& command) {
@@ -1276,6 +1278,8 @@ void cdDrive::getID(const uint8_t& command) {
 void cdDrive::readS(const uint8_t& command) {
 	stat.elem.spindleMotor = 1;
 
+	waitClocksDataResponse = 0;
+
 	//seeking 
 	if (!bSetLocIssued) {
 		amm = stored_amm;
@@ -1294,6 +1298,8 @@ void cdDrive::readS(const uint8_t& command) {
 			asect = unprocessed_asect;
 
 			stat.elem.seek = 1;
+
+			waitClocksDataResponse = (mode.elem.speed ? 0x3ab2b : 0x72732) * 5;
 		}
 	}
 
@@ -1314,15 +1320,16 @@ void cdDrive::readS(const uint8_t& command) {
 
 	setFirstResponse(firstResponseClocks, INT3, firstResponse, 1);
 
-	if (stat.elem.seek) { //breaks gran turismo 1
-		//std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadS\n";
-		//g_emulationPaused = true;
-		uint8_t secondResponse[1] = { stat.data };
-		setSecondResponse(0x1c421, INT2, secondResponse, 1);
-	}
+	//if (stat.elem.seek) { //breaks gran turismo 1
+	//	//std::cout << "[CD_DRIVE] EMULATION PAUSED! ReadS\n";
+	//	//g_emulationPaused = true;
+	//	uint8_t secondResponse[1] = { stat.data };
+	//	setSecondResponse(0x1c421, INT2, secondResponse, 1);
+	//}
 
 	bDataResponse = true;
-	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
+
+	waitClocksDataResponse += mode.elem.speed ? 0x3ab2b : 0x72732;
 }
 
 void cdDrive::readTOC(const uint8_t& command) {

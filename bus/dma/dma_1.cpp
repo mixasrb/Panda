@@ -14,6 +14,7 @@ void dma1_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 		break;
 	case 8:
 		data = channelControl.data;
+		//data |= 0x1000000; // Shadow Madness (USA) hack
 		break;
 	}
 }
@@ -113,6 +114,7 @@ void dma1_t::endDMATransfer() {
 void dma1_t::Clock() {
 
 	if (pDMAController->isCpuStopped == false) {
+		memoryAddress.reg.memAddr = memAddrTemp - 0x20 * 4;
 		if (syncClocks == 0) {
 			pDMAController->isCpuStopped = true;
 			channelControl.reg.startBusy = 1;
@@ -144,13 +146,14 @@ void dma1_t::Clock() {
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
 
-		/*blockWordCount--;
+		blockWordCount--;
 		if (blockWordCount == 0) {
+			blockControl.reg.ba--;
 			channelControl.reg.startBusy = 0;
 			blockWordCount = blockControl.reg.bc_bs;
-			pDMAController->isCpuStopped = false;
-			syncClocks = 0x1;
+			//pDMAController->isCpuStopped = false;
+			syncClocks = 0;
 			memoryAddress.reg.memAddr = memAddrTemp;
-		}*/
+		}
 	}
 }

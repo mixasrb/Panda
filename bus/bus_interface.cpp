@@ -50,13 +50,13 @@ extern bool g_emulationPaused;
 				  ((addr >= 0x8f801800) && (addr <= 0x8f801803)) || \
 				  ((addr >= 0xbf801800) && (addr <= 0xbf801803)))
 
-#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814) || \
+#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814) /*|| \
 			 (addr == 0x8f801810) || (addr == 0x8f801814) || \
-			 (addr == 0xbf801810) || (addr == 0xbf801814))
+			 (addr == 0xbf801810) || (addr == 0xbf801814)*/)
 
-#define MDEC ((addr == 0x1f801820) || (addr == 0x1f801824) || \
+#define MDEC ((addr == 0x1f801820) || (addr == 0x1f801824) /*|| \
               (addr == 0x8f801820) || (addr == 0x8f801824) || \
-              (addr == 0xbf801820) || (addr == 0xbf801824))
+              (addr == 0xbf801820) || (addr == 0xbf801824)*/)
 
 #define SPU (((addr >= 0x1f801c00) && (addr <= 0x1f801fff)) || \
              ((addr >= 0x8f801c00) && (addr <= 0x8f801fff)) || \

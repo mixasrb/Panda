@@ -109,6 +109,7 @@ public:
 	uint32_t cpuClocks = 0;
 	uint32_t cpuFrameClocks = 0;
 	uint32_t cpuScanlineClocks = 0;
+	uint32_t cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	uint32_t cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	uint32_t scanlineNumber = SCANLINE_NUMBER_NTSC;
 	uint32_t scanlineCount = -1;

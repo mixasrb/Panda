@@ -74,9 +74,8 @@ void timer2_t::clock(const uint8_t& source) {
 	if (clockSource == static_cast<clockSource_t>(source)) {
 
 		if (counterMode.elem.clockSource & 0x2)
-			if (clocks == 7) {
+			if (clocks == 7)
 				clocks = 0;
-			}
 			else {
 				clocks++;
 				return;

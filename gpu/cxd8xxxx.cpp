@@ -506,28 +506,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 			}
 
 			decodeExecuteGp0Command(gp0Command);
-
-			/*if (fifoIndex >= 2) {
-				if (gpuStat.elem.dmaDir == 2)
-					if (pBus->dma.dma2.channelControl.reg.startBusy) {
-						pBus->dma.dma2.channelControl.reg.startBusy = 0;
-						bWasActiveDMA = true;
-						pBus->dma.isCpuStopped = false;
-						gpuStat.elem.readyDma = 0;
-
-						if (g_GpuCommandsLogged)
-							std::cout << "~[GPU] FIFO FULL" << std::hex << std::endl;
-					}
-
-				gpuStat.elem.readyCommand = 0;
-			}*/
-
-			//??
-			/*if (pBus->dma.dma2.channelControl.reg.startBusy)
-				fifoCount++;*/
 		}
-
-		//fifoTemp.pushBack(data);
 		return;
 	}
 
@@ -542,7 +521,7 @@ void gpu_t::writeGpu32(const uint32_t& addr, const uint32_t& data) {
 }
 
 void gpu_t::videoClock() {
-	if (cpuScanlineClocks == CPU_CLOCKS_TO_HBLANK_NTSC) {
+	if (cpuScanlineClocks == cpuClocksToHblank) {
 		//Hblank clocking timer 1
 		pBus->timer0.bHblank = true;
 		pBus->timer0.clock(_HBLANK_CLOCK);
@@ -550,18 +529,6 @@ void gpu_t::videoClock() {
 	}
 
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
-
-		/*if (g_manualInterruptDMA)
-			if (pBus->dma.interruptRegister.reg.IRQ_enable_dma0)
-				pBus->dma.interruptRegister.reg.IRQ_flag_dma0 = 1;
-			else
-				pBus->dma.interruptRegister.reg.IRQ_flag_dma0 = 0;*/
-
-				/*if (g_manualInterruptDMA)
-					if (pBus->dma.interruptRegister.reg.IRQ_enable_dma1)
-						pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 1;
-					else
-						pBus->dma.interruptRegister.reg.IRQ_flag_dma1 = 0;*/
 
 		cpuScanlineClocks = 0;
 		scanlineCount++;
@@ -577,32 +544,11 @@ void gpu_t::videoClock() {
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU VBlank" << std::endl;
 
-			//fifoCount = 0;
-			//gpuStat.elem.readyDma = 1;
-			//gpuStat.elem.readyCommand = 1;
-
 			//V-Sync interrupt is naturally edge trigered
-			pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_); //causes troubles to boot some games
-
-
-			/*if (pBus->spu.spuControlRegister.elem.irq9Enable) {
-				if ((pBus->spu.irqAddress < 0x1000)) {
-					pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-					pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
-				}
-			}*/
+			pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
-
-			/*if (g_manualInterruptDMA)
-				if (pBus->dma.interruptRegister.reg.IRQ_enable_dma4)
-					pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 1;
-				else
-					pBus->dma.interruptRegister.reg.IRQ_flag_dma4 = 0;*/
-
-					//not completely tested 	
-					//vramView.DuplicateUnsafe(pVramViewBuffered);
 		}
 		else if (scanlineCount == scanlineNumber) {
 
@@ -611,8 +557,6 @@ void gpu_t::videoClock() {
 
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU non VBlank" << std::endl;
-
-			//pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
 
 			if (gpuStat.elem.verticalInterlace)
 				if (gpuStat.elem.verticalRes)
@@ -623,13 +567,6 @@ void gpu_t::videoClock() {
 	if ((cpuClocks % dotClockDevider) == 0)
 		pBus->timer0.clock(_DOT_CLOCK);
 
-	//if ((cpuClocks % (44100 * 0x300 / 4)) == 0) { //Rayman 2 - The Great Escape
-	//	if (pBus->spu.spuControlRegister.elem.irq9Enable) {
-	//		pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
-	//		pBus->spu.spuStatusRegister.elem.irq9Flag = 1;
-	//	}
-	//}
-
 	if (cpuClocks == CPU_CLOCK)
 		cpuClocks = 0;
 	else
@@ -637,62 +574,6 @@ void gpu_t::videoClock() {
 
 
 	cpuScanlineClocks++;
-
-	/*if (fifoIndex < 2) {
-		if (gpuStat.elem.dmaDir == 2)
-			if (bWasActiveDMA) {
-				bWasActiveDMA = false;
-				pBus->dma.dma2.channelControl.reg.startBusy = 1;
-				pBus->dma.isCpuStopped = false;
-				gpuStat.elem.readyDma = 1;
-			}
-		gpuStat.elem.readyCommand = 1;
-	}
-
-	if (fifoIndex > 0) {
-		if (fifoClocks[0] == 0) {
-			fifoIndex--;
-			fifoClocks[0] = fifoClocks[1];
-			fifoClocks[1] = fifoClocks[2];
-			fifoClocks[2] = fifoClocks[3];
-			fifoClocks[3] = fifoClocks[4];
-			fifoClocks[4] = 0;
-		}
-		else {
-			fifoClocks[0] -= 0x1;
-			if ((int32_t)fifoClocks[0] < 0)
-				fifoClocks[0] = 0;
-		}
-	}*/
-
-	/*if (fifoIndex) {
-		fifoClocks[fifoIndex]--;
-		if (fifoClocks[fifoIndex] == 0) {
-			pBus->dma.dma2.channelControl.reg.startBusy = 1;
-			gpuStat.elem.readyDma = 1;
-			gpuStat.elem.readyCommand = 1;
-			fifoIndex--;
-		}
-	}*/
-
-
-	//fifoClocks++;
-	//if (fifoCount >= 3071) {
-	//	pBus->dma.dma2.channelControl.reg.startBusy = 0;
-	//	pBus->dma.isCpuStopped = false;
-	//	gpuStat.elem.readyDma = 0;
-	//	gpuStat.elem.readyCommand = 0;
-	//	//pBus->dma.dma2.channelControl.reg.startBusy = 1;
-	//	//pBus->dma.isCpuStopped = true;
-	//}
-
-	//DMA ACCESING FIX!? //not working ok in all games
-	//if (fifoCount >= 16) {
-	//	pBus->dma.dma2.channelControl.reg.startBusy = 0;
-	//	pBus->dma.isCpuStopped = false;
-	//	gpuStat.elem.readyDma = 0;
-	//	gpuStat.elem.readyCommand = 0;
-	//}
 }
 
 void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
@@ -1200,14 +1081,14 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.horizontalRes2 = 0;
 		gpuStat.elem.reverseflag = 0;
 
-		if (!gpuStat.elem.videoMode) {
+		/*if (!gpuStat.elem.videoMode) { //Breaks Disney's Donald Duck - Quack Attack (Europe) (En,Fr,De,It)
 			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 			scanlineNumber = SCANLINE_NUMBER_NTSC;
 		}
 		else {
 			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
 			scanlineNumber = SCANLINE_NUMBER_PAL;
-		}
+		}*/
 
 		if (!gpuStat.elem.verticalInterlace)
 			gpuStat.elem.interlaceField = 1;
@@ -1299,10 +1180,12 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.reverseflag = (command & 0x80 ? 1 : 0);
 
 		if (!gpuStat.elem.videoMode) {
+			cpuClocksToHblank = CPU_CLOCKS_TO_HBLANK_NTSC;
 			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 			scanlineNumber = SCANLINE_NUMBER_NTSC;
 		}
 		else {
+			cpuClocksToHblank = CPU_CLOCKS_TO_HBLANK_PAL;
 			cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
 			scanlineNumber = SCANLINE_NUMBER_PAL;
 		}
@@ -2634,10 +2517,10 @@ void gpu_t::loopGp0() {
 		}
 	}
 
-	if (fifoTemp.empty()) {
+	/*if (fifoTemp.empty()) {
 		if (!(pBus->dma.controlRegister.reg.gpu_master_enable
 			&& pBus->dma.dma2.bTransferActive))
 			fifoTemp.reset();
 		return;
-	}
+	}*/
 }

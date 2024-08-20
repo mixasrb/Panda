@@ -112,6 +112,7 @@ void dma0_t::endDMATransfer() {
 void dma0_t::Clock() {
 
 	if (pDMAController->isCpuStopped == false) {
+			memoryAddress.reg.memAddr = memAddrTemp - 0x20 * 4;
 		if (syncClocks == 0) {
 			pDMAController->isCpuStopped = true;
 			channelControl.reg.startBusy = 1;
@@ -143,13 +144,14 @@ void dma0_t::Clock() {
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
 
-		/*blockWordCount--;
+		blockWordCount--;
 		if (blockWordCount == 0) {
+			blockControl.reg.ba--;
 			channelControl.reg.startBusy = 0;
 			blockWordCount = blockControl.reg.bc_bs;
-			pDMAController->isCpuStopped = false;
+			//pDMAController->isCpuStopped = false;
 			syncClocks = 0;
 			memoryAddress.reg.memAddr = memAddrTemp;
-		}*/
+		}
 	}
 }

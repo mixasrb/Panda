@@ -238,6 +238,77 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	if (prim_opcode == 0) { // special
 		uint8_t sec_opcode = opcode << 26 >> 26;
 
+		/*switch (sec_opcode) {
+		case 0b000000:
+		case 0b000001:
+		case 0b000010:
+		case 0b000011:
+			(this->*shift_imm[sec_opcode].instr)(
+				opcode << 11 >> 27,
+				opcode << 16 >> 27, opcode << 21 >> 27);
+			break;
+		case 0b000100:
+		case 0b000101:
+		case 0b000110:
+		case 0b000111:
+			(this->*shift_reg[sec_opcode ^ 0x04].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27, opcode << 16 >> 27);
+			break;
+		case 0b001000:
+			isCurrentOpcodeBranch = true;
+			JR(opcode << 6 >> 27);
+			break;
+		case 0b001001:
+			isCurrentOpcodeBranch = true;
+			JALR(opcode << 6 >> 27, opcode << 16 >> 27);
+			break;
+		case 0b001100:
+		case 0b001101:
+			(this->*sys_brk[sec_opcode ^ 0x0c].instr)(opcode >> 6);
+			break;
+		case 0b010000:
+		case 0b010010:
+			(this->*mfhi_mflo[(sec_opcode >> 1) & 0x01].instr)(
+				opcode << 16 >> 27);
+			break;
+		case 0b010001:
+		case 0b010011:
+			(this->*mthi_mtlo[(sec_opcode >> 1) & 0x01].instr)(
+				opcode << 6 >> 27);
+			break;
+		case 0b011000:
+		case 0b011001:
+		case 0b011010:
+		case 0b011011:
+			(this->*mul_div[sec_opcode ^ 0x18].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27);
+			break;
+		case 0b100000:
+		case 0b100001:
+		case 0b100010:
+		case 0b100011:
+		case 0b100100:
+		case 0b100101:
+		case 0b100110:
+		case 0b100111:
+		case 0b101000:
+		case 0b101001:
+		case 0b101010:
+		case 0b101011:
+		case 0b101100:
+		case 0b101101:
+		case 0b101110:
+		case 0b101111:
+			(this->*alu_reg[sec_opcode ^ 0x20].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27, opcode << 16 >> 27);
+			break;
+
+		}*/
+
+
 		if (sec_opcode <= 0x3) //shift-imm
 			(this->*shift_imm[sec_opcode].instr)(
 				opcode << 11 >> 27,
@@ -1226,6 +1297,7 @@ void cpu_t::printBiosCall() {
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
+				std::cout << ss.str();
 			}
 
 			break;
@@ -1308,6 +1380,7 @@ void cpu_t::printBiosCall() {
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
+				std::cout << ss.str();
 			}
 
 			if (g_biosCallbacksLogged) {
