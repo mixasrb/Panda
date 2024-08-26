@@ -67,7 +67,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //Gunners Heaven
 //tokimeki memorial 2
 
-
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Captain Commando (Japan).bin"); //[CD_DRIVE] EMULATION PAUSED! Issued ReadN without setLoc!
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
@@ -291,10 +291,10 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profile (Disc 1).bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT)?? // spu irq sync sensitive
 // graphic bugs around character pictures at left side while in dialog looks fixed with adding leftover bits for 4bit and 8bit textures
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tactics Ogre (USA)/Tactics Ogre (USA) (Track 1).bin");//fps drop
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tactics Ogre (USA)/Tactics Ogre (USA) (Track 1).bin");//fps drop dma2/gpu timing
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Wild Arms 2 (USA) (Disc 1).bin");//STuCK getTN fixed?? //STUCk// software terminated // graphic bugs in menue fixed by texture window rework
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Digimon World 3.bin");
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Chippoke Ralph no Daibouken - The Adventure of Little Ralph (Japan).bin"); //has one pixel texture off, problem with tex polygons 4bit textures
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Chippoke Ralph no Daibouken - The Adventure of Little Ralph (Japan).bin"); //has one pixel texture off, problem with tex polygons 4bit textures
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Arc the Lad Collection - Arc the Lad.bin");//[BUS] EMULATION PASUED! unhandled addr read32 0x1f801014 1F801014h 4    SPU_DELAY   Delay/Size (usually 200931E1h) // gte
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lunar - Silver Star Story Complete (USA) (Disc 1)/Lunar - Silver Star Story Complete (USA) (Disc 1) (Track 1).bin"); //code execution goes wrong // 0x80000080 overwriten 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lunar 2 - Eternal Blue Complete (USA) (Disc 1).bin");// get stuck?? fixed??
@@ -302,10 +302,10 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Chippoke Ralph 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 3/Street Fighter Alpha 3 (Track 1).bin"); //GetTN-, invalid setlock asect value 0x8c setmode CDDA bit set?? //but works
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rapid Reload (Europe).bin");// setfilter //GetlocP // gte // but works
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harmful Park (English v1.1).bin");//Stop //Setfilter // but works???
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Breath of Fire III/Breath of Fire III (v1.1) (Track 1).bin"); //cd drive out of sync ?? fixed??//~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c787878 Undocumented/Nonsense
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Captain Commando (Japan).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grandia (Europe) (Disc 1).bin");//Getparam //gte // wont boot , needs late INT1 // senzitive on too fAST CPU
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec?? [CD_DRIVE] EMULATION PAUSED! not recognized CD sector! 0xe
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Breath of Fire III/Breath of Fire III (v1.1) (Track 1).bin"); //cd drive out of sync ?? fixed??//~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c787878 Undocumented/Nonsense // fixed
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grandia (Europe) (Disc 1).bin");//Getparam //gte // wont boot , needs late INT1 // senzitive on too fAST CPU // fixed // unsynchronised audio
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Discworld Noir (Europe) (En,Es,It).bin"); //get stuck mdec sometimes?
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Raiden Project, The (USA).bin");//gte
