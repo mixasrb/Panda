@@ -225,16 +225,14 @@ public:
 				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
 					psx.cpuSOC.clock();
+					//psx.clock();
 				}
 
-				/*	if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
-						psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
-						psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
-					}*/
-
-					//Crash Bash
-					//PSX.cdDrive.irq_flag_read.reg.int_1_7 = 3;
-					//PSX.cdDrive.pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
+				/*	
+				if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
+					psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
+					psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
+				}*/
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)

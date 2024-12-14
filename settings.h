@@ -67,12 +67,18 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //Gunners Heaven
 //tokimeki memorial 2
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec?? [CD_DRIVE] EMULATION PAUSED! not recognized CD sector! 0xe
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Captain Commando (Japan).bin"); //[CD_DRIVE] EMULATION PAUSED! Issued ReadN without setLoc!
 
+
+
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona.bin");//pad problem
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Formula One 99 (Europe) (En,Fr,De,It).bin");
@@ -100,6 +106,11 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //Working ones
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Monsters, Inc. - Scream Team (USA)/Disney-Pixar Monsters, Inc. - Scream Team (USA).bin");//mdec dma problem
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona 2 Innocent Sin/Persona 2 - Tsumi Innocent Sin.bin");//mdec dma problem
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Planet of the Apes (USA).bin");
 
@@ -300,10 +311,11 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lunar 2 - Eternal Blue Complete (USA) (Disc 1).bin");// get stuck?? fixed??
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Adventures of Lomax, The (USA)/Adventures of Lomax, The (USA) (Track 01).bin"); //GetTN , addr 0x1f8005e0 ?? fixed maybe // gte??
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 3/Street Fighter Alpha 3 (Track 1).bin"); //GetTN-, invalid setlock asect value 0x8c setmode CDDA bit set?? //but works
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rapid Reload (Europe).bin");// setfilter //GetlocP // gte // but works
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harmful Park (English v1.1).bin");//Stop //Setfilter // but works???
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gundam Battle Assault 2/Gundam Battle Assault 2 (Track 1).bin");//mdec?? [CD_DRIVE] EMULATION PAUSED! not recognized CD sector! 0xe
 
+
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Rapid Reload (Europe).bin");// setfilter //GetlocP // gte // but works //[SPU] EMULATION PASUED! ADPCM filter > 5 filter = 7 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harmful Park (English v1.1).bin");//Stop //Setfilter // but works??? //fixed
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Breath of Fire III/Breath of Fire III (v1.1) (Track 1).bin"); //cd drive out of sync ?? fixed??//~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x4c787878 Undocumented/Nonsense // fixed
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Grandia (Europe) (Disc 1).bin");//Getparam //gte // wont boot , needs late INT1 // senzitive on too fAST CPU // fixed // unsynchronised audio
 

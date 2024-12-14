@@ -1577,7 +1577,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 			| ((texWinOffset.y & texWinMask.y) << 3);
 
 		pTex.x = gpuStat.elem.texPageXBase << 6;
-		pTex.x += (((u & 255 & (~((texWinMask.x << 3))))
+		pTex.x += ((((u /* + ((4 - (u1 & 0x3)) & 0x3)*/) & 255 & (~((texWinMask.x << 3))))
 			| ((texWinOffset.x & texWinMask.x) << 3))) >> texBittnesVar.shifterDevider;
 
 		uint16_t data;
@@ -1591,7 +1591,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 			pClut.y = clut.elem.yCoord;
 
 			pClut.x = clut.elem.xCoord << 4;
-			pClut.x += (data >> ((u & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
+			pClut.x += (data >> (((u /* + ((4 - (u1 & 0x3)) & 0x3) */ ) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
 
 			readVram(pClut, frontPixelColor.data, true);
 		}
