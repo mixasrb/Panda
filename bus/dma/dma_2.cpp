@@ -51,6 +51,7 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			//std::cout << "~[DMA2] (GPU) started" << std::endl;
 			bTransferActive = true;
 			pDMAController->isCpuStopped = true;
+			
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;

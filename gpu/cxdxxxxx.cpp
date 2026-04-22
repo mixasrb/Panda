@@ -1164,6 +1164,10 @@ void gpu_t::decodeExecuteGp1Command(const uint32_t& command) {
 		break;
 	case 0x4:
 		gpuStat.elem.directionDMA = command & 0x3;
+		if (gpuStat.elem.directionDMA == 1) {
+			std::cout << "[GPU] EMULATION PAUSED! DMA Direction FIFO" << std::endl;
+			g_emulationPaused = true;
+		}
 		break;
 	case 0x5:
 		displayStart.x = command & 0x3ff;
@@ -1591,7 +1595,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 			pClut.y = clut.elem.yCoord;
 
 			pClut.x = clut.elem.xCoord << 4;
-			pClut.x += (data >> (((u /* + ((4 - (u1 & 0x3)) & 0x3) */ ) & texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
+			pClut.x += (data >> (((u /* + ((4 - (u1 & 0x3)) & 0x3) */)&texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
 
 			readVram(pClut, frontPixelColor.data, true);
 		}

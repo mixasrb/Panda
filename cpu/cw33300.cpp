@@ -525,7 +525,7 @@ void cpu_t::clock() {
 #endif
 
 	//debug
-	/*if (isInstructionExecuted && (pipelineCycle == 0)) {
+	/*if (isInstructionExecuted && (cycle == 0)) {
 		pipelineCycle = 1;
 		isInstructionExecuted = false;
 		if (cycle0.bWrite) {
@@ -534,7 +534,7 @@ void cpu_t::clock() {
 				r[cycle0.addr] = cycle0.data;
 		}
 	}
-	if (isInstructionExecuted && (pipelineCycle == 1)) {
+	if (isInstructionExecuted && (cycle == 1)) {
 		pipelineCycle = 0;
 		isInstructionExecuted = false;
 		if (cycle1.bWrite) {
@@ -546,12 +546,12 @@ void cpu_t::clock() {
 
 	if (clocks == 0) {
 
-		r[0] = 0;
+		//r[0] = 0;
 
 		if (cp0.executeInterrupt) {
 			bIRQ = true;
 			pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
-			bIRQ &= !checkForCopOpcode(opcode);
+			bIRQ &= !checkForCopOpcode(opcode) & !cycle0.bWrite & !cycle1.bWrite; //Maybe can cause problems but possibilties should be small
 
 			if (bIRQ) {
 				cp0.executeInterrupt = false;
@@ -565,14 +565,8 @@ void cpu_t::clock() {
 		pc_old = pc;
 #endif
 
-		if (!cycle) {
+		if (!cycle) { //First cycle
 			cycle = 1;
-
-			if (cycle1.bWrite) {
-				cycle1.bWrite = false;
-				if (r[cycle1.addr] == cycle1.old)
-					r[cycle1.addr] = cycle1.data;
-			}
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
@@ -604,14 +598,8 @@ void cpu_t::clock() {
 			opcode_pc = opcode_pc_1;
 			opcode = opcodes[1];
 		}
-		else {
+		else { //Second cycle
 			cycle = 0;
-
-			if (cycle0.bWrite) {
-				cycle0.bWrite = false;
-				if (r[cycle0.addr] == cycle0.old)
-					r[cycle0.addr] = cycle0.data;
-			}
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
@@ -650,17 +638,34 @@ void cpu_t::clock() {
 		/*if (pc == 0x800133fc)
 			r[2] = 1; */
 
-		//Hot Wheels - Turbo Racing (USA)
-		//if (pc == 0x80101310)
-		//	r[2] = 1;
-		///*if (pc == 0x800b42e0)
-		//	r[2] = 0x200;*/
+			//Hot Wheels - Turbo Racing (USA)
+			//if (pc == 0x80101310)
+			//	r[2] = 1;
+			///*if (pc == 0x800b42e0)
+			//	r[2] = 0x200;*/
 
 
 		pc += 4;
 
 		memoryClocks = 0;
 		gteClocks = 0;
+
+		if (cycle == 0) {
+			if (cycle0.bWrite) {
+				cycle0.bWrite = false;
+				if (r[cycle0.addr] == cycle0.old)
+					r[cycle0.addr] = cycle0.data;
+			}
+		}
+		else {
+			if (cycle1.bWrite) {
+				cycle1.bWrite = false;
+				if (r[cycle1.addr] == cycle1.old)
+					r[cycle1.addr] = cycle1.data;
+			}
+		}
+
+		r[0] = 0;
 
 		decodeExecuteOpcode(opcode);
 
@@ -984,18 +989,22 @@ void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 	/*uint32_t value = (int32_t)((int8_t)temp);
 	if (cycle == 0) {
+
 		if (cycle0.bWrite == true)
 			g_emulationPaused = true;
-		cycle0.old = r[rt];
+
 		cycle0.bWrite = true;
+		cycle0.old = r[rt];
 		cycle0.addr = rt;
 		cycle0.data = value;
 	}
 	else if (cycle == 1) {
+
 		if (cycle1.bWrite == true)
 			g_emulationPaused = true;
-		cycle1.old = r[rt];
+
 		cycle1.bWrite = true;
+		cycle1.old = r[rt];
 		cycle1.addr = rt;
 		cycle1.data = value;
 	}*/
@@ -1014,18 +1023,22 @@ void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 		/*uint32_t value = (int32_t)((int16_t)temp);
 		if (cycle == 0) {
+
 			if (cycle0.bWrite == true)
 				g_emulationPaused = true;
-			cycle0.old = r[rt];
+
 			cycle0.bWrite = true;
+			cycle0.old = r[rt];
 			cycle0.addr = rt;
 			cycle0.data = value;
 		}
 		else if (cycle == 1) {
+
 			if (cycle1.bWrite == true)
 				g_emulationPaused = true;
-			cycle1.old = r[rt];
+
 			cycle1.bWrite = true;
+			cycle1.old = r[rt];
 			cycle1.addr = rt;
 			cycle1.data = value;
 		}*/
@@ -1064,23 +1077,41 @@ void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	else {
 		pBus->cpuRead32(temp_addr, r[rt], memoryClocks);
 
-		/*uint32_t value = temp;
-		if (cycle == 0) {
-			if (cycle0.bWrite == true)
-				g_emulationPaused = true;
-			cycle0.old = r[rt];
-			cycle0.bWrite = true;
-			cycle0.addr = rt;
-			cycle0.data = value;
+		/*if (cycle0.bWrite) {
+			cycle0.bWrite = false;
+			if (r[cycle0.addr] == cycle0.old)
+				r[cycle0.addr] = cycle0.data;
 		}
-		else if (cycle == 1) {
-			if (cycle1.bWrite == true)
-				g_emulationPaused = true;
-			cycle1.old = r[rt];
-			cycle1.bWrite = true;
-			cycle1.addr = rt;
-			cycle1.data = value;
+		if (cycle1.bWrite) {
+			cycle1.bWrite = false;
+			if (r[cycle1.addr] == cycle1.old)
+				r[cycle1.addr] = cycle1.data;
 		}*/
+
+	/*	uint32_t value;
+		pBus->cpuRead32(temp_addr, value, memoryClocks);*/
+
+
+		//if (cycle == 0) {
+
+		//	if (cycle0.bWrite == true)
+		//		g_emulationPaused = true;
+
+		//	cycle0.bWrite = true;
+		//	cycle0.old = r[rt];
+		//	cycle0.addr = rt;
+		//	cycle0.data = value;
+		//}
+		//else if (cycle == 1) {
+
+		//	if (cycle1.bWrite == true)
+		//		g_emulationPaused = true;
+
+		//	cycle1.bWrite = true;
+		//	cycle1.old = r[rt];
+		//	cycle1.addr = rt;
+		//	cycle1.data = value;
+		//}
 	}
 }
 
@@ -1091,23 +1122,39 @@ void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	r[rt] = temp;
 
 	//skullmonkeys
-	//uint32_t value = temp;
-	//if (cycle == 0) {
-	//	if (cycle0.bWrite == true)
-	//		g_emulationPaused = true;
-	//	cycle0.old = r[rt];
-	//	cycle0.bWrite = true;
-	//	cycle0.addr = rt;
-	//	cycle0.data = value;
-	//}
-	//else if (cycle == 1) {
-	//	if (cycle1.bWrite == true)
-	//		g_emulationPaused = true;
-	//	cycle1.old = r[rt];
-	//	cycle1.bWrite = true;
-	//	cycle1.addr = rt;
-	//	cycle1.data = value;
-	//}
+
+	/*if (cycle0.bWrite) {
+		cycle0.bWrite = false;
+		if (r[cycle0.addr] == cycle0.old)
+			r[cycle0.addr] = cycle0.data;
+	}
+	if (cycle1.bWrite) {
+		cycle1.bWrite = false;
+		if (r[cycle1.addr] == cycle1.old)
+			r[cycle1.addr] = cycle1.data;
+	}
+
+	uint32_t value = temp;
+	if (cycle == 0) {
+
+		if (cycle0.bWrite == true)
+			g_emulationPaused = true;
+
+		cycle0.bWrite = true;
+		cycle0.old = r[rt];
+		cycle0.addr = rt;
+		cycle0.data = value;
+	}
+	else if (cycle == 1) {
+
+		if (cycle1.bWrite == true)
+			g_emulationPaused = true;
+
+		cycle1.bWrite = true;
+		cycle1.old = r[rt];
+		cycle1.addr = rt;
+		cycle1.data = value;
+	}*/
 }
 
 void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1123,18 +1170,22 @@ void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 		/*uint32_t value = temp;
 		if (cycle == 0) {
+
 			if (cycle0.bWrite == true)
 				g_emulationPaused = true;
-			cycle0.old = r[rt];
+
 			cycle0.bWrite = true;
+			cycle0.old = r[rt];
 			cycle0.addr = rt;
 			cycle0.data = value;
 		}
 		else if (cycle == 1) {
+
 			if (cycle1.bWrite == true)
 				g_emulationPaused = true;
-			cycle1.old = r[rt];
+
 			cycle1.bWrite = true;
+			cycle1.old = r[rt];
 			cycle1.addr = rt;
 			cycle1.data = value;
 		}*/

@@ -702,7 +702,7 @@ void cdDrive::play(const uint8_t& command) {
 		ass = stored_ass;
 		asect = stored_asect;
 
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued Play without setLoc!\n";
+		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued Play without setLoc!\n";
 		g_emulationPaused = true;
 	}
 	else if (bSetLocUnprocessed) {
@@ -796,7 +796,7 @@ void cdDrive::readN(const uint8_t& command) {
 		ass = stored_ass;
 		asect = stored_asect;
 
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued ReadN without setLoc!\n";
+		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued ReadN without setLoc!\n";
 		g_emulationPaused = true;
 	}
 	else {
@@ -1170,7 +1170,7 @@ void cdDrive::seekL(const uint8_t& command) {
 	if (bSetLocUnprocessed)
 		bSetLocUnprocessed = false;
 	else {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekL before setLoc!\n";
+		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued SeekL before setLoc!\n";
 		g_emulationPaused = true;
 	}
 
@@ -1196,7 +1196,7 @@ void cdDrive::seekP(const uint8_t& command) {
 	if (bSetLocUnprocessed)
 		bSetLocUnprocessed = false;
 	else {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued SeekP before setLoc!\n";
+		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued SeekP before setLoc!\n";
 		g_emulationPaused = true;
 	}
 
@@ -1286,7 +1286,7 @@ void cdDrive::readS(const uint8_t& command) {
 		ass = stored_ass;
 		asect = stored_asect;
 
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Issued ReadS without setLoc!\n";
+		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued ReadS without setLoc!\n";
 		g_emulationPaused = true;
 	}
 	else {

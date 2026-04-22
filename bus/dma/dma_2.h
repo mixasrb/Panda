@@ -41,5 +41,7 @@ public:
 	bool bTransferActive = false;
 	uint32_t blockWordCount = 0;
 	uint32_t syncClocks = 0;
+
+	uint32_t k = 0;
 };
 

@@ -2,6 +2,7 @@
 
 #define CONSOLE_LOGGING 1
 #define SCREEN 0
+#define ACCURATE_SPU_CLOCKING 0
 
 bool g_emulationPaused = false;
 bool g_executedCpuInstructionsLogged = false;
@@ -32,9 +33,9 @@ bool g_sideload = false;
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/frame-24bit-dma.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlockDecodeCLUT4BPP.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/DCTBlockDecodeCLUT8BPP.exe"); // cpu write mdec
-//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
+const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_cpu.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/access-time.exe");
-const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/timers/timers.exe");
+//const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/tests/timers/timers.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/psxtest_gte.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/hit-green.exe");
 //const char* g_sideloadPath = ("D:/projects/emulation_psx/binaries/tests/demo/PRINTGPU.exe");
@@ -72,10 +73,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona.bin");//pad problem
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona.bin");//pad problem
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
@@ -106,6 +104,12 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona
 
 
 //Working ones
+
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Toy Story 2 - Buzz Lightyear to the Rescue! (USA) (Rev 1).bin");//EMULATION PAUSED! Issued ReadS without setLoc!
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Pandemonium! (v1.0).bin");// mixing old frame buffer, resulting in stuter effect
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes Racing.bin"); // music breaks IF spu CLOCKING IS FAST
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Monsters, Inc. - Scream Team (USA)/Disney-Pixar Monsters, Inc. - Scream Team (USA).bin");//mdec dma problem
 
@@ -187,7 +191,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/True Pinball (USA)/True Pinball (USA) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/T.R.A.G. - Mission of Mercy (USA)/T.R.A.G. - Mission of Mercy (USA).bin");
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Casper (U) SLUS-00162/Casper (Track 1).bin");//problems with sound fixed //relies on spu timing
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Casper (U) SLUS-00162/Casper (Track 1).bin");//problems with sound fixed //relies on spu timing maybe works better when spu is not faster then other components// issue with viewscreen size and position 
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Galaxian 3 (Europe)/Galaxian 3 (Europe) (Track 1).bin"); // + 0x36cd2 * 20 / 10, woks too slow fixed??
@@ -366,11 +370,11 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution //needs clocks >= waitClocksFirstResponse+ <= 0x36cd2 * 5 / 20 fixed??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1?
 
 
 

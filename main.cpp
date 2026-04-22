@@ -49,15 +49,23 @@ public:
 
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
+#if ACCURATE_SPU_CLOCKING
 			if (!g_emulationPaused) {
-				/*	for (int i = 0; i < 0x300; i++)
-						pInstance->psx.clock();*/
 
+				for (int i = 0; i < 0x300; i++) {
+					if (g_systemClocks == CPU_CLOCKS_PER_FRAME) {
+						g_systemClocks = 0;
+						pInstance->psx.gpu.cpuScanlineClocks = 0;
+					}
 
-
-				pInstance->sampleLR = pInstance->psx.bus.spu.clock();
-				//pInstance->psx.gpu.loopGp0();
+					pInstance->psx.clock();
+					g_systemClocks++;
+				}
 			}
+#endif
+
+			pInstance->sampleLR = pInstance->psx.bus.spu.clock();
+			//pInstance->psx.gpu.loopGp0();
 		}
 
 		if (nChanel == 0)
@@ -180,6 +188,7 @@ public:
 		}
 
 		//clocker
+#if !ACCURATE_SPU_CLOCKING
 		if (!g_emulationPaused) {
 			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
@@ -202,6 +211,7 @@ public:
 				}
 			}
 		}
+#endif
 
 
 		//debugger
@@ -228,7 +238,7 @@ public:
 					//psx.clock();
 				}
 
-				/*	
+				/*
 				if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
 					psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
 					psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
