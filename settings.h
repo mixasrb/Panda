@@ -1,7 +1,7 @@
 #pragma once
 
 #define CONSOLE_LOGGING 1
-#define SCREEN 0
+#define SCREEN 1
 #define ACCURATE_SPU_CLOCKING 0
 
 bool g_emulationPaused = false;
@@ -74,7 +74,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona.bin");//pad problem
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 
@@ -100,12 +100,19 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot Warped (May 14, 1998 prototype)/CRASH3.bin"); //[CP0] EMULATION PAUSED! triggered exception code: 0x5 //[BUS] EMULATION PAUSED!invalid ram addr write32 0x8083e178 data 0x10e19
+
 //worked before
+
+
+
 
 
 //Working ones
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Toy Story 2 - Buzz Lightyear to the Rescue! (USA) (Rev 1).bin");//EMULATION PAUSED! Issued ReadS without setLoc!
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Croc - Legend of the Gobbos (USA).bin");//Intro is not played
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Toy Story 2 - Buzz Lightyear to the Rescue! (USA) (Rev 1).bin");//EMULATION PAUSED! Issued ReadS without setLoc!
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Pandemonium! (v1.0).bin");// mixing old frame buffer, resulting in stuter effect
 
