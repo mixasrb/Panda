@@ -156,7 +156,9 @@ void dma2_t::Clock() {
 	if (clocks == 0) {
 
 		if ((channelControl.reg.syncMode == syncBlocks) ||
-			((channelControl.reg.syncMode == linkedList) && (memoryAddress.data & 0x00800000))) {
+			((channelControl.reg.syncMode == linkedList) && 
+				((memoryAddress.data & 0x00800000) /*|| ((memoryAddress.data & 0xffffffff) == 0)
+					|| (memoryAddress.reg.memAddr == memAddrTemp)*/))) {
 			//std::cout << "~[DMA2] (GPU) end madr: 0x" << std::hex << memAddrTemp << std::endl;
 			endDMATransfer();
 			return;

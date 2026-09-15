@@ -1,7 +1,7 @@
 #pragma once
 
 #define CONSOLE_LOGGING 1
-#define SCREEN 1
+#define SCREEN 0
 #define ACCURATE_SPU_CLOCKING 0
 
 bool g_emulationPaused = false;
@@ -75,6 +75,9 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Persona/Persona.bin");//pad problem
 
+
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/.bin");
 
 
@@ -86,7 +89,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");//GetTN, Mdec // no input fixed//get stuck// DMA 2 linked-list loop ??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Rebel Assault II - The Hidden Empire (USA) (Disc 1).bin");// DMA3 CDROM 0x11400100h //unhandled timer0 mode 0x14b //mdec //hangs??->mdec
 
@@ -110,7 +113,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //Working ones
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Croc - Legend of the Gobbos (USA).bin");//Intro is not played
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Croc - Legend of the Gobbos (USA).bin");//Intro is not played
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Disney-Pixar Toy Story 2 - Buzz Lightyear to the Rescue! (USA) (Rev 1).bin");//EMULATION PAUSED! Issued ReadS without setLoc!
 
@@ -141,6 +144,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Croc - Legend o
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Air Combat (USA)/Air Combat (USA) (Track 01).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harry Potter and the Sorcerer's Stone (USA) (En,Fr,Es).bin");//spu IRQ senzitive and crashes emulator
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Harry Potter and the Philosopher's Stone (Europe) (En,Fr,De).bin"); //mnue music not right, naration not working
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
 // //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte //problems with drawing after implementing new rasterizer algorithm //sends setlock before pause is executed??
 

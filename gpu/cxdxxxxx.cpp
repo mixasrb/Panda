@@ -539,7 +539,7 @@ void gpu_t::videoClock() {
 
 		if (gpuStat.elem.verticalInterlace)
 			if (!gpuStat.elem.verticalRes)
-				gpuStat.elem.drawingEvenOddLines = (scanlineCount <= screenY2) ? scanlineCount & 0x1 : 0;
+				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
 
 		if (scanlineCount == screenY2) {
 			pBus->timer1.bVblank = true;

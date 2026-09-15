@@ -572,10 +572,7 @@ void cdDrive::readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
 	//waitClocksDataResponse += 0x36cd2 * 10 / 10;
-	std::cout << "~[CD_DRIVE] Read sector:" << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] amm: " << (uint16_t)amm << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] ass: " << (uint16_t)ass << std::endl;
-	std::cout << std::dec << "~[CD_DRIVE] asect: " << (uint16_t)asect << std::endl;
+	std::cout << "~[CD_DRIVE] Read sector: " << std::dec << (uint16_t)amm << std::dec << ":" << (uint16_t)ass << std::dec << ":" << (uint16_t)asect << std::endl;
 
 	if (!bPlay)
 		if ((uint8_t)fileDataVect[currentPossition + 0x11] == 0xff)
