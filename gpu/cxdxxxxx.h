@@ -439,15 +439,13 @@ public:
 
 		clutCache_t() : bIsValid(false), clut(0) {}
 
-		void rebuildCache(gpu_t* pGpu, const uint16_t& data) {
-			if (clut.data == data)
-				bIsValid = true;
-			else {
+		void rebuildCache(gpu_t* pGpu, const uint16_t& newClut) {
+
+			if (clut.data != newClut)
 				bIsValid = false;
-				clut.data = data;
-			}
 
 			if (!bIsValid) {
+				clut.data = newClut;
 				for (int i = 0; i < 256; i++) {
 					vertex_t entry((clut.elem.x << 4) + i, clut.elem.y);
 					pGpu->readVram(entry, cacheData[i], true);
