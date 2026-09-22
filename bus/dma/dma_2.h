@@ -43,5 +43,7 @@ public:
 	uint32_t syncClocks = 0;
 
 	uint32_t k = 0;
+
+	bool dma2_Pending = false;
 };
 

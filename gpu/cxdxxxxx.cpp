@@ -541,6 +541,12 @@ void gpu_t::videoClock() {
 			if (!gpuStat.elem.verticalRes)
 				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
 
+		/*if (scanlineCount == screenY2-10)
+			if (pBus->dma.dma2.dma2_Pending) {
+				pBus->dma.dma2.dma2_Pending = false;
+				pBus->dma.dma2.endDMATransfer();
+			}*/
+
 		if (scanlineCount == screenY2) {
 			pBus->timer1.bVblank = true;
 
@@ -549,6 +555,7 @@ void gpu_t::videoClock() {
 
 			//V-Sync interrupt is naturally edge trigered
 			pBus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
+
 
 			//Vblank synchronization timer 1
 			pBus->timer1.clock(_VBLANK_CLOCK);
@@ -631,7 +638,9 @@ void gpu_t::decodeExecuteGp0Command(const uint32_t& command) {
 			gp0CommandFuncs.pushBack(tempFunc);*/
 		}
 		else if ((gp0Command >> 24) == 0x01) {
-			//clar cache unhandled
+			//clear texture cache unhandled??
+
+			clutCache.invalidate();
 		}
 		else {
 			if (gp0Command >> 24 == 0x1f) {
@@ -1515,7 +1524,7 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 		break;
 	}
 
-	clut_t clut = param.texCoord1Palette.elem.attribute;
+	clutCache.rebuildCache(this, param.texCoord1Palette.elem.attribute);
 
 	const uint8_t vertexCount = param.verticesNumber;
 
@@ -1589,16 +1598,8 @@ void gpu_t::drawTexPolygon(const param_t& param) {
 
 		if (texBittnesVar.bit15)
 			frontPixelColor.data = data;
-		else {
-			vertex_t pClut;
-
-			pClut.y = clut.elem.yCoord;
-
-			pClut.x = clut.elem.xCoord << 4;
-			pClut.x += (data >> (((u /* + ((4 - (u1 & 0x3)) & 0x3) */)&texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder;
-
-			readVram(pClut, frontPixelColor.data, true);
-		}
+		else
+			frontPixelColor.data = clutCache.getColor((data >> (((u /* + ((4 - (u1 & 0x3)) & 0x3) */)&texBittnesVar.firstAnder) << texBittnesVar.shifter)) & texBittnesVar.secondAnder);
 
 		if (frontPixelColor.data) {
 			if (param.shadingType == GOURAUD_SHADING) {
@@ -2227,7 +2228,7 @@ void gpu_t::drawTexRect8Bit(const param_t& param) {
 	int16_t v2 = v1 + ((param.size_y_x >> 16) & 0xffff);
 	uint16_t texData;
 	vertex_t pTex;
-	clut_t clut = param.texCoord1Palette.elem.attribute;
+	clutCache.rebuildCache(this, param.texCoord1Palette.elem.attribute);
 	vertex_t pClut;
 
 	int16_t x1 = param.vert1.x;
@@ -2259,10 +2260,7 @@ void gpu_t::drawTexRect8Bit(const param_t& param) {
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
-			pClut.x = clut.elem.xCoord * 16 +
-				(texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x1)) & 0x1) * 8) & 0xff);
-			pClut.y = clut.elem.yCoord;
-			readVram(pClut, frontPixelColor.data, true);
+			frontPixelColor.data = clutCache.getColor(texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x1)) & 0x1) * 8) & 0xff);
 
 			if (frontPixelColor.data) {
 				if (param.modulationType == TEXTURE_BLENDING) {
@@ -2290,7 +2288,7 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 	int16_t v2 = v1 + ((param.size_y_x >> 16) & 0xffff);
 	uint16_t texData;
 	vertex_t pTex;
-	clut_t clut = param.texCoord1Palette.elem.attribute;
+	clutCache.rebuildCache(this, param.texCoord1Palette.elem.attribute);
 	vertex_t pClut;
 
 	int16_t x1 = param.vert1.x;
@@ -2323,10 +2321,8 @@ void gpu_t::drawTexRect4Bit(const param_t& param) {
 			p.x = x1 + x;
 
 			readVram(pTex, texData, true);
-			pClut.x = (clut.elem.xCoord << 4) +
-				((texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x3)) & 0x3) << 2)) & 0xf);
-			pClut.y = clut.elem.yCoord;
-			readVram(pClut, frontPixelColor.data, true);
+			frontPixelColor.data = clutCache.getColor((texData >> ((((int16_t)((float)x * ratioX) + (u1 & 0x3)) & 0x3) << 2)) & 0xf);
+
 
 			if (frontPixelColor.data) {
 				if (param.modulationType == TEXTURE_BLENDING) {

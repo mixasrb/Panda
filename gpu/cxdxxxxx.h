@@ -178,8 +178,7 @@ public:
 		psxColor16_t() {
 			data = 0;
 		}
-		psxColor16_t(uint16_t input) : data(input) {
-		}
+		psxColor16_t(uint16_t input) : data(input) {}
 		uint16_t data;
 		struct {
 			uint16_t red : 5;
@@ -218,10 +217,8 @@ public:
 	};
 
 	union psxColor24_t {
-		psxColor24_t() : data(0) {
-		}
-		psxColor24_t(uint32_t input) : data(input << 8 >> 8) {
-		}
+		psxColor24_t() : data(0) {}
+		psxColor24_t(uint32_t input) : data(input << 8 >> 8) {}
 		uint32_t data;
 		struct {
 			uint32_t red : 8;
@@ -234,8 +231,7 @@ public:
 	uint32_t format16to24Color(const uint16_t& color_16);
 
 	struct vertex_t {
-		vertex_t() {
-		}
+		vertex_t() {}
 		vertex_t(uint32_t xt, uint32_t yt) {
 			*(&x) = uint16_t(xt);
 			*(&y) = uint16_t(yt);
@@ -281,10 +277,8 @@ public:
 	};
 
 	union texcoordType_t {
-		texcoordType_t() {
-		}
-		texcoordType_t(uint32_t data) : data(data) {
-		}
+		texcoordType_t() {}
+		texcoordType_t(uint32_t data) : data(data) {}
 		uint32_t data;
 		struct {
 			uint32_t u : 8;
@@ -309,8 +303,7 @@ public:
 	};
 
 	struct param_t {
-		param_t() {
-		}
+		param_t() {}
 		primitiveType_t primitiveType;
 		shadingType_t shadingType;
 		uint32_t rectSize;
@@ -338,7 +331,7 @@ public:
 
 	param_t param;
 
-	union clut_t {
+	/*union clut_t {
 		clut_t(uint16_t data) : data(data) {
 		}
 		uint16_t data;
@@ -347,7 +340,7 @@ public:
 			uint16_t yCoord : 9;
 			uint16_t : 1;
 		}elem;
-	};
+	};*/
 
 
 	struct gp0Commands_t {
@@ -427,6 +420,50 @@ public:
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
 	bool bWasActiveDMA = false;
+
+	struct clutCache_t {
+		bool bIsValid = false;
+		union clut_t {
+			uint16_t data;
+			struct {
+				uint16_t x : 6;
+				uint16_t y : 9;
+				uint16_t : 1;
+			}elem;
+			struct {
+				uint16_t x : 6;
+				uint16_t y : 10;
+			}elem_v2;
+		}clut;
+		uint16_t cacheData[256] = {};
+
+		clutCache_t() : bIsValid(false), clut(0) {}
+
+		void rebuildCache(gpu_t* pGpu, const uint16_t& data) {
+			if (clut.data == data)
+				bIsValid = true;
+			else {
+				bIsValid = false;
+				clut.data = data;
+			}
+
+			if (!bIsValid) {
+				for (int i = 0; i < 256; i++) {
+					vertex_t entry((clut.elem.x << 4) + i, clut.elem.y);
+					pGpu->readVram(entry, cacheData[i], true);
+				}
+				bIsValid = true;
+			}
+		}
+
+		void invalidate() {
+			bIsValid = false;
+		}
+
+		uint16_t getColor(int i) {
+			return cacheData[i];
+		}
+	}clutCache;
 
 	/*struct gp0CommandFunc_t {
 		void (gpu_t::* gp0CommandFunc)(const param_t& param);

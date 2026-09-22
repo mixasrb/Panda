@@ -97,8 +97,13 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 		interruptRegister.data = (interruptRegister.data & 0x80000000) | (data & 0x00ff803f);
 		interruptRegister.data |= dicrTemp << 24;
 
-		if (interruptRegister.reg.IRQ_control) {
+		if (data & 0x3f) {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled interrupt control" << std::endl;
+			g_emulationPaused = true;
+		}
+
+		if (data & 0x8000) {
+			std::cout << "[DMA] EMULATION PAUSED! interruptRegister.reg.force_IRQ" << std::endl;
 			g_emulationPaused = true;
 		}
 

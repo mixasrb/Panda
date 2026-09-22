@@ -137,6 +137,7 @@ void dma2_t::endDMATransfer() {
 
 	pDMAController->currentClockFunction = 8;
 
+	dma2_Pending = false;
 	triggerIRQ();
 	//std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 end" << std::dec << g_systemClocks << std::endl;
 }
@@ -177,6 +178,8 @@ void dma2_t::Clock() {
 			uint32_t node;
 			DMARead32(memAddrTemp, node, cycles);
 			memoryAddress.data = node & 0x00fffffc;
+
+			dma2_Pending = true;
 
 			//if (memAddrTemp == memoryAddress.reg.memAddr) {
 			//	clocks = 0;
