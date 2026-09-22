@@ -69,6 +69,11 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 			<< " data 0x" << std::hex << data << std::endl;*/
 		controlRegister.data = data;
 
+		//if (controlRegister.reg.cpu_priority != 0) {
+			//std::cout << "[DMA] EMULATION PAUSED! unhandled cpu priority " << std::hex << controlRegister.reg.cpu_priority << std::endl;
+			//g_emulationPaused = true;
+		//}
+
 		/*for (int i = 0; i < 7; i++) {
 			const uint8_t iPriority = (controlRegister.data >> (i * 4)) & 0x7;
 			for (int j = i + 1; j < 7; j++) {
@@ -91,6 +96,17 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 		uint32_t dicrTemp = (interruptRegister.data << 1 >> 25) & (~data << 1 >> 25);
 		interruptRegister.data = (interruptRegister.data & 0x80000000) | (data & 0x00ff803f);
 		interruptRegister.data |= dicrTemp << 24;
+
+		if (data & 0x3f) {
+			std::cout << "[DMA] EMULATION PAUSED! unhandled interrupt control" << std::endl;
+			g_emulationPaused = true;
+		}
+
+		if (data & 0x8000) {
+			std::cout << "[DMA] EMULATION PAUSED! interruptRegister.reg.force_IRQ" << std::endl;
+			g_emulationPaused = true;
+		}
+
 		/*	std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 				<< " data 0x" << std::hex << data << std::endl;*/
 				/*interruptRegister.data = (interruptRegister.data & 0xff000000) | (data & 0x00ff803f);
@@ -199,7 +215,7 @@ void dmaController_t::clock() {
 }
 
 bool dmaController_t::clock0() {
-	if (controlRegister.reg.mdecIn_master_enable && dma0.channelControl.reg.startBusy) { //??
+	if (controlRegister.reg.mdecIn_master_enable && dma0.bTransferActive) { //??
 		dma0.Clock();
 		return true;
 	}
@@ -207,7 +223,7 @@ bool dmaController_t::clock0() {
 }
 
 bool dmaController_t::clock1() {
-	if (controlRegister.reg.mdecOut_master_enable && dma1.channelControl.reg.startBusy) {//??
+	if (controlRegister.reg.mdecOut_master_enable && dma1.bTransferActive) {//??
 		dma1.Clock();
 		return true;
 	}
@@ -215,7 +231,7 @@ bool dmaController_t::clock1() {
 }
 
 bool dmaController_t::clock2() {
-	if (controlRegister.reg.gpu_master_enable && dma2.channelControl.reg.startBusy) {
+	if (controlRegister.reg.gpu_master_enable && dma2.bTransferActive) {
 		dma2.Clock();
 		return true;
 	}
@@ -231,7 +247,7 @@ bool dmaController_t::clock3() {
 }
 
 bool dmaController_t::clock4() {
-	if (controlRegister.reg.spu_master_enable && dma4.channelControl.reg.startBusy) {//??
+	if (controlRegister.reg.spu_master_enable && dma4.bTransferActive) {//??
 		dma4.Clock();
 		return true;
 	}

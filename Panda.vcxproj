@@ -48,7 +48,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -105,7 +105,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CPU_DEBUG;CONSOLE_LOGGING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -135,7 +135,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CPU_DEBUG;CONSOLE_LOGGING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -162,7 +162,7 @@
     <ClCompile Include="cpu\cp2.cpp" />
     <ClCompile Include="cpu\cw33300.cpp" />
     <ClCompile Include="debug_utilities\debug_utilities.cpp" />
-    <ClCompile Include="gpu\cxd8xxxx.cpp" />
+    <ClCompile Include="gpu\cxdxxxxx.cpp" />
     <ClCompile Include="gpu\utils.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mdec\mdec.cpp" />
@@ -192,7 +192,7 @@
     <ClInclude Include="defines\defines.h" />
     <ClInclude Include="dependencies\olcPGEX_Sound.h" />
     <ClInclude Include="dependencies\olcPixelGameEngine.h" />
-    <ClInclude Include="gpu\cxd85xxx.h" />
+    <ClInclude Include="gpu\cxdxxxxx.h" />
     <ClInclude Include="gpu\utils.h" />
     <ClInclude Include="mdec\mdec.h" />
     <ClInclude Include="peripherals\joy_mem_card.h" />

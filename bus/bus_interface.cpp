@@ -14,9 +14,9 @@ extern bool g_emulationPaused;
 #define SCRATCHPAD (((addr >= 0x1f800000) && (addr < 0x1f800400)) || \
                     ((addr >= 0x9f800000) && (addr < 0x9f800400)))
 
-#define MEMORY_CONTROL_1 (((addr >= 0x1f801000) && (addr <= 0x1f801020)) || \
+#define MEMORY_CONTROL_1 (((addr >= 0x1f801000) && (addr <= 0x1f801020))/* || \
                           ((addr >= 0x8f801000) && (addr <= 0x8f801020)) || \
-                          ((addr >= 0xbf801000) && (addr <= 0xbf801020)))
+                          ((addr >= 0xbf801000) && (addr <= 0xbf801020))*/)
 
 #define JOY_MEM_CARD (((addr >= 0x1f801040) && (addr <= 0x1f80104e)) || \
 					  ((addr >= 0x8f801040) && (addr <= 0x8f80104e)) || \
@@ -46,13 +46,13 @@ extern bool g_emulationPaused;
 			    ((addr >= 0x8f801100) && (addr <= 0x8f801128)) || \
                 ((addr >= 0xbf801100) && (addr <= 0xbf801128)))
 
-#define CD_DRIVE (((addr >= 0x1f801800) && (addr <= 0x1f801803)) || \
+#define CD_DRIVE (((addr >= 0x1f801800) && (addr <= 0x1f801803))/* || \
 				  ((addr >= 0x8f801800) && (addr <= 0x8f801803)) || \
-				  ((addr >= 0xbf801800) && (addr <= 0xbf801803)))
+				  ((addr >= 0xbf801800) && (addr <= 0xbf801803))*/)
 
-#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814) || \
+#define GPU ((addr == 0x1f801810) || (addr == 0x1f801814)/* || \
 			 (addr == 0x8f801810) || (addr == 0x8f801814) || \
-			 (addr == 0xbf801810) || (addr == 0xbf801814))
+			 (addr == 0xbf801810) || (addr == 0xbf801814)*/)
 
 #define MDEC ((addr == 0x1f801820) || (addr == 0x1f801824) || \
               (addr == 0x8f801820) || (addr == 0x8f801824) || \
@@ -93,8 +93,6 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		//	clocks = 1;
 		//	return;
 		//}
-
-		//if ((addr & 0x1fffffff) > 0x200000)
 
 		data = *((uint32_t*)(ram + (addr & 0x1fffff)));
 
@@ -186,7 +184,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 	//BIOS ROM
 	else if (BIOS) {
 		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
-			std::cout << "bus_controller adress overflow\n";
+			std::cout << "[BUS] bus_controller adress overflow\n";
 			g_emulationPaused = true;
 		}
 
@@ -496,13 +494,6 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 	}
 	else if (SCRATCHPAD)
 		*((uint16_t*)(scratchpad + (addr & 0x1fffff))) = data;
-
-	/*else if (MEMORY_CONTROL_1)
-		std::cout << "[BUS] unhandled memory control reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-	else if (MEMORY_CONTROL_2) {
-		std::cout << "[BUS] unhandled ram_size reg write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		ramSize = (uint32_t)data;
-	}*/
 	else if (INTERRUPT_STAT) {
 		interruptStat &= 0xffff0000 | (uint32_t)data;
 		pCpu->cp0.updateInterruptMaskStat();
@@ -549,19 +540,6 @@ void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cloc
 	clocks = 3;
 
 	if (RAM) {
-		/*if ((pCpu->cp0.isolateDataCache) && (addr < 0xa0000000)) {
-			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
-				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
-			return;
-		}*/
-
-		//if (cacheControl != 0x0001e988) {
-		//	/*data = scratchpad[addr & 0x3ff];*/
-		//	clocks = 1;
-		//	return;
-		//}
-
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
 				<< std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
@@ -628,14 +606,12 @@ void busInterface_t::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_
 			//scratchpad[addr & 0x3ff] = data;
 			return;
 		}
-		//if ((addr & 0x1fffffff) > 0x200000)
 
 		ram[addr & 0x1fffff] = data;
 	}
 	//Scratchpad
-	else if (SCRATCHPAD) {
+	else if (SCRATCHPAD)
 		scratchpad[addr & 0x3ff] = data;
-	}
 	else if (DMA)
 		dma.writeDMA8(addr, data, cycles);
 	else if (POST)

@@ -37,5 +37,13 @@ public:
 	uint32_t elementCount;
 
 	uint16_t i = 0;
+
+	bool bTransferActive = false;
+	uint32_t blockWordCount = 0;
+	uint32_t syncClocks = 0;
+
+	uint32_t k = 0;
+
+	bool dma2_Pending = false;
 };
 

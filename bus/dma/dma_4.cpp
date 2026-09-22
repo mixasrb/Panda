@@ -39,11 +39,16 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 		}
 
 		if (channelControl.reg.startBusy) {
+			bTransferActive = true;
 			pDMAController->isCpuStopped = true;
+			pDMAController->isCpuStopped = false;
+			syncClocks = 0x90; //breaks Castlevania Chronicles (USA) with value 0x100
 			if (channelControl.reg.syncMode == syncBlocks) {
 				memAddrTemp = memoryAddress.reg.memAddr;
 				elementCount = blockControl.reg.ba * blockControl.reg.bc_bs;
+				blockWordCount = blockControl.reg.bc_bs;
 				std::cout << "~[DMA4] (SPU) element count: 0x"
+
 					<< std::hex << elementCount << std::endl;
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_4;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
@@ -96,6 +101,7 @@ void dma4_t::triggerIRQ() {
 }
 
 void dma4_t::endDMATransfer() {
+	bTransferActive = false;
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
 
@@ -106,26 +112,52 @@ void dma4_t::endDMATransfer() {
 
 void dma4_t::Clock() {
 
+	if (pDMAController->isCpuStopped == false) {
+		if (syncClocks == 0) {
+			pDMAController->isCpuStopped = true;
+			channelControl.reg.startBusy = 1;
+		}
+		else
+			syncClocks--;
+		return;
+	}
+
 	if (clocks == 0) {
 		if (channelControl.reg.syncMode == syncBlocks) {
+			memoryAddress.reg.memAddr = memAddrTemp;
 			endDMATransfer();
 			return;
 		}
 	}
 
 	clocks--;
-	if (clocks < elementCount * 2) {
+	if (clocks < elementCount) {
 		uint8_t cycles;
 		uint16_t data;
 
 		if (channelControl.reg.transDir == toMainRAM) {
 			DMARead16(0x1f801da8, data, cycles);
 			pBus->cpuWrite16(memAddrTemp, data, cycles);
+			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
+			DMARead16(0x1f801da8, data, cycles);
+			pBus->cpuWrite16(memAddrTemp, data, cycles);
 		}
 		else {
 			DMARead16(memAddrTemp, data, cycles);
 			pBus->cpuWrite16(0x1f801da8, data, cycles);
+			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
+			DMARead16(memAddrTemp, data, cycles);
+			pBus->cpuWrite16(0x1f801da8, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
+
+		/*blockWordCount--;
+		if (blockWordCount == 0) {
+			channelControl.reg.startBusy = 0;
+			blockWordCount = blockControl.reg.bc_bs;
+			pDMAController->isCpuStopped = false;
+			syncClocks = 0x20;
+			memoryAddress.reg.memAddr = memAddrTemp;
+		}*/
 	}
 }

@@ -72,15 +72,16 @@ public:
 			uint32_t : 4;
 			uint32_t otc_priority : 3;
 			uint32_t otc_master_enable : 1;
-			uint32_t : 4;
+			uint32_t cpu_priority : 3;
+			uint32_t : 1;
 		}reg;
 	}controlRegister;
 
 	union interruptRegister_t {
 		uint32_t data;
 		struct {
-			uint32_t : 6;
-			uint32_t : 9;
+			uint32_t IRQ_control : 7;
+			uint32_t : 8;
 			uint32_t force_IRQ : 1;
 			uint32_t IRQ_enable_dma0 : 1;
 			uint32_t IRQ_enable_dma1 : 1;

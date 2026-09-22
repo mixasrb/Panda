@@ -1,6 +1,9 @@
 #include "cw33300.h"
 #include "../bus/bus_interface.h"
 
+#undef CPU_DEBUG
+#define CPU_DEBUG 1
+
 extern bool g_emulationPaused;
 extern bool g_executedCpuInstructionsLogged;
 extern bool g_biosCallbacksLogged;
@@ -221,7 +224,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
 	//}
 
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 #endif
@@ -234,6 +237,77 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 
 	if (prim_opcode == 0) { // special
 		uint8_t sec_opcode = opcode << 26 >> 26;
+
+		/*switch (sec_opcode) {
+		case 0b000000:
+		case 0b000001:
+		case 0b000010:
+		case 0b000011:
+			(this->*shift_imm[sec_opcode].instr)(
+				opcode << 11 >> 27,
+				opcode << 16 >> 27, opcode << 21 >> 27);
+			break;
+		case 0b000100:
+		case 0b000101:
+		case 0b000110:
+		case 0b000111:
+			(this->*shift_reg[sec_opcode ^ 0x04].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27, opcode << 16 >> 27);
+			break;
+		case 0b001000:
+			isCurrentOpcodeBranch = true;
+			JR(opcode << 6 >> 27);
+			break;
+		case 0b001001:
+			isCurrentOpcodeBranch = true;
+			JALR(opcode << 6 >> 27, opcode << 16 >> 27);
+			break;
+		case 0b001100:
+		case 0b001101:
+			(this->*sys_brk[sec_opcode ^ 0x0c].instr)(opcode >> 6);
+			break;
+		case 0b010000:
+		case 0b010010:
+			(this->*mfhi_mflo[(sec_opcode >> 1) & 0x01].instr)(
+				opcode << 16 >> 27);
+			break;
+		case 0b010001:
+		case 0b010011:
+			(this->*mthi_mtlo[(sec_opcode >> 1) & 0x01].instr)(
+				opcode << 6 >> 27);
+			break;
+		case 0b011000:
+		case 0b011001:
+		case 0b011010:
+		case 0b011011:
+			(this->*mul_div[sec_opcode ^ 0x18].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27);
+			break;
+		case 0b100000:
+		case 0b100001:
+		case 0b100010:
+		case 0b100011:
+		case 0b100100:
+		case 0b100101:
+		case 0b100110:
+		case 0b100111:
+		case 0b101000:
+		case 0b101001:
+		case 0b101010:
+		case 0b101011:
+		case 0b101100:
+		case 0b101101:
+		case 0b101110:
+		case 0b101111:
+			(this->*alu_reg[sec_opcode ^ 0x20].instr)(
+				opcode << 6 >> 27,
+				opcode << 11 >> 27, opcode << 16 >> 27);
+			break;
+
+		}*/
+
 
 		if (sec_opcode <= 0x3) //shift-imm
 			(this->*shift_imm[sec_opcode].instr)(
@@ -445,13 +519,13 @@ void cpu_t::reset() {
 void cpu_t::clock() {
 
 	//SIDELOAD debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 	if ((pc == 0x80030000) && (g_sideload))
 		sideLoad();
 #endif
 
 	//debug
-	/*if (isInstructionExecuted && (pipelineCycle == 0)) {
+	/*if (isInstructionExecuted && (cycle == 0)) {
 		pipelineCycle = 1;
 		isInstructionExecuted = false;
 		if (cycle0.bWrite) {
@@ -460,7 +534,7 @@ void cpu_t::clock() {
 				r[cycle0.addr] = cycle0.data;
 		}
 	}
-	if (isInstructionExecuted && (pipelineCycle == 1)) {
+	if (isInstructionExecuted && (cycle == 1)) {
 		pipelineCycle = 0;
 		isInstructionExecuted = false;
 		if (cycle1.bWrite) {
@@ -472,12 +546,12 @@ void cpu_t::clock() {
 
 	if (clocks == 0) {
 
-		r[0] = 0;
+		//r[0] = 0;
 
 		if (cp0.executeInterrupt) {
 			bIRQ = true;
 			pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
-			bIRQ &= !checkForCopOpcode(opcode);
+			bIRQ &= !checkForCopOpcode(opcode) & !cycle0.bWrite & !cycle1.bWrite; //Maybe can cause problems but possibilties should be small
 
 			if (bIRQ) {
 				cp0.executeInterrupt = false;
@@ -486,19 +560,13 @@ void cpu_t::clock() {
 		}
 
 		//debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 		setBiosCallFlag();
 		pc_old = pc;
 #endif
 
-		if (!cycle) {
+		if (!cycle) { //First cycle
 			cycle = 1;
-
-			if (cycle1.bWrite) {
-				cycle1.bWrite = false;
-				if (r[cycle1.addr] == cycle1.old)
-					r[cycle1.addr] = cycle1.data;
-			}
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
@@ -530,14 +598,8 @@ void cpu_t::clock() {
 			opcode_pc = opcode_pc_1;
 			opcode = opcodes[1];
 		}
-		else {
+		else { //Second cycle
 			cycle = 0;
-
-			if (cycle0.bWrite) {
-				cycle0.bWrite = false;
-				if (r[cycle0.addr] == cycle0.old)
-					r[cycle0.addr] = cycle0.data;
-			}
 
 			//fetch
 			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
@@ -572,10 +634,38 @@ void cpu_t::clock() {
 		}
 
 
+		//Hack Polaris SnoCross (USA)
+		/*if (pc == 0x800133fc)
+			r[2] = 1; */
+
+			//Hot Wheels - Turbo Racing (USA)
+			//if (pc == 0x80101310)
+			//	r[2] = 1;
+			///*if (pc == 0x800b42e0)
+			//	r[2] = 0x200;*/
+
+
 		pc += 4;
 
 		memoryClocks = 0;
 		gteClocks = 0;
+
+		if (cycle == 0) {
+			if (cycle0.bWrite) {
+				cycle0.bWrite = false;
+				if (r[cycle0.addr] == cycle0.old)
+					r[cycle0.addr] = cycle0.data;
+			}
+		}
+		else {
+			if (cycle1.bWrite) {
+				cycle1.bWrite = false;
+				if (r[cycle1.addr] == cycle1.old)
+					r[cycle1.addr] = cycle1.data;
+			}
+		}
+
+		r[0] = 0;
 
 		decodeExecuteOpcode(opcode);
 
@@ -583,7 +673,7 @@ void cpu_t::clock() {
 		clocks += memoryClocks + gteClocks;
 
 		//debug
-#ifdef CPU_DEBUG
+#if CPU_DEBUG
 		printBiosCall();
 		isInstructionExecuted = true;
 #endif
@@ -899,18 +989,22 @@ void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 	/*uint32_t value = (int32_t)((int8_t)temp);
 	if (cycle == 0) {
+
 		if (cycle0.bWrite == true)
 			g_emulationPaused = true;
-		cycle0.old = r[rt];
+
 		cycle0.bWrite = true;
+		cycle0.old = r[rt];
 		cycle0.addr = rt;
 		cycle0.data = value;
 	}
 	else if (cycle == 1) {
+
 		if (cycle1.bWrite == true)
 			g_emulationPaused = true;
-		cycle1.old = r[rt];
+
 		cycle1.bWrite = true;
+		cycle1.old = r[rt];
 		cycle1.addr = rt;
 		cycle1.data = value;
 	}*/
@@ -929,18 +1023,22 @@ void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 		/*uint32_t value = (int32_t)((int16_t)temp);
 		if (cycle == 0) {
+
 			if (cycle0.bWrite == true)
 				g_emulationPaused = true;
-			cycle0.old = r[rt];
+
 			cycle0.bWrite = true;
+			cycle0.old = r[rt];
 			cycle0.addr = rt;
 			cycle0.data = value;
 		}
 		else if (cycle == 1) {
+
 			if (cycle1.bWrite == true)
 				g_emulationPaused = true;
-			cycle1.old = r[rt];
+
 			cycle1.bWrite = true;
+			cycle1.old = r[rt];
 			cycle1.addr = rt;
 			cycle1.data = value;
 		}*/
@@ -979,23 +1077,41 @@ void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	else {
 		pBus->cpuRead32(temp_addr, r[rt], memoryClocks);
 
-		/*uint32_t value = temp;
-		if (cycle == 0) {
-			if (cycle0.bWrite == true)
-				g_emulationPaused = true;
-			cycle0.old = r[rt];
-			cycle0.bWrite = true;
-			cycle0.addr = rt;
-			cycle0.data = value;
+		/*if (cycle0.bWrite) {
+			cycle0.bWrite = false;
+			if (r[cycle0.addr] == cycle0.old)
+				r[cycle0.addr] = cycle0.data;
 		}
-		else if (cycle == 1) {
-			if (cycle1.bWrite == true)
-				g_emulationPaused = true;
-			cycle1.old = r[rt];
-			cycle1.bWrite = true;
-			cycle1.addr = rt;
-			cycle1.data = value;
+		if (cycle1.bWrite) {
+			cycle1.bWrite = false;
+			if (r[cycle1.addr] == cycle1.old)
+				r[cycle1.addr] = cycle1.data;
 		}*/
+
+	/*	uint32_t value;
+		pBus->cpuRead32(temp_addr, value, memoryClocks);*/
+
+
+		//if (cycle == 0) {
+
+		//	if (cycle0.bWrite == true)
+		//		g_emulationPaused = true;
+
+		//	cycle0.bWrite = true;
+		//	cycle0.old = r[rt];
+		//	cycle0.addr = rt;
+		//	cycle0.data = value;
+		//}
+		//else if (cycle == 1) {
+
+		//	if (cycle1.bWrite == true)
+		//		g_emulationPaused = true;
+
+		//	cycle1.bWrite = true;
+		//	cycle1.old = r[rt];
+		//	cycle1.addr = rt;
+		//	cycle1.data = value;
+		//}
 	}
 }
 
@@ -1006,23 +1122,39 @@ void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	r[rt] = temp;
 
 	//skullmonkeys
-	//uint32_t value = temp;
-	//if (cycle == 0) {
-	//	if (cycle0.bWrite == true)
-	//		g_emulationPaused = true;
-	//	cycle0.old = r[rt];
-	//	cycle0.bWrite = true;
-	//	cycle0.addr = rt;
-	//	cycle0.data = value;
-	//}
-	//else if (cycle == 1) {
-	//	if (cycle1.bWrite == true)
-	//		g_emulationPaused = true;
-	//	cycle1.old = r[rt];
-	//	cycle1.bWrite = true;
-	//	cycle1.addr = rt;
-	//	cycle1.data = value;
-	//}
+
+	/*if (cycle0.bWrite) {
+		cycle0.bWrite = false;
+		if (r[cycle0.addr] == cycle0.old)
+			r[cycle0.addr] = cycle0.data;
+	}
+	if (cycle1.bWrite) {
+		cycle1.bWrite = false;
+		if (r[cycle1.addr] == cycle1.old)
+			r[cycle1.addr] = cycle1.data;
+	}
+
+	uint32_t value = temp;
+	if (cycle == 0) {
+
+		if (cycle0.bWrite == true)
+			g_emulationPaused = true;
+
+		cycle0.bWrite = true;
+		cycle0.old = r[rt];
+		cycle0.addr = rt;
+		cycle0.data = value;
+	}
+	else if (cycle == 1) {
+
+		if (cycle1.bWrite == true)
+			g_emulationPaused = true;
+
+		cycle1.bWrite = true;
+		cycle1.old = r[rt];
+		cycle1.addr = rt;
+		cycle1.data = value;
+	}*/
 }
 
 void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1038,18 +1170,22 @@ void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 		/*uint32_t value = temp;
 		if (cycle == 0) {
+
 			if (cycle0.bWrite == true)
 				g_emulationPaused = true;
-			cycle0.old = r[rt];
+
 			cycle0.bWrite = true;
+			cycle0.old = r[rt];
 			cycle0.addr = rt;
 			cycle0.data = value;
 		}
 		else if (cycle == 1) {
+
 			if (cycle1.bWrite == true)
 				g_emulationPaused = true;
-			cycle1.old = r[rt];
+
 			cycle1.bWrite = true;
+			cycle1.old = r[rt];
 			cycle1.addr = rt;
 			cycle1.data = value;
 		}*/
@@ -1212,6 +1348,7 @@ void cpu_t::printBiosCall() {
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
+				std::cout << ss.str();
 			}
 
 			break;
@@ -1294,6 +1431,7 @@ void cpu_t::printBiosCall() {
 				std::stringstream ss;
 				ss << (char)get(4);
 				p_debugger->log(ss.str());
+				std::cout << ss.str();
 			}
 
 			if (g_biosCallbacksLogged) {

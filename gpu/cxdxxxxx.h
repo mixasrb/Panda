@@ -5,7 +5,6 @@
 #include <sstream>
 #include <vector>
 #include <list>
-#include <thread>
 #include <algorithm>
 
 #include "../gpu/utils.h"
@@ -18,6 +17,53 @@
 #define size_y 512
 
 class busInterface_t;
+
+template <typename T>
+struct fifo_t { //have some bugs and unintuities
+	fifo_t() {
+		ptr = nullptr;
+		currentPossitionWrite = 0;
+		currentPossitionRead = 0;
+	};
+
+	T* ptr;
+	uint32_t currentPossitionWrite;
+	uint32_t currentPossitionRead;
+
+	void resize(uint32_t newSize) {
+		ptr = new T[newSize];
+	}
+
+	void reset() {
+		currentPossitionWrite = 0;
+		currentPossitionRead = 0;
+	}
+
+	void pushBack(T data) {
+		ptr[currentPossitionWrite] = data;
+		currentPossitionWrite++;
+	}
+
+	void popBack() {
+		currentPossitionWrite--;
+	}
+
+	uint32_t size() {
+		return currentPossitionWrite;
+	}
+
+	bool empty() {
+		return (currentPossitionRead >= currentPossitionWrite) ? true : false;
+	}
+
+	T getNext() {
+		return ptr[currentPossitionRead++];
+	}
+
+	T operator[](uint32_t i) {
+		return ptr[i];
+	}
+};
 
 class gpu_t {
 public:
@@ -38,9 +84,10 @@ public:
 	const uint32_t SCANLINE_NUMBER_PAL = 314;
 	const uint32_t CPU_CLOCKS_PER_SCANLINE_NTSC = CPU_CLOCKS_PER_FRAME_NTSC / SCANLINE_NUMBER_NTSC;
 	const uint32_t CPU_CLOCKS_PER_SCANLINE_PAL = CPU_CLOCKS_PER_FRAME_PAL / SCANLINE_NUMBER_PAL;
+	const uint32_t CPU_CLOCKS_TO_HBLANK_NTSC = CPU_CLOCKS_PER_SCANLINE_NTSC * 3 / 4;
+	const uint32_t CPU_CLOCKS_TO_HBLANK_PAL = CPU_CLOCKS_PER_SCANLINE_PAL * 3 / 4;
 
-	const uint32_t cpuDotClocks[5] =
-	{
+	const uint32_t cpuDotClocks[5] = {
 		CPU_CLOCK / 10,
 		CPU_CLOCK / 8,
 		CPU_CLOCK / 5,
@@ -48,8 +95,7 @@ public:
 		CPU_CLOCK / 7
 	};
 
-	const uint32_t dotsPerScanline[5] =
-	{
+	const uint32_t dotsPerScanline[5] = {
 		341,
 		426,
 		682,
@@ -63,6 +109,7 @@ public:
 	uint32_t cpuClocks = 0;
 	uint32_t cpuFrameClocks = 0;
 	uint32_t cpuScanlineClocks = 0;
+	uint32_t cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	uint32_t cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	uint32_t scanlineNumber = SCANLINE_NUMBER_NTSC;
 	uint32_t scanlineCount = -1;
@@ -89,11 +136,11 @@ public:
 			uint32_t verticalInterlace : 1;
 			uint32_t displayEnable : 1;
 			uint32_t irq1 : 1;
-			uint32_t dataRequest : 1;
+			uint32_t dataRequestDMA : 1;
 			uint32_t readyCommand : 1;
 			uint32_t readyVramCpu : 1;
-			uint32_t readyDma : 1;
-			uint32_t dmaDir : 2;
+			uint32_t readyBlockDMA : 1;
+			uint32_t directionDMA : 2;
 			uint32_t drawingEvenOddLines : 1;
 		}elem;
 	}gpuStat;
@@ -131,8 +178,7 @@ public:
 		psxColor16_t() {
 			data = 0;
 		}
-		psxColor16_t(uint16_t input) : data(input) {
-		}
+		psxColor16_t(uint16_t input) : data(input) {}
 		uint16_t data;
 		struct {
 			uint16_t red : 5;
@@ -171,10 +217,8 @@ public:
 	};
 
 	union psxColor24_t {
-		psxColor24_t() : data(0) {
-		}
-		psxColor24_t(uint32_t input) : data(input << 8 >> 8) {
-		}
+		psxColor24_t() : data(0) {}
+		psxColor24_t(uint32_t input) : data(input << 8 >> 8) {}
 		uint32_t data;
 		struct {
 			uint32_t red : 8;
@@ -187,8 +231,7 @@ public:
 	uint32_t format16to24Color(const uint16_t& color_16);
 
 	struct vertex_t {
-		vertex_t() {
-		}
+		vertex_t() {}
 		vertex_t(uint32_t xt, uint32_t yt) {
 			*(&x) = uint16_t(xt);
 			*(&y) = uint16_t(yt);
@@ -216,54 +259,9 @@ public:
 		}
 	};
 
-	template <typename T>
-	struct fifo_t { //have some bugs and unintuities
-		fifo_t() {
-			ptr = nullptr;
-			currentPossitionWrite = 0;
-			currentPossitionRead = 0;
-		};
-
-		T* ptr;
-		uint32_t currentPossitionWrite;
-		uint32_t currentPossitionRead;
-
-		void resize(uint32_t newSize) {
-			ptr = new T[newSize];
-		}
-
-		void reset() {
-			currentPossitionWrite = 0;
-			currentPossitionRead = 0;
-		}
-
-		void pushBack(T data) {
-			ptr[currentPossitionWrite] = data;
-			currentPossitionWrite++;
-		}
-
-		void popBack() {
-			currentPossitionWrite--;
-		}
-
-		uint32_t size() {
-			return currentPossitionWrite;
-		}
-
-		bool empty() {
-			return (currentPossitionRead >= currentPossitionWrite) ? true : false;
-		}
-
-		T getNext() {
-			return ptr[currentPossitionRead++];
-		}
-
-		T operator[](uint32_t i) {
-			return ptr[i];
-		}
-	};
-
 	fifo_t<uint32_t> fifo;
+	fifo_t<uint32_t> fifoTemp;
+	//void loopGp0();
 	uint32_t fifoCount = 0;
 	//uint32_t fifoClocks = 0;
 	uint32_t fifoClocks[5] = { 0, 0, 0, 0, 0 };
@@ -279,14 +277,12 @@ public:
 	};
 
 	union texcoordType_t {
-		texcoordType_t() {
-		}
-		texcoordType_t(uint32_t data) : data(data) {
-		}
+		texcoordType_t() {}
+		texcoordType_t(uint32_t data) : data(data) {}
 		uint32_t data;
 		struct {
-			uint32_t x : 8;
-			uint32_t y : 8;
+			uint32_t u : 8;
+			uint32_t v : 8;
 			uint32_t attribute : 16;
 		}elem;
 	};
@@ -307,8 +303,7 @@ public:
 	};
 
 	struct param_t {
-		param_t() {
-		}
+		param_t() {}
 		primitiveType_t primitiveType;
 		shadingType_t shadingType;
 		uint32_t rectSize;
@@ -336,7 +331,7 @@ public:
 
 	param_t param;
 
-	union clut_t {
+	/*union clut_t {
 		clut_t(uint16_t data) : data(data) {
 		}
 		uint16_t data;
@@ -345,7 +340,7 @@ public:
 			uint16_t yCoord : 9;
 			uint16_t : 1;
 		}elem;
-	};
+	};*/
 
 
 	struct gp0Commands_t {
@@ -368,9 +363,9 @@ public:
 		PSX_ANTI_CLOCKWISE
 	};
 
-	void drawPolygon(param_t* p_param);
+	void drawPolygon(const param_t& param);
 
-	void drawTexPolygon(param_t* p_param);
+	void drawTexPolygon(const param_t& p_param);
 
 	void drawLine(const param_t& param);
 	bool bCollectPolylineParam = false;
@@ -385,10 +380,24 @@ public:
 	void copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height);
 	fifo_t<uint32_t> outputFifo;
 
+	void environmentCommand1(const param_t& param);
+	void environmentCommand2(const param_t& param);
+	void environmentCommand3(const param_t& param);
+	void environmentCommand4(const param_t& param);
+	void environmentCommand5(const param_t& param);
+	void environmentCommand6(const param_t& param);
+
 	bool bCollectCopyCpuVramParam = false;
 	uint32_t widthHeight;
 	uint32_t destCoord;
 	uint32_t sourceCoord;
+
+	int16_t ditheringLookup[4 * 4] = {
+		-4, +0, -3, +1,
+		+2, -2, +3, -1,
+		-3, +1, -4, +0,
+		+3, -1, +2, -2
+	};
 
 	void decodeExecuteGp1Command(const uint32_t& command);
 
@@ -402,14 +411,67 @@ public:
 
 	uint8_t* vram = new uint8_t[size_x_b * size_y];
 
-	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false);
+	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false, const bool bDithering = false);
 	void readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
 
 	olc::Sprite* getVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
+	olc::Sprite* pVramViewBuffered = new olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
 	bool bWasActiveDMA = false;
+
+	struct clutCache_t {
+		bool bIsValid = false;
+		union clut_t {
+			uint16_t data;
+			struct {
+				uint16_t x : 6;
+				uint16_t y : 9;
+				uint16_t : 1;
+			}elem;
+			struct {
+				uint16_t x : 6;
+				uint16_t y : 10;
+			}elem_v2;
+		}clut;
+		uint16_t cacheData[256] = {};
+
+		clutCache_t() : bIsValid(false), clut(0) {}
+
+		void rebuildCache(gpu_t* pGpu, const uint16_t& data) {
+			if (clut.data == data)
+				bIsValid = true;
+			else {
+				bIsValid = false;
+				clut.data = data;
+			}
+
+			if (!bIsValid) {
+				for (int i = 0; i < 256; i++) {
+					vertex_t entry((clut.elem.x << 4) + i, clut.elem.y);
+					pGpu->readVram(entry, cacheData[i], true);
+				}
+				bIsValid = true;
+			}
+		}
+
+		void invalidate() {
+			bIsValid = false;
+		}
+
+		uint16_t getColor(int i) {
+			return cacheData[i];
+		}
+	}clutCache;
+
+	/*struct gp0CommandFunc_t {
+		void (gpu_t::* gp0CommandFunc)(const param_t& param);
+		param_t param;
+	};
+
+	fifo_t<gp0CommandFunc_t> gp0CommandFuncs;
+	void executeGp0CommandFuncs();*/
 
 	//debug
 	debugUtilities* p_debugger;

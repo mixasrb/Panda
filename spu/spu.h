@@ -47,6 +47,9 @@ public:
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
 	int16_t reverb[32];
 
+	uint32_t readDram32(const uint32_t& addr);
+	void writeDram32(const uint32_t& addr, const uint32_t& data);
+
 	uint16_t readDram16(const uint32_t& addr);
 	void writeDram16(const uint32_t& addr, const uint16_t& data);
 
@@ -316,7 +319,8 @@ public:
 	};
 
 	uint32_t reverbCurrentBufferAddress;
-	void reverbClock(const output_t& input, const uint8_t& cycle);
+	bool bReverbCycle = false;
+	void reverbClock(const output_t& input);
 	output_t reverbOutput = { 0, 0 };
 
 	voices_t voices;
@@ -415,23 +419,19 @@ public:
 	std::vector<int16_t> gauss;
 	std::vector<int16_t> table;
 
-	uint8_t cycle = 0;
-	int i = 0;
-	float outTemp = 0;
 	uint32_t irqAddress = 0;
 	void irqSend();
-
 
 	output_t clockXA_ADPCM();
 
 	output_t outputSamplesBufferXA[7];
-	output_t OldoutputSampleXA;
+	output_t OldOutputSampleXA;
 
 	uint8_t asectXA;
 	uint8_t assXA;
 	uint8_t ammXA;
 
-	uint8_t* pBufferXA = new uint8_t[XA_ADPCM_SECTOR_SIZE];
+	uint8_t* pBufferXA_ADPCM = new uint8_t[XA_ADPCM_SECTOR_SIZE];
 
 	int16_t samplesMonoXA[56 * 0x12 * 8];
 	int16_t samplesLeftXA[28 * 0x12 * 8];
@@ -444,9 +444,7 @@ public:
 	int16_t oldMono = 0;
 	int16_t olderMono = 0;
 
-	uint32_t p = 0;
-	uint8_t b = 0;
-	uint8_t k = 0;
+	uint32_t currentSample = 0;
 	uint32_t counterMono = 0;
 	uint32_t counterLeft = 0;
 	uint32_t counterRight = 0;
@@ -489,10 +487,11 @@ public:
 	bool b8BitsPerSample = false;
 	bool bCycle = false;
 
-	const float step44kHz = 1.0f / 7.0f;
-	const float step37kHz = 1.0f / 6.0f;
+	const float step44kHz = 1.0f / 44100.0f;
+	const float step37kHz = 1.0f / 37800.0f;
 	float counter37kHz = 0.0f;
-	output_t outputAudioCD;
+	output_t outputCDXA;
+	output_t outputCD_DriveAudio;
 
 	uint16_t cdAudioBufferCounter = 0;
 	uint16_t voice1MonoBufferCounter = 0;

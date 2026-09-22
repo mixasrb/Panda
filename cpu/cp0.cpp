@@ -106,12 +106,12 @@ void cp0_t::exceptionHandler(const excode_t& code, const uint32_t addrRef) {
 
 	if ((code == _ADEL) || (code == _ADES)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-		g_emulationPaused = true;
+		//g_emulationPaused = true;
 		return;
 	}
 	else if ((code == _BP) || (code == _OV)) {
 		std::cout << "[CP0] EMULATION PAUSED! triggered exception code: 0x" << std::hex << (uint16_t)code << std::endl;
-		g_emulationPaused = true;
+		//g_emulationPaused = true;
 		return;
 	}
 

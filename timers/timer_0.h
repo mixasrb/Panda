@@ -11,4 +11,6 @@ public:
 	void WriteTimer32(const uint32_t& addr, const uint32_t& data) override;
 	void clock(const uint8_t& source) override;
 	uint16_t pulsingTime = 0;
+	bool bHblank = false;
+	bool bSynchronizationEnable = false;
 };

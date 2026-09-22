@@ -12,7 +12,7 @@
 	sound generation and wave playing routines.
 
 	Special Thanks:
-	~~~~~~~~~~~~~~~	
+	~~~~~~~~~~~~~~~
 	Slavka - For entire non-windows system back end!
 	Gorbit99 - Testing, Bug Fixes
 	Cyberdroid - Testing, Bug Fixes
@@ -76,6 +76,9 @@
 #include <climits>
 #include <condition_variable>
 #include <algorithm>
+
+#include "olcPixelGameEngine.h"
+
 #undef min
 #undef max
 
@@ -129,12 +132,12 @@ namespace olc
 		{
 		public:
 			AudioSample();
-			AudioSample(std::string sWavFile, olc::ResourcePack *pack = nullptr);
-			olc::rcode LoadFromFile(std::string sWavFile, olc::ResourcePack *pack = nullptr);
+			AudioSample(std::string sWavFile, olc::ResourcePack* pack = nullptr);
+			olc::rcode LoadFromFile(std::string sWavFile, olc::ResourcePack* pack = nullptr);
 
 		public:
 			OLC_WAVEFORMATEX wavHeader;
-			float *fSample = nullptr;
+			float* fSample = nullptr;
 			long nSamples = 0;
 			int nChannels = 0;
 			bool bSampleValid = false;
@@ -158,7 +161,7 @@ namespace olc
 		static void SetUserFilterFunction(std::function<float(int, float, float)> func);
 
 	public:
-		static int LoadAudioSample(std::string sWavFile, olc::ResourcePack *pack = nullptr);
+		static int LoadAudioSample(std::string sWavFile, olc::ResourcePack* pack = nullptr);
 		static void PlaySample(int id, bool bLoop = false);
 		static void StopSample(int id);
 		static void StopAll();
@@ -174,7 +177,7 @@ namespace olc
 		static unsigned int m_nBlockSamples;
 		static unsigned int m_nBlockCurrent;
 		static short* m_pBlockMemory;
-		static WAVEHDR *m_pWaveHeaders;
+		static WAVEHDR* m_pWaveHeaders;
 		static HWAVEOUT m_hwDevice;
 		static std::atomic<unsigned int> m_nBlockFree;
 		static std::condition_variable m_cvBlockNotZero;
@@ -182,7 +185,7 @@ namespace olc
 #endif
 
 #ifdef USE_ALSA
-		static snd_pcm_t *m_pPCM;
+		static snd_pcm_t* m_pPCM;
 		static unsigned int m_nSampleRate;
 		static unsigned int m_nChannels;
 		static unsigned int m_nBlockSamples;
@@ -191,10 +194,10 @@ namespace olc
 
 #ifdef USE_OPENAL
 		static std::queue<ALuint> m_qAvailableBuffers;
-		static ALuint *m_pBuffers;
+		static ALuint* m_pBuffers;
 		static ALuint m_nSource;
-		static ALCdevice *m_pDevice;
-		static ALCcontext *m_pContext;
+		static ALCdevice* m_pDevice;
+		static ALCcontext* m_pContext;
 		static unsigned int m_nSampleRate;
 		static unsigned int m_nChannels;
 		static unsigned int m_nBlockCount;
@@ -220,82 +223,82 @@ namespace olc
 namespace olc
 {
 	SOUND::AudioSample::AudioSample()
-	{	}
+	{}
 
-	SOUND::AudioSample::AudioSample(std::string sWavFile, olc::ResourcePack *pack)
+	SOUND::AudioSample::AudioSample(std::string sWavFile, olc::ResourcePack* pack)
 	{
 		LoadFromFile(sWavFile, pack);
 	}
 
-	olc::rcode SOUND::AudioSample::LoadFromFile(std::string sWavFile, olc::ResourcePack *pack)
+	olc::rcode SOUND::AudioSample::LoadFromFile(std::string sWavFile, olc::ResourcePack* pack)
 	{
-		auto ReadWave = [&](std::istream &is)
-		{
-			char dump[4];
-			is.read(dump, sizeof(char) * 4); // Read "RIFF"
-			if (strncmp(dump, "RIFF", 4) != 0) return olc::FAIL;
-			is.read(dump, sizeof(char) * 4); // Not Interested
-			is.read(dump, sizeof(char) * 4); // Read "WAVE"
-			if (strncmp(dump, "WAVE", 4) != 0) return olc::FAIL;
-
-			// Read Wave description chunk
-			is.read(dump, sizeof(char) * 4); // Read "fmt "
-			unsigned int nHeaderSize = 0;
-			is.read((char*)&nHeaderSize, sizeof(unsigned int)); // Not Interested
-			is.read((char*)&wavHeader, nHeaderSize);// sizeof(WAVEFORMATEX)); // Read Wave Format Structure chunk
-														// Note the -2, because the structure has 2 bytes to indicate its own size
-														// which are not in the wav file
-
-			// Just check if wave format is compatible with olcPGE
-			if (wavHeader.wBitsPerSample != 16 || wavHeader.nSamplesPerSec != 44100)
-				return olc::FAIL;
-
-			// Search for audio data chunk
-			uint32_t nChunksize = 0;
-			is.read(dump, sizeof(char) * 4); // Read chunk header
-			is.read((char*)&nChunksize, sizeof(uint32_t)); // Read chunk size
-			while (strncmp(dump, "data", 4) != 0)
+		auto ReadWave = [&](std::istream& is)
 			{
-				// Not audio data, so just skip it
-				//std::fseek(f, nChunksize, SEEK_CUR);
-				is.seekg(nChunksize, std::istream::cur);
-				is.read(dump, sizeof(char) * 4);
-				is.read((char*)&nChunksize, sizeof(uint32_t));
-			}
+				char dump[4];
+				is.read(dump, sizeof(char) * 4); // Read "RIFF"
+				if (strncmp(dump, "RIFF", 4) != 0) return olc::FAIL;
+				is.read(dump, sizeof(char) * 4); // Not Interested
+				is.read(dump, sizeof(char) * 4); // Read "WAVE"
+				if (strncmp(dump, "WAVE", 4) != 0) return olc::FAIL;
 
-			// Finally got to data, so read it all in and convert to float samples
-			nSamples = nChunksize / (wavHeader.nChannels * (wavHeader.wBitsPerSample >> 3));
-			nChannels = wavHeader.nChannels;
+				// Read Wave description chunk
+				is.read(dump, sizeof(char) * 4); // Read "fmt "
+				unsigned int nHeaderSize = 0;
+				is.read((char*)&nHeaderSize, sizeof(unsigned int)); // Not Interested
+				is.read((char*)&wavHeader, nHeaderSize);// sizeof(WAVEFORMATEX)); // Read Wave Format Structure chunk
+				// Note the -2, because the structure has 2 bytes to indicate its own size
+				// which are not in the wav file
 
-			// Create floating point buffer to hold audio sample
-			fSample = new float[nSamples * nChannels];
-			float *pSample = fSample;
+// Just check if wave format is compatible with olcPGE
+				if (wavHeader.wBitsPerSample != 16 || wavHeader.nSamplesPerSec != 44100)
+					return olc::FAIL;
 
-			// Read in audio data and normalise
-			for (long i = 0; i < nSamples; i++)
-			{
-				for (int c = 0; c < nChannels; c++)
+				// Search for audio data chunk
+				uint32_t nChunksize = 0;
+				is.read(dump, sizeof(char) * 4); // Read chunk header
+				is.read((char*)&nChunksize, sizeof(uint32_t)); // Read chunk size
+				while (strncmp(dump, "data", 4) != 0)
 				{
-					short s = 0;
-					if (!is.eof())
-					{
-						is.read((char*)&s, sizeof(short));
+					// Not audio data, so just skip it
+					//std::fseek(f, nChunksize, SEEK_CUR);
+					is.seekg(nChunksize, std::istream::cur);
+					is.read(dump, sizeof(char) * 4);
+					is.read((char*)&nChunksize, sizeof(uint32_t));
+				}
 
-						*pSample = (float)s / (float)(SHRT_MAX);
-						pSample++;
+				// Finally got to data, so read it all in and convert to float samples
+				nSamples = nChunksize / (wavHeader.nChannels * (wavHeader.wBitsPerSample >> 3));
+				nChannels = wavHeader.nChannels;
+
+				// Create floating point buffer to hold audio sample
+				fSample = new float[nSamples * nChannels];
+				float* pSample = fSample;
+
+				// Read in audio data and normalise
+				for (long i = 0; i < nSamples; i++)
+				{
+					for (int c = 0; c < nChannels; c++)
+					{
+						short s = 0;
+						if (!is.eof())
+						{
+							is.read((char*)&s, sizeof(short));
+
+							*pSample = (float)s / (float)(SHRT_MAX);
+							pSample++;
+						}
 					}
 				}
-			}
 
-			// All done, flag sound as valid
-			bSampleValid = true;
-			return olc::OK;
-		};
+				// All done, flag sound as valid
+				bSampleValid = true;
+				return olc::OK;
+			};
 
 		if (pack != nullptr)
-		{			
+		{
 			olc::ResourceBuffer rb = pack->GetFileBuffer(sWavFile);
-			std::istream is(&rb);			
+			std::istream is(&rb);
 			return ReadWave(is);
 		}
 		else
@@ -330,7 +333,7 @@ namespace olc
 
 	// Load a 16-bit WAVE file @ 44100Hz ONLY into memory. A sample ID
 	// number is returned if successful, otherwise -1
-	int SOUND::LoadAudioSample(std::string sWavFile, olc::ResourcePack *pack)
+	int SOUND::LoadAudioSample(std::string sWavFile, olc::ResourcePack* pack)
 	{
 
 		olc::SOUND::AudioSample a(sWavFile, pack);
@@ -358,14 +361,14 @@ namespace olc
 	void SOUND::StopSample(int id)
 	{
 		// Find first occurence of sample id
-		auto s = std::find_if(listActiveSamples.begin(), listActiveSamples.end(), [&](const olc::SOUND::sCurrentlyPlayingSample &s) { return s.nAudioSampleID == id; });
+		auto s = std::find_if(listActiveSamples.begin(), listActiveSamples.end(), [&](const olc::SOUND::sCurrentlyPlayingSample& s) { return s.nAudioSampleID == id; });
 		if (s != listActiveSamples.end())
 			s->bFlagForStop = true;
 	}
 
 	void SOUND::StopAll()
 	{
-		for (auto &s : listActiveSamples)
+		for (auto& s : listActiveSamples)
 		{
 			s.bFlagForStop = true;
 		}
@@ -376,7 +379,7 @@ namespace olc
 		// Accumulate sample for this channel
 		float fMixerSample = 0.0f;
 
-		for (auto &s : listActiveSamples)
+		for (auto& s : listActiveSamples)
 		{
 			if (m_bAudioThreadActive)
 			{
@@ -409,7 +412,7 @@ namespace olc
 		}
 
 		// If sounds have completed then remove them
-		listActiveSamples.remove_if([](const sCurrentlyPlayingSample &s) {return s.bFinished; });
+		listActiveSamples.remove_if([](const sCurrentlyPlayingSample& s) {return s.bFinished; });
 
 		// The users application might be generating sound, so grab that if it exists
 		if (funcUserSynth != nullptr)
@@ -496,7 +499,7 @@ namespace olc
 	bool SOUND::DestroyAudio()
 	{
 		m_bAudioThreadActive = false;
-		if(m_AudioThread.joinable())
+		if (m_AudioThread.joinable())
 			m_AudioThread.join();
 		return false;
 	}
@@ -548,12 +551,12 @@ namespace olc
 			int nCurrentBlock = m_nBlockCurrent * m_nBlockSamples;
 
 			auto clip = [](float fSample, float fMax)
-			{
-				if (fSample >= 0.0)
-					return fmin(fSample, fMax);
-				else
-					return fmax(fSample, -fMax);
-			};
+				{
+					if (fSample >= 0.0)
+						return fmin(fSample, fMax);
+					else
+						return fmax(fSample, -fMax);
+				};
 
 			tp2 = std::chrono::system_clock::now();
 			std::chrono::duration<float> elapsedTime = tp2 - tp1;
@@ -570,7 +573,7 @@ namespace olc
 					nNewSample = (short)(clip(GetMixerOutput(c, m_fGlobalTime + fTimeStep * (float)n, fTimeStep), 1.0) * fMaxSample);
 					m_pBlockMemory[nCurrentBlock + n + c] = nNewSample;
 					nPreviousSample = nNewSample;
-				}				
+				}
 			}
 
 			m_fGlobalTime = m_fGlobalTime + fTimeStep * (float)m_nBlockSamples;
@@ -589,7 +592,7 @@ namespace olc
 	unsigned int SOUND::m_nBlockSamples = 0;
 	unsigned int SOUND::m_nBlockCurrent = 0;
 	short* SOUND::m_pBlockMemory = nullptr;
-	WAVEHDR *SOUND::m_pWaveHeaders = nullptr;
+	WAVEHDR* SOUND::m_pWaveHeaders = nullptr;
 	HWAVEOUT SOUND::m_hwDevice;
 	std::atomic<unsigned int> SOUND::m_nBlockFree = 0;
 	std::condition_variable SOUND::m_cvBlockNotZero;
@@ -616,7 +619,7 @@ namespace olc
 
 
 		// Prepare the parameter structure and set default parameters
-		snd_pcm_hw_params_t *params;
+		snd_pcm_hw_params_t* params;
 		snd_pcm_hw_params_alloca(&params);
 		snd_pcm_hw_params_any(m_pPCM, params);
 
@@ -657,7 +660,7 @@ namespace olc
 	bool SOUND::DestroyAudio()
 	{
 		m_bAudioThreadActive = false;
-		if(m_AudioThread.joinable())
+		if (m_AudioThread.joinable())
 			m_AudioThread.join();
 		snd_pcm_drain(m_pPCM);
 		snd_pcm_close(m_pPCM);
@@ -684,12 +687,12 @@ namespace olc
 			short nNewSample = 0;
 
 			auto clip = [](float fSample, float fMax)
-			{
-				if (fSample >= 0.0)
-					return fmin(fSample, fMax);
-				else
-					return fmax(fSample, -fMax);
-			};
+				{
+					if (fSample >= 0.0)
+						return fmin(fSample, fMax);
+					else
+						return fmax(fSample, -fMax);
+				};
 
 			for (unsigned int n = 0; n < m_nBlockSamples; n += m_nChannels)
 			{
@@ -699,14 +702,14 @@ namespace olc
 					nNewSample = (short)(GetMixerOutput(c, m_fGlobalTime + fTimeStep * (float)n, fTimeStep), 1.0) * fMaxSample;
 					m_pBlockMemory[n + c] = nNewSample;
 					nPreviousSample = nNewSample;
-				}		
+				}
 			}
 
 			m_fGlobalTime = m_fGlobalTime + fTimeStep * (float)m_nBlockSamples;
 
 			// Send block to sound device
 			snd_pcm_uframes_t nLeft = m_nBlockSamples;
-			short *pBlockPos = m_pBlockMemory;
+			short* pBlockPos = m_pBlockMemory;
 			while (nLeft > 0)
 			{
 				int rc = snd_pcm_writei(m_pPCM, pBlockPos, nLeft);
@@ -779,7 +782,7 @@ namespace olc
 	bool SOUND::DestroyAudio()
 	{
 		m_bAudioThreadActive = false;
-		if(m_AudioThread.joinable())
+		if (m_AudioThread.joinable())
 			m_AudioThread.join();
 
 		alDeleteBuffers(m_nBlockCount, m_pBuffers);
@@ -826,12 +829,12 @@ namespace olc
 			short nNewSample = 0;
 
 			auto clip = [](float fSample, float fMax)
-			{
-				if (fSample >= 0.0)
-					return fmin(fSample, fMax);
-				else
-					return fmax(fSample, -fMax);
-			};
+				{
+					if (fSample >= 0.0)
+						return fmin(fSample, fMax);
+					else
+						return fmax(fSample, -fMax);
+				};
 
 			for (unsigned int n = 0; n < m_nBlockSamples; n += m_nChannels)
 			{
@@ -866,10 +869,10 @@ namespace olc
 	}
 
 	std::queue<ALuint> SOUND::m_qAvailableBuffers;
-	ALuint *SOUND::m_pBuffers = nullptr;
+	ALuint* SOUND::m_pBuffers = nullptr;
 	ALuint SOUND::m_nSource = 0;
-	ALCdevice *SOUND::m_pDevice = nullptr;
-	ALCcontext *SOUND::m_pContext = nullptr;
+	ALCdevice* SOUND::m_pDevice = nullptr;
+	ALCcontext* SOUND::m_pContext = nullptr;
 	unsigned int SOUND::m_nSampleRate = 0;
 	unsigned int SOUND::m_nChannels = 0;
 	unsigned int SOUND::m_nBlockCount = 0;
@@ -898,7 +901,7 @@ namespace olc
 	// card is ready for more data. The block is fille by the "user" in some manner
 	// and then issued to the soundcard.
 	void SOUND::AudioThread()
-	{	}
+	{}
 }
 
 #endif

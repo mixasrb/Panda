@@ -47,8 +47,8 @@ public:
 			uint8_t prmwrdy : 1;
 			uint8_t rslrrdy : 1;
 			uint8_t drqsts : 1;
-			uint8_t busysts : 1; //not emulated
-		}reg;
+			uint8_t busysts : 1;
+		}elem;
 	};
 
 	indexStatus_t indexStatus = { 0 };
@@ -60,11 +60,11 @@ public:
 	union requestRegister_t {
 		uint8_t data;
 		struct {
-			uint8_t enableBits : 5;
+			uint8_t notUsed : 5;
 			uint8_t smen : 1;
 			uint8_t bfwr : 1;
 			uint8_t bfrd : 1;
-		}reg;
+		}elem;
 	};
 	requestRegister_t requestReg = { 0 };
 
@@ -80,7 +80,7 @@ public:
 		struct {
 			uint8_t enableBits : 5;
 			uint8_t : 3;
-		}reg;
+		}elem;
 	};
 
 	interruptEnable_t interruptEnable = { 0 };
@@ -92,7 +92,7 @@ public:
 			uint8_t int_8 : 1;
 			uint8_t int_10 : 1;
 			uint8_t : 3;
-		}reg;
+		}elem;
 	};
 	irqFlagRead_t irqFlagRead = { 0 };
 
@@ -195,9 +195,7 @@ public:
 	uint8_t amm;
 	uint8_t ass;
 	uint8_t asect;
-	uint8_t ammOld;
-	uint8_t assOld;
-	uint8_t asectOld;
+	uint8_t track;
 
 	uint8_t stored_amm;
 	uint8_t stored_ass;
@@ -206,9 +204,10 @@ public:
 	uint8_t unprocessed_amm;
 	uint8_t unprocessed_ass;
 	uint8_t unprocessed_asect;
-	uint8_t track;
 
 	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
+	void cancelReading();
+
 	uint16_t sectorSize;
 
 	union mode_t {
@@ -217,7 +216,7 @@ public:
 			uint8_t cdda : 1;
 			uint8_t autoPause : 1;
 			uint8_t report : 1;
-			uint8_t xa_Filter : 1;
+			uint8_t xa_filter : 1;
 			uint8_t ignoreBit : 1;
 			uint8_t sectorSize : 1;
 			uint8_t xa_adpcm : 1;
@@ -225,7 +224,7 @@ public:
 		}elem;
 	}mode;
 
-	void setDriveMode();
+	void printDriveMode();
 
 	uint8_t filterFile;
 	uint8_t filterChannel;
@@ -234,7 +233,9 @@ public:
 	bool bPlay = false;
 	bool bSendINT1 = true;
 	char storedSectorHeader[8];
-	bool bSetLoc = false;
+	bool bSetLocIssued = false;
+	bool bSetLocUnprocessed = false;
+	bool bMuted = true;
 
 	struct cdSector_t {
 		uint16_t amm;
@@ -244,16 +245,25 @@ public:
 
 	struct cdTrack_t {
 		uint8_t track;
-		cdSector_t index0Start;
-		cdSector_t index0End;
-		cdSector_t index1Start;
-		cdSector_t index1End;
+		cdSector_t trackStart;
+		cdSector_t trackEnd;
 	};
 
 	size_t fileSize;
 	std::vector<cdTrack_t> cdTracks;
 
-	void addSector(cdSector_t& sector, uint16_t mm, uint16_t ss, uint16_t sect) {
+	void addSector(cdSector_t& sector, int8_t mm, int8_t ss, int8_t sect) {
+		if (sect < 0)
+			if (ss == 0) {
+				mm--;
+				ss = 59;
+				sect = 74;
+			}
+			else {
+				ss--;
+				sect = 74;
+			}
+
 		sector.asect += sect;
 		sector.ass += (sector.asect / 75) + ss;
 		sector.asect %= 75;
@@ -264,8 +274,6 @@ public:
 	void readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
 
 	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
-
-	uint8_t trackCDDA = 1;
 
 	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
@@ -279,7 +287,7 @@ public:
 	uint16_t volumeRightRight = 0;
 	uint16_t volumeRightLeft = 0;
 
-	uint8_t* pNullSrc = (uint8_t*)calloc(0x920, sizeof(uint8_t));
+	uint8_t* pNullSrc = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
 	debugUtilities* p_debugger;

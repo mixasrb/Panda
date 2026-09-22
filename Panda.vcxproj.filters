@@ -27,7 +27,7 @@
     <ClCompile Include="gpu\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gpu\cxd8xxxx.cpp">
+    <ClCompile Include="gpu\cxdxxxxx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="debug_utilities\debug_utilities.cpp">
@@ -98,7 +98,7 @@
     <ClInclude Include="gpu\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gpu\cxd85xxx.h">
+    <ClInclude Include="gpu\cxdxxxxx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dependencies\olcPixelGameEngine.h">

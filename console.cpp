@@ -2,6 +2,7 @@
 #include "defines/defines.h"
 
 extern bool g_emulationPaused;
+extern uint32_t g_systemClocks;
 
 psxConsole_t::psxConsole_t() {
 	connectComponents();
@@ -13,7 +14,7 @@ void psxConsole_t::connectComponents() {
 	bus.dma.connectBus(&bus);
 
 	cpuSOC.pBus = &bus;
-	bus.pCpu= &cpuSOC;
+	bus.pCpu = &cpuSOC;
 	bus.pMdec = &mdec;
 	mdec.pBus = &bus;
 

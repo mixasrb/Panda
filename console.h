@@ -3,7 +3,7 @@
 #include "bus/bus_interface.h"
 #include "cpu/cw33300.h"
 #include "mdec/mdec.h"
-#include "gpu/cxd85xxx.h"
+#include "gpu/cxdxxxxx.h"
 #include "cd_drive/hc05_pux.h"
 #include "peripherals/joy_mem_card.h"
 #include "debug_utilities/debug_utilities.h"
