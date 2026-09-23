@@ -4,10 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <list>
-#include <algorithm>
 
-#include "../gpu/utils.h"
 #include "../defines/defines.h"
 #include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
@@ -16,11 +13,13 @@
 #define size_x 1024 //in half words
 #define size_y 512
 
-class busInterface_t;
+static uint16_t signed11bit(uint16_t val) {
+	return ((int16_t)(val << 5)) >> 5;
+}
 
 template <typename T>
-struct fifo_t { //have some bugs and unintuities
-	fifo_t() {
+struct Fifo { //have some bugs and quarks
+	Fifo() {
 		ptr = nullptr;
 		currentPossitionWrite = 0;
 		currentPossitionRead = 0;
@@ -65,10 +64,12 @@ struct fifo_t { //have some bugs and unintuities
 	}
 };
 
-class gpu_t {
+class busInterface_t;
+
+class gpu {
 public:
 
-	gpu_t();
+	gpu();
 
 	busInterface_t* pBus;
 
@@ -227,8 +228,23 @@ public:
 		}component;
 	};
 
-	uint16_t format24to16Color(const uint32_t& color_24);
-	uint32_t format16to24Color(const uint16_t& color_16);
+	uint16_t format24to16Color(const uint32_t& input) {
+		psxColor24_t color24 = (psxColor24_t)(input & 0x00ffffff);
+		psxColor16_t color16 = 0;
+		color16.component.red = color24.component.red >> 3;
+		color16.component.green = color24.component.green >> 3;
+		color16.component.blue = color24.component.blue >> 3;
+		return color16.data;
+	}
+
+	uint32_t format16to24Color(const uint16_t& input) {
+		psxColor24_t color24 = 0;
+		psxColor16_t color16 = (psxColor16_t)(input & 0x7fff);
+		color24.component.red = color16.component.red << 3;
+		color24.component.green = color16.component.green << 3;
+		color24.component.blue = color16.component.blue << 3;
+		return color24.data;
+	}
 
 	struct vertex_t {
 		vertex_t() {}
@@ -259,13 +275,9 @@ public:
 		}
 	};
 
-	fifo_t<uint32_t> fifo;
-	fifo_t<uint32_t> fifoTemp;
-	//void loopGp0();
-	uint32_t fifoCount = 0;
-	//uint32_t fifoClocks = 0;
-	uint32_t fifoClocks[5] = { 0, 0, 0, 0, 0 };
-	uint8_t fifoIndex = 0;
+	Fifo<uint32_t> fifo;
+	Fifo<uint32_t> fifoTemp;
+	Fifo<uint32_t> outputFifo;
 
 	enum primitiveType_t {
 		POLYGON,
@@ -331,18 +343,6 @@ public:
 
 	param_t param;
 
-	/*union clut_t {
-		clut_t(uint16_t data) : data(data) {
-		}
-		uint16_t data;
-		struct {
-			uint16_t xCoord : 6;
-			uint16_t yCoord : 9;
-			uint16_t : 1;
-		}elem;
-	};*/
-
-
 	struct gp0Commands_t {
 		std::string name;
 		uint8_t collectCount;
@@ -357,11 +357,6 @@ public:
 	void calculateTransparency(const vertex_t& p, psxColor16_t& frontPixelColor);
 
 	void fillRectVram(const param_t& param);
-
-	enum triangleOrientation_t {
-		PSX_CLOCKWISE,
-		PSX_ANTI_CLOCKWISE
-	};
 
 	void drawPolygon(const param_t& param);
 
@@ -378,14 +373,6 @@ public:
 	void copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
 	void copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_height);
 	void copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height);
-	fifo_t<uint32_t> outputFifo;
-
-	void environmentCommand1(const param_t& param);
-	void environmentCommand2(const param_t& param);
-	void environmentCommand3(const param_t& param);
-	void environmentCommand4(const param_t& param);
-	void environmentCommand5(const param_t& param);
-	void environmentCommand6(const param_t& param);
 
 	bool bCollectCopyCpuVramParam = false;
 	uint32_t widthHeight;
@@ -419,7 +406,7 @@ public:
 	olc::Sprite* pVramViewBuffered = new olc::Sprite(1024, 512);
 	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
 
-	bool bWasActiveDMA = false;
+	bool bWasDMAActive = false;
 
 	struct clutCache_t {
 		bool bIsValid = false;
@@ -439,7 +426,7 @@ public:
 
 		clutCache_t() : bIsValid(false), clut(0) {}
 
-		void rebuildCache(gpu_t* pGpu, const uint16_t& newClut) {
+		void rebuildCache(gpu* pGpu, const uint16_t& newClut) {
 
 			if (clut.data != newClut)
 				bIsValid = false;
@@ -462,14 +449,6 @@ public:
 			return cacheData[i];
 		}
 	}clutCache;
-
-	/*struct gp0CommandFunc_t {
-		void (gpu_t::* gp0CommandFunc)(const param_t& param);
-		param_t param;
-	};
-
-	fifo_t<gp0CommandFunc_t> gp0CommandFuncs;
-	void executeGp0CommandFuncs();*/
 
 	//debug
 	debugUtilities* p_debugger;

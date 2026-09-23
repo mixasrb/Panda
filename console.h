@@ -17,7 +17,7 @@ public:
 	busInterface_t bus;
 	cpu_t cpuSOC;
 	mdec_t mdec;
-	gpu_t gpu;
+	gpu gpu;
 	cdDrive cdDrive;
 	joyMemCard_t joyMemCard;
 

@@ -163,7 +163,7 @@
     <ClCompile Include="cpu\cw33300.cpp" />
     <ClCompile Include="debug_utilities\debug_utilities.cpp" />
     <ClCompile Include="gpu\cxdxxxxx.cpp" />
-    <ClCompile Include="gpu\utils.cpp" />
+    <ClCompile Include="gpu\drawing.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mdec\mdec.cpp" />
     <ClCompile Include="peripherals\joy_mem_card.cpp" />
@@ -193,7 +193,6 @@
     <ClInclude Include="dependencies\olcPGEX_Sound.h" />
     <ClInclude Include="dependencies\olcPixelGameEngine.h" />
     <ClInclude Include="gpu\cxdxxxxx.h" />
-    <ClInclude Include="gpu\utils.h" />
     <ClInclude Include="mdec\mdec.h" />
     <ClInclude Include="peripherals\joy_mem_card.h" />
     <ClInclude Include="settings.h" />

@@ -44,12 +44,6 @@ void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& c
 		g_emulationPaused = true;
 	}
 }
-template <typename T>
-static void swap(T& a, T& b) {
-	T t = b;
-	b = a;
-	a = t;
-}
 
 void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {

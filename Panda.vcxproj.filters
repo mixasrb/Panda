@@ -24,9 +24,6 @@
     <ClCompile Include="peripherals\joy_mem_card.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gpu\utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="gpu\cxdxxxxx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -87,15 +84,15 @@
     <ClCompile Include="bus\dma\dma_4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gpu\drawing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="console.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="peripherals\joy_mem_card.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gpu\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gpu\cxdxxxxx.h">

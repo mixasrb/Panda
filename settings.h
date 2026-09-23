@@ -4,6 +4,13 @@
 #define SCREEN 0
 #define ACCURATE_SPU_CLOCKING 0
 
+//gpu settings
+#undef ENABLE_DITHERING
+#define ENABLE_DITHERING 0
+
+#undef DISABLE_SCALING
+#define DISABLE_SCALING 0
+
 bool g_emulationPaused = false;
 bool g_executedCpuInstructionsLogged = false;
 bool g_biosCallbacksLogged = false;

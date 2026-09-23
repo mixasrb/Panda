@@ -43,7 +43,7 @@ public:
 	mdec_t* pMdec = nullptr;
 
 	//cxd85xxx
-	gpu_t* pGpu = nullptr;
+	gpu* pGpu = nullptr;
 
 	//hc05_pux
 	cdDrive* pCdDrive = nullptr;
