@@ -12,7 +12,7 @@
 #define DRAM_SIZE 512 * 1024 
 #define XA_ADPCM_SECTOR_SIZE 0x930
 
-class busInterface_t;
+class BusInterface;
 
 struct output_t {
 	float channel0;
@@ -42,7 +42,7 @@ public:
 
 	output_t clock();
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	uint8_t* dram = new uint8_t[DRAM_SIZE];
 	int16_t reverb[32];

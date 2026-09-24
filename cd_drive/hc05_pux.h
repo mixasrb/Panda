@@ -8,14 +8,14 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface_t;
+class BusInterface;
 
 class cdDrive {
 public:
 
 	cdDrive();
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	void readCdDrive8(const uint32_t& addr, uint8_t& data);
 	void writeCdDrive8(const uint32_t& addr, const uint8_t& data);

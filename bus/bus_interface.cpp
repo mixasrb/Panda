@@ -73,7 +73,7 @@ extern bool g_emulationPaused;
 #define CACHE_CONTROL (addr == 0xfffe0130)
 
 
-void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 4;
 
@@ -170,7 +170,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		clocks = 3;//??
 	}
 	else if (GPU) {
-		pGpu->readGpu32(addr, data);
+		pGpu->ReadGpu32(addr, data);
 		clocks = 4;
 	}
 	else if (MDEC) {
@@ -218,7 +218,7 @@ void busInterface_t::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cl
 		}
 }
 
-void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
+void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write32 0x"
@@ -342,7 +342,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 	else if (DMA)
 		dma.writeDMA32(addr, data, clocks);
 	else if (GPU)
-		pGpu->writeGpu32(addr, data);
+		pGpu->WriteGpu32(addr, data);
 	else if (MDEC)
 		pMdec->writeMdec32(addr, data);
 	else if (JOY_MEM_CARD)
@@ -371,7 +371,7 @@ void busInterface_t::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint
 	}
 }
 
-void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
 	data = 0;
 	clocks = 4;
 
@@ -471,7 +471,7 @@ void busInterface_t::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cl
 		}
 }
 
-void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write16 0x"
@@ -535,7 +535,7 @@ void busInterface_t::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint
 	}
 }
 
-void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
 	data = 0x00;
 	clocks = 3;
 
@@ -592,7 +592,7 @@ void busInterface_t::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cloc
 		}
 }
 
-void busInterface_t::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void BusInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write8 0x"
@@ -626,7 +626,7 @@ void busInterface_t::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_
 	}
 }
 
-busInterface_t::delayType busInterface_t::calculateDelays(const delayRegisterType& delayRegister) {
+BusInterface::delayType BusInterface::calculateDelays(const delayRegisterType& delayRegister) {
 	delayType delay;
 
 	uint8_t first = 0;

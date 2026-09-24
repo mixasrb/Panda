@@ -3,7 +3,7 @@
 #include "../timers/timer.h"
 #include "../defines/defines.h"
 
-class busInterface_t;
+class BusInterface;
 
 class timer2_t : public timer_t {
 public:

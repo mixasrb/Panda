@@ -312,7 +312,7 @@ public:
 		if (!isDebuggerViewed) {
 			// main DRAW
 #if !SCREEN
-			DrawSprite(0, 0, psx.gpu.getVramSprite());
+			DrawSprite(0, 0, psx.gpu.GetVramSprite());
 #endif
 			uint16_t x1 = psx.gpu.displayStart.x;
 			uint16_t y1 = psx.gpu.displayStart.y;

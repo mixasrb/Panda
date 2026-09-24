@@ -7,7 +7,7 @@
 #include "../../defines/defines.h"
 #include "../../debug_utilities/debug_utilities.h"
 
-class busInterface_t;
+class BusInterface;
 
 class dma_t {
 public:

@@ -9,14 +9,14 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface_t;
+class BusInterface;
 
 class joyMemCard_t {
 public:
 	joyMemCard_t();
 	~joyMemCard_t();
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	void cpuRead32(const uint32_t& addr, uint32_t& data);
 	void cpuWrite32(const uint32_t& addr, const uint32_t& data);

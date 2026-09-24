@@ -146,7 +146,7 @@ void dmaController_t::writeDMA8(const uint32_t& addr, const uint8_t& data, uint8
 	}
 }
 
-void dmaController_t::connectBus(busInterface_t* p) {
+void dmaController_t::connectBus(BusInterface* p) {
 	pbus = p;
 
 	dma0.pBus = pbus;

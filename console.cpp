@@ -20,7 +20,7 @@ void psxConsole_t::connectComponents() {
 
 	bus.pGpu = &gpu;
 
-	gpu.pBus = &bus;
+	gpu.Bus = &bus;
 
 	bus.pCdDrive = &cdDrive;
 	cdDrive.pBus = &bus;
@@ -61,7 +61,7 @@ void psxConsole_t::clock() {
 
 	mdec.clock();
 
-	gpu.videoClock();
+	gpu.VideoClock();
 
 	cdDrive.clock();
 

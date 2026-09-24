@@ -23,7 +23,7 @@
 #define RAM_SIZE  4 * 2 * 1024 * 1024 / 4
 #define SCRATCHPAD_SIZE  1024
 
-class busInterface_t {
+class BusInterface {
 public:
 
 	void cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug = false);
@@ -43,7 +43,7 @@ public:
 	mdec_t* pMdec = nullptr;
 
 	//cxd85xxx
-	gpu* pGpu = nullptr;
+	Gpu* pGpu = nullptr;
 
 	//hc05_pux
 	cdDrive* pCdDrive = nullptr;

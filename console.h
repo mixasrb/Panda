@@ -14,10 +14,10 @@ public:
 
 	psxConsole_t();
 
-	busInterface_t bus;
+	BusInterface bus;
 	cpu_t cpuSOC;
 	mdec_t mdec;
-	gpu gpu;
+	Gpu gpu;
 	cdDrive cdDrive;
 	joyMemCard_t joyMemCard;
 

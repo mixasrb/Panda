@@ -5,7 +5,7 @@
 #include "../debug_utilities/debug_utilities.h"
 
 class cpu_t;
-class busInterface_t;
+class BusInterface;
 
 class cp0_t {
 public:

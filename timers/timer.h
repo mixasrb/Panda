@@ -5,11 +5,11 @@
 
 #include "../defines/defines.h"
 
-class busInterface_t;
+class BusInterface;
 
 class timer_t {
 public:
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	virtual void ReadTimer32(const uint32_t& addr, uint32_t& data) = 0;
 	virtual void WriteTimer32(const uint32_t& addr, const uint32_t& data) = 0;

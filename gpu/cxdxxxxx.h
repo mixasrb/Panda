@@ -13,7 +13,7 @@
 #define size_x 1024 //in half words
 #define size_y 512
 
-static uint16_t signed11bit(uint16_t val) {
+inline uint16_t Signed11bit(uint16_t val) {
 	return ((int16_t)(val << 5)) >> 5;
 }
 
@@ -29,33 +29,33 @@ struct Fifo { //have some bugs and quarks
 	uint32_t currentPossitionWrite;
 	uint32_t currentPossitionRead;
 
-	void resize(uint32_t newSize) {
+	void Resize(uint32_t newSize) {
 		ptr = new T[newSize];
 	}
 
-	void reset() {
+	void Reset() {
 		currentPossitionWrite = 0;
 		currentPossitionRead = 0;
 	}
 
-	void pushBack(T data) {
+	void PushBack(T data) {
 		ptr[currentPossitionWrite] = data;
 		currentPossitionWrite++;
 	}
 
-	void popBack() {
+	void PopBack() {
 		currentPossitionWrite--;
 	}
 
-	uint32_t size() {
+	uint32_t GetSize() {
 		return currentPossitionWrite;
 	}
 
-	bool empty() {
+	bool Empty() {
 		return (currentPossitionRead >= currentPossitionWrite) ? true : false;
 	}
 
-	T getNext() {
+	T GetNext() {
 		return ptr[currentPossitionRead++];
 	}
 
@@ -64,19 +64,19 @@ struct Fifo { //have some bugs and quarks
 	}
 };
 
-class busInterface_t;
+class BusInterface;
 
-class gpu {
+class Gpu {
 public:
 
-	gpu();
+	Gpu();
 
-	busInterface_t* pBus;
+	BusInterface* Bus;
 
-	void readGpu32(const uint32_t& addr, uint32_t& data);
-	void writeGpu32(const uint32_t& addr, const uint32_t& data);
+	void ReadGpu32(const uint32_t& addr, uint32_t& data);
+	void WriteGpu32(const uint32_t& addr, const uint32_t& data);
 
-	void videoClock();
+	void VideoClock();
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 	const uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
@@ -115,7 +115,7 @@ public:
 	uint32_t scanlineNumber = SCANLINE_NUMBER_NTSC;
 	uint32_t scanlineCount = -1;
 
-	union gpuStat_t {
+	union GpuStat {
 		uint32_t data;
 		struct {
 			uint32_t texPageXBase : 4;
@@ -149,37 +149,28 @@ public:
 	typedef struct {
 		uint8_t x;
 		uint8_t y;
-	}texWinOffset_t, texWinMask_t;
+	}TexWinOffset, TexWinMask;
 
-	texWinMask_t texWinMask;
-	texWinOffset_t texWinOffset;
+	TexWinMask texWinMask;
+	TexWinOffset texWinOffset;
 
 	typedef struct {
 		uint16_t x;
 		uint16_t y;
-	}drawArea_t, Coord;
+	}DrawArea, Coord;
 
-	drawArea_t drawAreaTopLeft;
-	drawArea_t drawAreaBottomRight;
+	DrawArea drawAreaTopLeft;
+	DrawArea drawAreaBottomRight;
 	Coord displayStart;
-
-	typedef struct {
-		int16_t x;
-		int16_t y;
-	}drawOffset_t;
-
-	drawOffset_t drawOffset;
 
 	uint16_t screenX1;
 	uint16_t screenX2;
 	uint16_t screenY1;
 	uint16_t screenY2;
 
-	union psxColor16_t {
-		psxColor16_t() {
-			data = 0;
-		}
-		psxColor16_t(uint16_t input) : data(input) {}
+	union PsxColor16 {
+		PsxColor16() : data(0) {}
+		PsxColor16(uint16_t input) : data(input) {}
 		uint16_t data;
 		struct {
 			uint16_t red : 5;
@@ -187,29 +178,22 @@ public:
 			uint16_t blue : 5;
 			uint16_t semiTransparencyFlag : 1;
 		}component;
-		psxColor16_t operator* (float a) {
-			psxColor16_t v;
+		PsxColor16 operator* (float a) {
+			PsxColor16 v;
 			v.component.red = (uint16_t)(a * (float)component.red);
 			v.component.green = (uint16_t)(a * (float)component.green);
 			v.component.blue = (uint16_t)(a * (float)component.blue);
 			return v;
 		}
-		psxColor16_t operator/ (float a) {
-			psxColor16_t v;
+		PsxColor16 operator/ (float a) {
+			PsxColor16 v;
 			v.component.red = (uint16_t)(a / (float)component.red);
 			v.component.green = (uint16_t)(a / (float)component.green);
 			v.component.blue = (uint16_t)(a / (float)component.blue);
 			return v;
 		}
-		psxColor16_t operator+ (psxColor16_t v1) {
-			psxColor16_t v2;
-			v2.component.red = v1.component.red + component.red;
-			v2.component.green = v1.component.green + component.green;
-			v2.component.blue = v1.component.blue + component.blue;
-			return v2;
-		}
-		psxColor16_t operator* (psxColor16_t v1) {
-			psxColor16_t v2;
+		PsxColor16 operator+ (PsxColor16 v1) {
+			PsxColor16 v2;
 			v2.component.red = v1.component.red + component.red;
 			v2.component.green = v1.component.green + component.green;
 			v2.component.blue = v1.component.blue + component.blue;
@@ -217,9 +201,9 @@ public:
 		}
 	};
 
-	union psxColor24_t {
-		psxColor24_t() : data(0) {}
-		psxColor24_t(uint32_t input) : data(input << 8 >> 8) {}
+	union PsxColor24 {
+		PsxColor24() : data(0) {}
+		PsxColor24(uint32_t input) : data(input << 8 >> 8) {}
 		uint32_t data;
 		struct {
 			uint32_t red : 8;
@@ -229,8 +213,8 @@ public:
 	};
 
 	uint16_t format24to16Color(const uint32_t& input) {
-		psxColor24_t color24 = (psxColor24_t)(input & 0x00ffffff);
-		psxColor16_t color16 = 0;
+		PsxColor24 color24 = (PsxColor24)(input & 0x00ffffff);
+		PsxColor16 color16 = 0;
 		color16.component.red = color24.component.red >> 3;
 		color16.component.green = color24.component.green >> 3;
 		color16.component.blue = color24.component.blue >> 3;
@@ -238,48 +222,49 @@ public:
 	}
 
 	uint32_t format16to24Color(const uint16_t& input) {
-		psxColor24_t color24 = 0;
-		psxColor16_t color16 = (psxColor16_t)(input & 0x7fff);
+		PsxColor24 color24 = 0;
+		PsxColor16 color16 = (PsxColor16)(input & 0x7fff);
 		color24.component.red = color16.component.red << 3;
 		color24.component.green = color16.component.green << 3;
 		color24.component.blue = color16.component.blue << 3;
 		return color24.data;
 	}
 
-	struct vertex_t {
-		vertex_t() {}
-		vertex_t(uint32_t xt, uint32_t yt) {
-			*(&x) = uint16_t(xt);
-			*(&y) = uint16_t(yt);
+	struct Vector2D {
+		Vector2D() : x(0), y(0) {}
+		Vector2D(uint32_t xTemp, uint32_t yTemp) {
+			*(&x) = uint16_t(xTemp);
+			*(&y) = uint16_t(yTemp);
 		}
-		vertex_t(uint32_t coord) {
-			*(&x) = signed11bit(uint16_t(coord & 0x7ff));
-			*(&y) = signed11bit(uint16_t((coord >> 16) & 0x7ff));
-		}
-
-		uint16_t signed11bit(uint16_t val) {
-			return ((int16_t)(val << 5)) >> 5;
+		Vector2D(uint32_t coord) {
+			*(&x) = Signed11bit(coord & 0x7ff);
+			*(&y) = Signed11bit((coord >> 16) & 0x7ff);
 		}
 
 		int16_t x;
 		int16_t y;
 
-		vertex_t operator+(vertex_t a) {
-			return vertex_t(x + a.x, y + a.y);
+		Vector2D operator+(Vector2D a) {
+			return Vector2D(x + a.x, y + a.y);
 		}
-		vertex_t operator-(vertex_t a) {
-			return vertex_t(x - a.x, y - a.y);
+		Vector2D operator+=(Vector2D a) {
+			return Vector2D(x + a.x, y + a.y);
 		}
-		vertex_t operator*(int c) {
-			return vertex_t(c * x, c * y);
+		Vector2D operator-(Vector2D a) {
+			return Vector2D(x - a.x, y - a.y);
+		}
+		Vector2D operator*(int c) {
+			return Vector2D(c * x, c * y);
 		}
 	};
 
+	Vector2D drawOffset;
+
 	Fifo<uint32_t> fifo;
-	Fifo<uint32_t> fifoTemp;
 	Fifo<uint32_t> outputFifo;
 
-	enum primitiveType_t {
+	enum PrimitiveType {
+		UNDEFINED,
 		POLYGON,
 		RECT,
 		LINE,
@@ -288,9 +273,9 @@ public:
 		OTHER
 	};
 
-	union texcoordType_t {
-		texcoordType_t() {}
-		texcoordType_t(uint32_t data) : data(data) {}
+	union TexCoord {
+		TexCoord() : data(0) {}
+		TexCoord(uint32_t data) : data(data) {}
 		uint32_t data;
 		struct {
 			uint32_t u : 8;
@@ -299,82 +284,89 @@ public:
 		}elem;
 	};
 
-	enum shadingType_t {
+	enum ShadingType {
+		UNDEFINED_SHADING,
 		FLAT_SHADING,
 		GOURAUD_SHADING
 	};
 
-	enum transpanencyType_t {
+	enum TranspanencyType {
+		UNDEFINED_TRANSPARENCY,
 		SEMI_TRANSPARENT,
 		NOT_TRANSPARENT
 	};
 
-	enum modulationType_t {
+	enum ModulationType {
+		UNDEFINED_MODULATION,
 		RAW_TEXTURE,
 		TEXTURE_BLENDING
 	};
 
-	struct param_t {
-		param_t() {}
-		primitiveType_t primitiveType;
-		shadingType_t shadingType;
+	struct Param {
+		Param() : primitiveType(UNDEFINED), shadingType(UNDEFINED_SHADING),
+			rectSize(0), sizeYX(0), verticesNumber(0), isPolyline(false), isTextured(false),
+			transpanencyType(UNDEFINED_TRANSPARENCY), modulationType(UNDEFINED_MODULATION),
+			commandColor1(0), vert1(0, 0), texCoord1Palette(0),
+			color2(0), vert2(0, 0), texCoord2TexPage(0),
+			color3(0), vert3(0, 0), texCoord3(0),
+			color4(0), vert4(0, 0), texCoord4(0) {}
+
+		PrimitiveType primitiveType;
+		ShadingType shadingType;
 		uint32_t rectSize;
-		uint32_t size_y_x;
+		uint32_t sizeYX;
 		uint8_t verticesNumber;
-		bool bPolyline;
-		bool bTextured;
-		transpanencyType_t transpanencyType;
-		modulationType_t modulationType;
-		uint32_t commandColor1 = 0;
-		vertex_t vert1 = 0;
-		texcoordType_t texCoord1Palette = 0;
-		psxColor24_t color2 = 0;
-		vertex_t vert2 = 0;
-		texcoordType_t texCoord2TexPage = 0;
-		psxColor24_t color3 = 0;
-		vertex_t vert3 = 0;
-		texcoordType_t texCoord3 = 0;
-		psxColor24_t color4 = 0;
-		vertex_t vert4 = 0;
-		texcoordType_t texCoord4 = 0;
-		bool bFlipHorizontally = false;
-		bool bFlipVertically = false;
+		bool isPolyline;
+		bool isTextured;
+		TranspanencyType transpanencyType;
+		ModulationType modulationType;
+		uint32_t commandColor1;
+		Vector2D vert1;
+		TexCoord texCoord1Palette;
+		PsxColor24 color2;
+		Vector2D vert2;
+		TexCoord texCoord2TexPage;
+		PsxColor24 color3;
+		Vector2D vert3;
+		TexCoord texCoord3;
+		PsxColor24 color4;
+		Vector2D vert4;
+		TexCoord texCoord4;
 	};
 
-	param_t param;
-
-	struct gp0Commands_t {
+	struct GP0Commands {
 		std::string name;
-		uint8_t collectCount;
+		uint8_t collectPramCount;
 	};
-	std::vector <gp0Commands_t> gp0Lookup;
+	std::vector <GP0Commands> gp0Lookup;
 
 	uint32_t gp0Command;
 	uint32_t collectCount = 0;
 
-	void decodeExecuteGp0Command(const uint32_t& command);
+	void DecodeExecuteGp0Command(const uint32_t& command);
 
-	void calculateTransparency(const vertex_t& p, psxColor16_t& frontPixelColor);
+	void CalculateTransparency(const Vector2D& p, PsxColor16& frontPixelColor);
 
-	void fillRectVram(const param_t& param);
+	void FillRectVram(const Param& param);
 
-	void drawPolygon(const param_t& param);
+	void DrawPolygon(const Param& param);
 
-	void drawTexPolygon(const param_t& p_param);
+	void DrawTexPolygon(const Param& p_param);
 
-	void drawLine(const param_t& param);
-	bool bCollectPolylineParam = false;
+	void DrawLine(const Param& param);
+	bool collectPolylineParam = false;
 
-	void drawMonochromeRect(const param_t& param);
-	void drawTexRect15Bit(const param_t& param);
-	void drawTexRect8Bit(const param_t& param);
-	void drawTexRect4Bit(const param_t& param);
+	void DrawMonochromeRect(const Param& param);
+	void DrawTexRect15(const Param& param);
+	void DrawTexRect8(const Param& param);
+	void DrawTexRect4Bit(const Param& param);
 
-	void copyRectVramVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
-	void copyRectCpuVram(const uint32_t& dest_coord, const uint32_t& width_height);
-	void copyRectVramCpu(const uint32_t& source_coord, const uint32_t& width_height);
+	void CopyRectVramToVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
+	void CopyRectCpuToVram(const uint32_t& dest_coord, const uint32_t& width_height);
+	void CopyRectVramToCpu(const uint32_t& source_coord, const uint32_t& width_height);
 
-	bool bCollectCopyCpuVramParam = false;
+	bool collectCopyCpuToVramData = false;
+
 	uint32_t widthHeight;
 	uint32_t destCoord;
 	uint32_t sourceCoord;
@@ -386,7 +378,7 @@ public:
 		+3, -1, +2, -2
 	};
 
-	void decodeExecuteGp1Command(const uint32_t& command);
+	void DecodeExecuteGp1Command(const uint32_t& command);
 
 	uint32_t gp1Command;
 
@@ -398,18 +390,16 @@ public:
 
 	uint8_t* vram = new uint8_t[size_x_b * size_y];
 
-	void writeVram(const vertex_t& position, const uint16_t& data, const bool bIgnoreDrawingArea = false, const bool bDithering = false);
-	void readVram(const vertex_t& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
+	void WriteVram(const Vector2D& position, const uint16_t& data, const bool bIgnoreDrawingArea = false, const bool bDithering = false);
+	void ReadVram(const Vector2D& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
 
-	olc::Sprite* getVramSprite();
+	olc::Sprite* GetVramSprite();
 	olc::Sprite vramView = olc::Sprite(1024, 512);
-	olc::Sprite* pVramViewBuffered = new olc::Sprite(1024, 512);
-	void updateVramView(const vertex_t& possition, const psxColor16_t& color16);
+	olc::Sprite* vramViewPtr = new olc::Sprite(1024, 512);
+	void UpdateVramView(const Vector2D& position, const PsxColor16& color16);
 
-	bool bWasDMAActive = false;
-
-	struct clutCache_t {
-		bool bIsValid = false;
+	struct ClutCache {
+		bool isValid = false;
 		union clut_t {
 			uint16_t data;
 			struct {
@@ -420,32 +410,32 @@ public:
 			struct {
 				uint16_t x : 6;
 				uint16_t y : 10;
-			}elem_v2;
+			}elemV2;
 		}clut;
 		uint16_t cacheData[256] = {};
 
-		clutCache_t() : bIsValid(false), clut(0) {}
+		ClutCache() : isValid(false), clut(0) {}
 
-		void rebuildCache(gpu* pGpu, const uint16_t& newClut) {
+		void RebuildCache(Gpu* gpuPtr, const uint16_t& newClut) {
 
 			if (clut.data != newClut)
-				bIsValid = false;
+				isValid = false;
 
-			if (!bIsValid) {
+			if (!isValid) {
 				clut.data = newClut;
 				for (int i = 0; i < 256; i++) {
-					vertex_t entry((clut.elem.x << 4) + i, clut.elem.y);
-					pGpu->readVram(entry, cacheData[i], true);
+					Vector2D entry((clut.elem.x << 4) + i, clut.elem.y);
+					gpuPtr->ReadVram(entry, cacheData[i], true);
 				}
-				bIsValid = true;
+				isValid = true;
 			}
 		}
 
-		void invalidate() {
-			bIsValid = false;
+		void Invalidate() {
+			isValid = false;
 		}
 
-		uint16_t getColor(int i) {
+		uint16_t GetColor(int i) {
 			return cacheData[i];
 		}
 	}clutCache;

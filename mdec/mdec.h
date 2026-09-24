@@ -3,14 +3,14 @@
 #include <iostream>
 #include <vector>
 
-class busInterface_t;
+class BusInterface;
 
 class mdec_t {
 public:
 
 	mdec_t();
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	void readMdec32(const uint32_t& addr, uint32_t& data);
 	void writeMdec32(const uint32_t& addr, const uint32_t& data);

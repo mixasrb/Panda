@@ -14,14 +14,14 @@
 
 #include "../../debug_utilities/debug_utilities.h"
 
-class busInterface_t;
+class BusInterface;
 
 class dmaController_t {
 public:
 
 	dmaController_t();
 
-	busInterface_t* pbus = nullptr;
+	BusInterface* pbus = nullptr;
 
 	void readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
 	void writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
@@ -30,7 +30,7 @@ public:
 	void readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
 	void writeDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
-	void connectBus(busInterface_t* p);
+	void connectBus(BusInterface* p);
 
 	void clock();
 

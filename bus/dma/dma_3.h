@@ -28,7 +28,7 @@ public:
 
 	void triggerIRQ() override;
 
-	busInterface_t* p_bus;
+	BusInterface* p_bus;
 
 	dmaController_t* pDMAController;
 

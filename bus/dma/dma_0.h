@@ -25,7 +25,7 @@ public:
 
 	void endDMATransfer();
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 	dmaController_t* pDMAController;
 
 	memoryAddress_t memoryAddress;

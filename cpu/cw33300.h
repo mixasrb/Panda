@@ -13,7 +13,7 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class busInterface_t;
+class BusInterface;
 
 class cpu_t {
 public:
@@ -35,7 +35,7 @@ public:
 	cp0_t cp0;
 	cp2_t cp2;
 
-	busInterface_t* pBus;
+	BusInterface* pBus;
 
 	uint32_t pc;
 	uint32_t pc_old = 0xbfc00000;
