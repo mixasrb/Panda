@@ -23,7 +23,7 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		std::cout << "~[DMA1] (MDECout) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		std::cout << "~[DMA1] (MDECout) madr: 0x" << std::hex << memoryAddress.data << '\n';
 		break;
 	case 4:
 		blockControl.data = data;
@@ -35,7 +35,7 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			(channelControl.data != 0x00000200) &&
 			(channelControl.data != 0x01000200)) {
 			std::cout << "[DMA1] EMULATION PAUSED! unhandled sync channel control mode data 0x"
-				<< std::hex << channelControl.data << std::endl;
+				<< std::hex << channelControl.data << '\n';
 			g_emulationPaused = true;
 		}
 
@@ -50,7 +50,7 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				blockWordCount = blockControl.reg.bc_bs;
 				std::cout << "~[DMA1] Start (MDECout) element count: 0x"
 
-					<< std::hex << elementCount << std::endl;
+					<< std::hex << elementCount << '\n';
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_1;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
@@ -64,12 +64,12 @@ void dma1_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 }
 
 void dma1_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA1] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
+	std::cout << "[DMA1] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
 void dma1_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA1] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << std::endl;
+	std::cout << "[DMA1] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
@@ -108,7 +108,7 @@ void dma1_t::endDMATransfer() {
 	pDMAController->currentClockFunction = 8;
 
 	triggerIRQ();
-	std::cout << "@@@@@@@DMA1 end" << std::endl;
+	std::cout << "@@@@@@@DMA1 end" << '\n';
 }
 
 void dma1_t::Clock() {

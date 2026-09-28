@@ -43,17 +43,17 @@ void timer1_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 		/*if ((mode != 0x000) && (mode != 0x100) &&
 			(mode != 0x107) && (mode != 0x148) &&
 			(mode != 0x149) && (mode != 0x158)) {
-			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer mode 0x" << std::hex << mode << std::endl;
+			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer mode 0x" << std::hex << mode << '\n';
 			g_emulationPaused = true;
 		}*/
 
 		/*if (counterMode.elem.irqOnceRepeat) {
-			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer repeat mode" << std::endl;
+			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer repeat mode" << '\n';
 			g_emulationPaused = true;
 		}*/
 
 		if (counterMode.elem.irqPulseToggle) {
-			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer toggle mode" << std::endl;
+			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer toggle mode" << '\n';
 			g_emulationPaused = true;
 		}
 

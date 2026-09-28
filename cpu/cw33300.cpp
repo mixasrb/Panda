@@ -352,7 +352,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 
 		else {
 			std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << secLookup[opcode << 26 >> 26].name
-				<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+				<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 			g_emulationPaused = true;
 		}
 	}
@@ -435,7 +435,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 					break;
 				case 0x8:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode BCnF/BCnT " << primLookup[prim_opcode].name
-						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 					g_emulationPaused = true;
 					break;
 				case 0x10:
@@ -443,14 +443,14 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 					break;
 				default:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode " << primLookup[prim_opcode].name
-						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 					g_emulationPaused = true;
 					break;
 				}
 			}
 			else {  //LWC0/SWC0
 				std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode " << primLookup[prim_opcode].name
-					<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+					<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 				g_emulationPaused = true;
 			}
 			break;
@@ -479,7 +479,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 						break;
 					default:
 						std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop2 opcode " << primLookup[prim_opcode].name
-							<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+							<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 						g_emulationPaused = true;
 						break;
 					}
@@ -495,14 +495,14 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 			break;
 		default:
 			std::cout << "[CPU] EMULATION PAUSED! unhandled cop " << (uint16_t)(prim_opcode & 0x03) << " op 0x"
-				<< std::hex << opcode << std::endl;
+				<< std::hex << opcode << '\n';
 			g_emulationPaused = true;
 			break;
 		}
 	}
 	else {
 		std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << primLookup[prim_opcode].name << " op 0x"
-			<< std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << std::endl;
+			<< std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
 		g_emulationPaused = true;
 	}
 
@@ -694,7 +694,7 @@ void cpu_t::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 
 void cpu_t::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
-		<< " op 0x" << std::hex << opcode << std::endl;
+		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
@@ -740,7 +740,7 @@ void cpu_t::SYSCALL(const uint32_t& imm) {
 
 void cpu_t::BREAK(const uint32_t& imm) {
 	/*std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
-		<< "op 0x" << std::hex << opcode << std::endl;
+		<< "op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;*/
 	cp0.exceptionHandler(_BP);
 }
@@ -875,7 +875,7 @@ void cpu_t::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 
 void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
-		<< " op 0x" << std::hex << opcode << std::endl;
+		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
@@ -1218,7 +1218,7 @@ void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
-		<< " op 0x" << std::hex << opcode << std::endl;
+		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
@@ -1272,7 +1272,7 @@ void cpu_t::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 
 void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
-		<< " op " << std::hex << opcode << std::endl;
+		<< " op " << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
@@ -1327,20 +1327,20 @@ void cpu_t::printBiosCall() {
 			if (g_biosCallbacksLogged) {
 				if (call > 0xb5)
 					call = 0xb5;
-				std::cout << "[KERNEL] " << pBus->biosChip.A[call].info << std::endl;
+				std::cout << "[KERNEL] " << pBus->biosChip.A[call].info << '\n';
 
 				if (call == 0x2a) {
-					std::cout << "~[KERNEL] dst 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] src 0x" << std::hex << get(5) << std::endl;
-					std::cout << "~[KERNEL] len 0x" << std::hex << get(6) << std::endl;
+					std::cout << "~[KERNEL] dst 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] src 0x" << std::hex << get(5) << '\n';
+					std::cout << "~[KERNEL] len 0x" << std::hex << get(6) << '\n';
 				}
 
 				if (call == 0xab) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
 				}
 
 				if (call == 0xaf) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
 				}
 			}
 
@@ -1360,34 +1360,34 @@ void cpu_t::printBiosCall() {
 					call = 0x5f;
 
 				if (oldCall != 0x0b) //(/*&& (call != 0x17)*//* && (call != 0x3d)*/)
-					std::cout << "[KERNEL] " << pBus->biosChip.B[call].info << std::endl;
+					std::cout << "[KERNEL] " << pBus->biosChip.B[call].info << '\n';
 
 				oldCall = call;
 
 				if (call == 0x4a) {
-					std::cout << "~[KERNEL] pad_enable 0x" << std::hex << get(4) << std::endl;
+					std::cout << "~[KERNEL] pad_enable 0x" << std::hex << get(4) << '\n';
 				}
 
 				if (call == 0x4d) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
 				}
 
 				if (call == 0x02) {
-					std::cout << "~[KERNEL] t 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] reload 0x" << std::hex << get(5) << std::endl;
-					std::cout << "~[KERNEL] flags 0x" << std::hex << get(6) << std::endl;
+					std::cout << "~[KERNEL] t 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] reload 0x" << std::hex << get(5) << '\n';
+					std::cout << "~[KERNEL] flags 0x" << std::hex << get(6) << '\n';
 				}
 
 				if (call == 0x08) {
-					std::cout << "~[KERNEL] class 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] spec 0x" << std::hex << get(5) << std::endl;
-					std::cout << "~[KERNEL] mode 0x" << std::hex << get(6) << std::endl;
-					std::cout << "~[KERNEL] func 0x" << std::hex << get(7) << std::endl;
+					std::cout << "~[KERNEL] class 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] spec 0x" << std::hex << get(5) << '\n';
+					std::cout << "~[KERNEL] mode 0x" << std::hex << get(6) << '\n';
+					std::cout << "~[KERNEL] func 0x" << std::hex << get(7) << '\n';
 				}
 
 				if ((call == 0x07) || (call == 0x20)) {
-					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] specs 0x" << std::hex << get(5) << std::endl;
+					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] specs 0x" << std::hex << get(5) << '\n';
 				}
 
 				if ((call == 0x0b) || (call == 0x0c) || (call == 0x09)) {
@@ -1397,14 +1397,14 @@ void cpu_t::printBiosCall() {
 					read32(0x120, ptr, cycles);
 					ptr += 7 * 4 * (get(4) & 0xffff);
 					read32(ptr, data, cycles);
-					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] class 0x" << std::hex << data << std::endl;
+					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] class 0x" << std::hex << data << '\n';
 					read32(ptr + 0x4, data, cycles);
-					std::cout << "~[KERNEL] flag 0x" << std::hex << data << std::endl;
+					std::cout << "~[KERNEL] flag 0x" << std::hex << data << '\n';
 					read32(ptr + 0x8, data, cycles);
-					std::cout << "~[KERNEL] specs 0x" << std::hex << data << std::endl;
+					std::cout << "~[KERNEL] specs 0x" << std::hex << data << '\n';
 					read32(ptr + 0xc, data, cycles);
-					std::cout << "~[KERNEL] mode 0x" << std::hex << data << std::endl;
+					std::cout << "~[KERNEL] mode 0x" << std::hex << data << '\n';
 				}
 			}
 
@@ -1416,14 +1416,14 @@ void cpu_t::printBiosCall() {
 				ptr += 7 * 4 * (get(4) & 0xffff);
 				read32(ptr, data, cycles);
 				if (data != 0xf0000009) {
-					std::cout << "event 0x" << std::hex << get(4) << std::endl;
-					std::cout << "class 0x" << std::hex << data << std::endl;
+					std::cout << "event 0x" << std::hex << get(4) << '\n';
+					std::cout << "class 0x" << std::hex << data << '\n';
 					read32(ptr + 0x4, data, cycles);
-					std::cout << "flag 0x" << std::hex << data << std::endl;
+					std::cout << "flag 0x" << std::hex << data << '\n';
 					read32(ptr + 0x8, data, cycles);
-					std::cout << "specs 0x" << std::hex << data << std::endl;
+					std::cout << "specs 0x" << std::hex << data << '\n';
 					read32(ptr + 0xc, data, cycles);
-					std::cout << "mode 0x" << std::hex << data << std::endl;
+					std::cout << "mode 0x" << std::hex << data << '\n';
 				}
 			}*/
 
@@ -1436,14 +1436,14 @@ void cpu_t::printBiosCall() {
 
 			if (g_biosCallbacksLogged) {
 				if ((call == 0x4e) || (call == 0x4f)) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << std::endl;
-					std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << std::endl;
-					std::cout << "~[KERNEL] dst/src 0x" << std::hex << get(6) << std::endl;
+					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << '\n';
+					std::cout << "~[KERNEL] dst/src 0x" << std::hex << get(6) << '\n';
 					g_emulationPaused = true;
 				}
 
 				if ((call == 0x5c) || (call == 0x5d)) {
-					std::cout << "~[KERNEL] slot 0x" << std::hex << get(4) << std::endl;
+					std::cout << "~[KERNEL] slot 0x" << std::hex << get(4) << '\n';
 				}
 			}
 
@@ -1452,7 +1452,7 @@ void cpu_t::printBiosCall() {
 			if (g_biosCallbacksLogged) {
 				if (call > 0x20)
 					call = 0x20;
-				std::cout << "[KERNEL] " << pBus->biosChip.C[call].info << std::endl;
+				std::cout << "[KERNEL] " << pBus->biosChip.C[call].info << '\n';
 			}
 
 			break;

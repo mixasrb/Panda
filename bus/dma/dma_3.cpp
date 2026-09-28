@@ -22,13 +22,13 @@ void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		std::cout << "~[DMA3] (CD DRIVE) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		std::cout << "~[DMA3] (CD DRIVE) madr: 0x" << std::hex << memoryAddress.data << '\n';
 		if (data == 0)
 			g_emulationPaused = true;
 		break;
 	case 4:
 		blockControl.data = data;
-		std::cout << "~[DMA3] (CD DRIVE) number of words: 0x" << std::hex << blockControl.reg.bc_bs << std::endl;
+		std::cout << "~[DMA3] (CD DRIVE) number of words: 0x" << std::hex << blockControl.reg.bc_bs << '\n';
 		break;
 	case 8:
 		channelControl.data = data;
@@ -37,12 +37,12 @@ void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			(channelControl.data != 0) &&
 			(channelControl.data != 0x11400100)) {
 			std::cout << "[DMA3] EMULATION PAUSED! unhandled sync channel control mode data 0x"
-				<< std::hex << channelControl.data << std::endl;
+				<< std::hex << channelControl.data << '\n';
 			g_emulationPaused = true;
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
-			std::cout << "~[DMA3] (CD DRIVE) started"<< std::endl;
+			std::cout << "~[DMA3] (CD DRIVE) started"<< '\n';
 			bStart = true;
 			//float fcloks = blockControl.reg.bc_bs * CLOCKS_PER_WORD_DMA_3;
 			//clocks = round(fcloks) == fcloks ? fcloks : round(fcloks) + 1;
@@ -60,12 +60,12 @@ void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 }
 
 void dma3_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA3] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
+	std::cout << "[DMA3] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
 void dma3_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA3] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << std::endl;
+	std::cout << "[DMA3] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
@@ -108,7 +108,7 @@ void dma3_t::triggerIRQ() {
 
 void dma3_t::Clock() {
 	if (clocks == 0) {
-		std::cout << "~[DMA3] (CD DRIVE) finished" << std::endl;
+		std::cout << "~[DMA3] (CD DRIVE) finished" << '\n';
 		channelControl.reg.startBusy = 0;
 		choppingClocks = 0;
 		bStart = false;

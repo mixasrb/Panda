@@ -93,7 +93,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//else {
 
 		if (i >= dstBlock) {
-			std::cout << "[MDEC] EMULATION PAUSED! data out fifo overun 0x" << i << std::endl;
+			std::cout << "[MDEC] EMULATION PAUSED! data out fifo overun 0x" << i << '\n';
 			data = 0x00000000;
 			return;
 			//g_emulationPaused = true;
@@ -107,11 +107,11 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 		//	}
 	}
 	else if (addr == 0x1f801824) {
-		//std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << std::endl;
+		//std::cout << "[MDEC] read32 addr 0x" << std::hex << addr << '\n';
 		data = statusRegister.data;
 	}
 	else {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << std::hex << addr << std::endl;
+		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << std::hex << addr << '\n';
 		g_emulationPaused = true;
 	}
 }
@@ -125,8 +125,8 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 			temp = (uint16_t)(data >> 16);
 			recievedData16.push_back(temp);
 
-			/*	std::cout << "[MDEC] recieved data 0x" << (uint16_t)data << std::endl;
-				std::cout << "[MDEC] recieved data 0x" << (uint16_t)(data >> 16) << std::endl;*/
+			/*	std::cout << "[MDEC] recieved data 0x" << (uint16_t)data << '\n';
+				std::cout << "[MDEC] recieved data 0x" << (uint16_t)(data >> 16) << '\n';*/
 
 			recievedData32.push_back(data);
 			recievedData32Count--;
@@ -152,7 +152,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 				clocks = 0x30;
 				break;
 			default:
-				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x" << std::hex << command << std::endl;
+				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x" << std::hex << command << '\n';
 				g_emulationPaused = true;
 				break;
 			}
@@ -178,10 +178,10 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 
 
 			std::cout << "~[MDEC] recievedData16 count: 0x"
-				<< std::hex << recievedData16.size() << std::endl;
+				<< std::hex << recievedData16.size() << '\n';
 			std::cout << "~[MDEC] recievedData32 count: 0x"
-				<< std::hex << recievedData32.size() << std::endl;
-			std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << std::endl;
+				<< std::hex << recievedData32.size() << '\n';
+			std::cout << "~[MDEC] command executed " << commandLookup[command >> 29].name << '\n';
 			//g_emulationPaused = true;
 
 			recievedData16.clear();
@@ -190,7 +190,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	}
 	else if (addr == 0x1f801824) {
 		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
-			<< " data 0x" << data << std::endl;
+			<< " data 0x" << data << '\n';
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
@@ -202,7 +202,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	}
 	else {
 		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
-			<< " data 0x" << data << std::endl;
+			<< " data 0x" << data << '\n';
 		g_emulationPaused = true;
 	}
 }

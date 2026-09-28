@@ -33,7 +33,7 @@ void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			(channelControl.data != 0x00000201) &&
 			(channelControl.data != 0x01000201)) {
 			std::cout << "[DMA0] EMULATION PAUSED! unhandled sync channel control mode data 0x"
-				<< std::hex << channelControl.data << std::endl;
+				<< std::hex << channelControl.data << '\n';
 			g_emulationPaused = true;
 		}
 
@@ -48,7 +48,7 @@ void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				blockWordCount = blockControl.reg.bc_bs;
 				std::cout << "~[DMA0] Start (MDECin) element count: 0x"
 
-					<< std::hex << elementCount << std::endl;
+					<< std::hex << elementCount << '\n';
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_0;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
@@ -62,12 +62,12 @@ void dma0_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 }
 
 void dma0_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA0] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
+	std::cout << "[DMA0] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
 void dma0_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA0] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << std::endl;
+	std::cout << "[DMA0] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
@@ -106,7 +106,7 @@ void dma0_t::endDMATransfer() {
 	pDMAController->currentClockFunction = 8;
 
 	triggerIRQ();
-	std::cout << "@@@@@@@DMA0 end" << std::endl;
+	std::cout << "@@@@@@@DMA0 end" << '\n';
 }
 
 void dma0_t::Clock() {

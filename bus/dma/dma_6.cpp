@@ -21,11 +21,11 @@ void dma6_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		//std::cout << "~[DMA6] (OTC) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		//std::cout << "~[DMA6] (OTC) madr: 0x" << std::hex << memoryAddress.data << '\n';
 		break;
 	case 4:
 		blockControl.data = data;
-		//std::cout << "~[DMA6] (OTC) BC/BS : 0x" << std::hex << blockControl.reg.bc_bs << std::endl;
+		//std::cout << "~[DMA6] (OTC) BC/BS : 0x" << std::hex << blockControl.reg.bc_bs << '\n';
 		break;
 	case 8:
 		channelControl.data = data;
@@ -33,12 +33,12 @@ void dma6_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 		if ((channelControl.data != 0x11000002) &&
 			(channelControl.data != 0)) {
 			std::cout << "[DMA6] EMULATION PAUSED! unhandled sync channel control mode data 0x"
-				<< std::hex << channelControl.data << std::endl;
+				<< std::hex << channelControl.data << '\n';
 			g_emulationPaused = true;
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
-			//std::cout << "~[DMA6] (OTC) started" << std::endl;
+			//std::cout << "~[DMA6] (OTC) started" << '\n';
 			bStart = true;
 			float clks = (blockControl.reg.bc_bs ? blockControl.reg.bc_bs : 0x10000) * CLOCKS_PER_WORD_DMA_6;
 			clocks = round(clks) == clks ? clks : round(clks) + 1;
@@ -55,12 +55,12 @@ void dma6_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 }
 
 void dma6_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA6] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
+	std::cout << "[DMA6] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
 void dma6_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA6] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << std::endl;
+	std::cout << "[DMA6] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
@@ -106,7 +106,7 @@ void dma6_t::Clock() {
 	if (clocks < blockControl.reg.bc_bs) {
 		uint8_t cycles;
 		if (clocks == 0) {
-			//std::cout << "~[DMA6] (OTC) finished" << std::endl;
+			//std::cout << "~[DMA6] (OTC) finished" << '\n';
 			DMAWrite32(memAddrTemp, 0x00ffffff, cycles);
 			return;
 		}

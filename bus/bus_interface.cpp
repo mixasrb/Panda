@@ -135,7 +135,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		clocks = 3;//?? no doc
 	}
 	else if (MEMORY_CONTROL_2) {
-		std::cout << "[BUS] unhandled ram_size reg read32 0x" << std::hex << addr << std::endl;
+		std::cout << "[BUS] unhandled ram_size reg read32 0x" << std::hex << addr << '\n';
 		data = ramSize;
 		clocks = 3;
 	}

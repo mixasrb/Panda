@@ -220,14 +220,14 @@ void spu_t::write32(const uint32_t& addr, const uint32_t& data) {
 			voices.channel_FM_Mode.data = data;
 
 			if (data)
-				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
 			break;
 
 		case 0x1f801d94:
 			voices.channelNoiseMode.data = data;
 
 			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! Noise enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] EMULATION PASUED! Noise enabled 0x" << std::hex << data << '\n';
 				g_emulationPaused = true;
 			}
 			break;
@@ -616,21 +616,21 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			voices.channel_FM_Mode.hw.l = data;
 
 			if (data)
-				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
 			break;
 
 		case 0x1f801d92:
 			voices.channel_FM_Mode.hw.h = data;
 
 			if (data)
-				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
 			break;
 
 		case 0x1f801d94:
 			voices.channelNoiseMode.hw.l = data;
 
 			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
 				g_emulationPaused = true;
 			}
 			break;
@@ -639,7 +639,7 @@ void spu_t::write16(const uint32_t& addr, const uint16_t& data) {
 			voices.channelNoiseMode.hw.h = data;
 
 			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << std::endl;
+				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
 				g_emulationPaused = true;
 			}
 			break;

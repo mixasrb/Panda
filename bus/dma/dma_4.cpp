@@ -22,7 +22,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
-		std::cout << "~[DMA4] (SPU) madr: 0x" << std::hex << memoryAddress.data << std::endl;
+		std::cout << "~[DMA4] (SPU) madr: 0x" << std::hex << memoryAddress.data << '\n';
 		break;
 	case 4:
 		blockControl.data = data;
@@ -34,7 +34,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 			(channelControl.data != 0x01000200) &&
 			(channelControl.data != 0x01000201)) {
 			std::cout << "[DMA4] EMULATION PAUSED! unhandled sync channel control mode data 0x"
-				<< std::hex << channelControl.data << std::endl;
+				<< std::hex << channelControl.data << '\n';
 			g_emulationPaused = true;
 		}
 
@@ -49,7 +49,7 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				blockWordCount = blockControl.reg.bc_bs;
 				std::cout << "~[DMA4] (SPU) element count: 0x"
 
-					<< std::hex << elementCount << std::endl;
+					<< std::hex << elementCount << '\n';
 				float clks = elementCount * CLOCKS_PER_WORD_DMA_4;
 				clocks = round(clks) == clks ? clks : round(clks) + 1;
 			}
@@ -63,12 +63,12 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 }
 
 void dma4_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA4] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << std::endl;
+	std::cout << "[DMA4] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
 void dma4_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
-	std::cout << "[DMA4] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << std::endl;
+	std::cout << "[DMA4] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 

@@ -409,13 +409,13 @@ void cp2_t::CTC2(uint8_t rt, uint8_t rd) {
 
 void cp2_t::BC2F(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2F 0x" << pCpu->opcode
-		<< " pc 0x" << pCpu->pc - 4 << std::endl;
+		<< " pc 0x" << pCpu->pc - 4 << '\n';
 	g_emulationPaused = true;
 }
 
 void cp2_t::BC2T(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2T 0x" << pCpu->opcode
-		<< " pc 0x" << pCpu->pc - 4 << std::endl;
+		<< " pc 0x" << pCpu->pc - 4 << '\n';
 	g_emulationPaused = true;
 }
 
@@ -432,7 +432,7 @@ void cp2_t::COP2(uint32_t imm) {
 
 	if (g_GteInstructionsLogged)
 		std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[imm & 0x3f].name
-		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << '\n';
 }
 
 void cp2_t::LWC2(uint8_t rs, uint8_t rt, int16_t imm) {
@@ -624,7 +624,7 @@ uint32_t cp2_t::gteDivide(uint16_t numerator, uint16_t denominator) {
 
 void cp2_t::XXXXX(uint32_t opcode) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[opcode & 0x3f].name
-		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << std::endl;
+		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << '\n';
 	g_emulationPaused = true;
 }
 

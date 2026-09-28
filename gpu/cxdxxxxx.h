@@ -35,19 +35,18 @@ struct Vector2D {
 	int16_t x;
 	int16_t y;
 
-	Vector2D operator<< (const int& c) {
-		return Vector2D(x << c, y << c);
-	}
-	Vector2D operator+ (const Vector2D& b) {
+	Vector2D operator+ (const Vector2D& b) const {
 		return Vector2D(x + b.x, y + b.y);
 	}
-	Vector2D operator+= (const Vector2D& b) {
-		return Vector2D(x + b.x, y + b.y);
+	Vector2D& operator+= (const Vector2D& b) {
+		x += b.x;
+		y += b.y;
+		return *this;
 	}
-	Vector2D operator- (const Vector2D& b) {
+	Vector2D operator- (const Vector2D& b) const {
 		return Vector2D(x - b.x, y - b.y);
 	}
-	Vector2D operator* (const int& c) {
+	Vector2D operator* (const int& c) const {
 		return Vector2D(x * c, y * c);
 	}
 };
@@ -112,8 +111,6 @@ public:
 	void WriteGpu32(const uint32_t& addr, const uint32_t& data);
 
 	void VideoClock();
-
-	void ResetGpu();
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 	const uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
@@ -207,21 +204,21 @@ public:
 			uint16_t blue : 5;
 			uint16_t semiTransparencyFlag : 1;
 		}component;
-		PsxColor16 operator* (const float& c) {
+		PsxColor16 operator* (const float& c) const {
 			PsxColor16 a;
 			a.component.red = (uint16_t)(c * (float)component.red);
 			a.component.green = (uint16_t)(c * (float)component.green);
 			a.component.blue = (uint16_t)(c * (float)component.blue);
 			return a;
 		}
-		PsxColor16 operator/ (const float& c) {
+		PsxColor16 operator/ (const float& c) const {
 			PsxColor16 a;
 			a.component.red = (uint16_t)(c / (float)component.red);
 			a.component.green = (uint16_t)(c / (float)component.green);
 			a.component.blue = (uint16_t)(c / (float)component.blue);
 			return a;
 		}
-		PsxColor16 operator+ (const PsxColor16& b) {
+		PsxColor16 operator+ (const PsxColor16& b) const {
 			PsxColor16 a;
 			a.component.red = component.red + b.component.red;
 			a.component.green = component.green + b.component.green;

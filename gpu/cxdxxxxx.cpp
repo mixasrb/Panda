@@ -278,23 +278,13 @@ Gpu::Gpu() {
 		{"NOP (?)", 1},
 	};
 
-	ResetGpu();
-}
 
-void Gpu::ResetGpu() {
 	cpuClocks = 0;
 	cpuFrameClocks = 0;
 	cpuScanlineClocks = 0;
-
-#if NTSC
 	cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	scanlineNumber = SCANLINE_NUMBER_NTSC;
-#else
-	cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_PAL;
-	cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
-	scanlineNumber = SCANLINE_NUMBER_PAL;
-#endif
 
 	scanlineCount = 0;
 	gpuStat.data = 0x14000000;
@@ -353,7 +343,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 			gp0Command = data;
 
 			if (!fifo.Empty()) {
-				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << fifo.GetSize() << std::endl;
+				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << fifo.GetSize() << '\n';
 				g_emulationPaused = true;
 			}
 
@@ -372,7 +362,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
 				<< " " << gp0Lookup[gp0Command >> 24].name
-				<< " memAdrTemp: 0x" << std::endl;
+				<< " memAdrTemp: 0x" << '\n';
 
 			DecodeExecuteGp0Command(gp0Command);
 		}
@@ -383,7 +373,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 		gp1Command = data;
 
 		if (g_GpuCommandsLogged)
-			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << std::endl;
+			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';
 
 		DecodeExecuteGp1Command(gp1Command);
 	}
@@ -411,7 +401,7 @@ void Gpu::VideoClock() {
 			Bus->timer1.bVblank = true;
 
 			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU VBlank" << std::endl;
+				std::cout << "~[GPU] GPU VBlank" << '\n';
 
 			//V-Sync interrupt is naturally edge trigered
 			Bus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
@@ -426,7 +416,7 @@ void Gpu::VideoClock() {
 			Bus->timer1.bVblank = false;
 
 			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU non VBlank" << std::endl;
+				std::cout << "~[GPU] GPU non VBlank" << '\n';
 
 			if (gpuStat.elem.verticalInterlace)
 				if (gpuStat.elem.verticalRes)
@@ -642,7 +632,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		param.commandColor1 = gp0Command;
 
 		param.vert1 = fifo.GetNext();
-		param.vert1 += param.vert1 + drawOffset;
+		param.vert1 += drawOffset;
 
 		if (param.isTextured)
 			param.texCoord1Palette = (TexCoord)fifo.GetNext();
@@ -787,7 +777,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 		default:
 			std::cout << "~[GPU] EMULATION PAUSED! Unhandled environment command 0x"
-				<< std::hex << command << std::endl;
+				<< std::hex << command << '\n';
 			g_emulationPaused = true;
 			break;
 
@@ -892,7 +882,7 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.data = 0x14802000;
 		break;
 	case 0x1:
-		std::cout << "~[GPU] Unhandled GPU1 command: Reset Command Buffer" << std::endl;
+		std::cout << "~[GPU] Unhandled GPU1 command: Reset Command Buffer" << '\n';
 		break;
 	case 0x2:
 		gpuStat.elem.irq1 = 0;
@@ -903,7 +893,7 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 	case 0x4:
 		gpuStat.elem.directionDMA = command & 0x3;
 		if (gpuStat.elem.directionDMA == 1) {
-			std::cout << "[GPU] EMULATION PAUSED! DMA Direction FIFO" << std::endl;
+			std::cout << "[GPU] EMULATION PAUSED! DMA Direction FIFO" << '\n';
 			g_emulationPaused = true;
 		}
 		break;
@@ -984,20 +974,20 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 			gp1Result = gp1DrawOffset;
 			break;
 		case 7:
-			//std::cout << "~[GPU] Old 160pin GPU" << std::endl;
+			//std::cout << "~[GPU] Old 160pin GPU" << '\n';
 
-			std::cout << "~[GPU] New 208pin GPU v2" << std::endl;
+			std::cout << "~[GPU] New 208pin GPU v2" << '\n';
 			gp1Result = 0x2;
 			break;
 		default:
 			std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x"
-				<< std::hex << command << std::endl;
+				<< std::hex << command << '\n';
 			g_emulationPaused = true;
 			break;
 		}
 		break;
 	default:
-		std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << command << std::endl;
+		std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << command << '\n';
 		g_emulationPaused = true;
 		break;
 	}
@@ -1018,7 +1008,7 @@ void Gpu::UpdateVramView(const Vector2D& possition, const PsxColor16& color16) {
 	/*if (g_logPixel && (possition.x == g_mousePossitionX) && (possition.y == g_mousePossitionY)) {
 		vramView->SetPixel(possition.x, possition.y, olc::YELLOW);
 		std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
-		<< " " << gp0Lookup[gp0Command >> 24].name << std::endl;
+		<< " " << gp0Lookup[gp0Command >> 24].name << '\n';
 		g_emulationPaused = true;
 	}*/
 }

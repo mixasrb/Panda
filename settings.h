@@ -4,8 +4,6 @@
 #define SCREEN 0
 #define ACCURATE_SPU_CLOCKING 0
 
-#define NTSC 1
-
 //gpu settings
 #undef ENABLE_DITHERING
 #define ENABLE_DITHERING 0
@@ -156,7 +154,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Air Combat (USA)/Air Combat (USA) (Track 01).bin");
 
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
 // //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte //problems with drawing after implementing new rasterizer algorithm //sends setlock before pause is executed??
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (USA)/Vigilante 8 - 2nd Offense (USA) (Track 01).bin");// uses sweep
@@ -392,7 +390,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Trac
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution //needs clocks >= waitClocksFirstResponse+ <= 0x36cd2 * 5 / 20 fixed??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
 
