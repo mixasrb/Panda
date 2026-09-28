@@ -4,12 +4,11 @@
 #define SCREEN 0
 #define ACCURATE_SPU_CLOCKING 0
 
+#define NTSC 1
+
 //gpu settings
 #undef ENABLE_DITHERING
 #define ENABLE_DITHERING 0
-
-#undef DISABLE_SCALING
-#define DISABLE_SCALING 0
 
 bool g_emulationPaused = false;
 bool g_executedCpuInstructionsLogged = false;
@@ -157,7 +156,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Air Combat (USA)/Air Combat (USA) (Track 01).bin");
 
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Doom/Doom (Track 1).bin"); // [BUS] EMULATION PAUSED! unhandled write16 adress 0x1f80105a data 0x50??  1F80105Ah 2  SIO_CTRL Serial Port Control (R/W) 
 // //~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x8a// Play // probaly timing issues (waitClocksFirstResponse)//gte //problems with drawing after implementing new rasterizer algorithm //sends setlock before pause is executed??
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Vigilante 8 - 2nd Offense (USA)/Vigilante 8 - 2nd Offense (USA) (Track 01).bin");// uses sweep
@@ -210,7 +209,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Alone in the Dark - The New Nightmare (USA) (Disc 1)/Alone in the Dark - The New Nightmare (USA) (Disc 1) (Track 1).bin");
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Master (USA)/Shadow Master (USA) (Track 1).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Shadow Master (USA)/Shadow Master (USA) (Track 1).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/True Pinball (USA)/True Pinball (USA) (Track 01).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/T.R.A.G. - Mission of Mercy (USA)/T.R.A.G. - Mission of Mercy (USA).bin");

@@ -1,4 +1,5 @@
 #include <array>
+#include <utility>
 
 #include "math.h"
 #include "limits"
@@ -13,12 +14,6 @@ extern bool g_logPixel;
 
 //TO DO 
 //Define option for old and new GPU 
-
-template<typename T>
-static void swap(T& a, T& b) {
-	T c = b;
-	b = a; a = c;
-}
 
 class Slope
 {
@@ -154,21 +149,21 @@ void Gpu::CalculateTransparency(const Vector2D& p, PsxColor16& frontPixelColor) 
 	ReadVram(p, backPixelColor.data);
 	switch (gpuStat.elem.semiTransparency) {
 	case 0: //B/2+F/2
-		frontPixelColor.component.red = (backPixelColor.component.red >> 1) 
+		frontPixelColor.component.red = (backPixelColor.component.red >> 1)
 			+ (frontPixelColor.component.red >> 1);
-		frontPixelColor.component.green = (backPixelColor.component.green >> 1) 
+		frontPixelColor.component.green = (backPixelColor.component.green >> 1)
 			+ (frontPixelColor.component.green >> 1);
-		frontPixelColor.component.blue = (backPixelColor.component.blue >> 1) 
+		frontPixelColor.component.blue = (backPixelColor.component.blue >> 1)
 			+ (frontPixelColor.component.blue >> 1);
 		break;
 	case 1: //B+F
-		frontPixelColor.component.red = (backPixelColor.component.red 
+		frontPixelColor.component.red = (backPixelColor.component.red
 			+ frontPixelColor.component.red) > 0x1f ?
 			0x1f : backPixelColor.component.red + frontPixelColor.component.red;
-		frontPixelColor.component.green = (backPixelColor.component.green 
+		frontPixelColor.component.green = (backPixelColor.component.green
 			+ frontPixelColor.component.green) > 0x1f ?
 			0x1f : backPixelColor.component.green + frontPixelColor.component.green;
-		frontPixelColor.component.blue = (backPixelColor.component.blue 
+		frontPixelColor.component.blue = (backPixelColor.component.blue
 			+ frontPixelColor.component.blue) > 0x1f ?
 			0x1f : backPixelColor.component.blue + frontPixelColor.component.blue;
 		break;
@@ -181,13 +176,13 @@ void Gpu::CalculateTransparency(const Vector2D& p, PsxColor16& frontPixelColor) 
 			0 : backPixelColor.component.blue - frontPixelColor.component.blue;
 		break;
 	case 3: //B+F/4
-		frontPixelColor.component.red = (backPixelColor.component.red 
+		frontPixelColor.component.red = (backPixelColor.component.red
 			+ (frontPixelColor.component.red >> 2)) > 0x1f ?
 			0x1f : backPixelColor.component.red + (frontPixelColor.component.red >> 2);
-		frontPixelColor.component.green = (backPixelColor.component.green 
+		frontPixelColor.component.green = (backPixelColor.component.green
 			+ (frontPixelColor.component.green >> 2)) > 0x1f ?
 			0x1f : backPixelColor.component.green + (frontPixelColor.component.green >> 2);
-		frontPixelColor.component.blue = (backPixelColor.component.blue 
+		frontPixelColor.component.blue = (backPixelColor.component.blue
 			+ (frontPixelColor.component.blue >> 2)) > 0x1f ?
 			0x1f : backPixelColor.component.blue + (frontPixelColor.component.blue >> 2);
 		break;
@@ -421,7 +416,7 @@ void Gpu::DrawMonochromeRect(const Param& param) {
 		}
 }
 
-void Gpu::DrawLine(const Param& param) { //could be optimized //too much math 
+void Gpu::DrawLine(const Param& param) { //could be optimized //too much math // TO DO Rewrite
 
 	PsxColor24 color1 = param.commandColor1;
 	int x1 = param.vert1.x;
@@ -437,9 +432,9 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math
 
 
 	if (y2 < y1) {
-		swap(y1, y2);
-		swap(x1, x2);
-		//swap(color1.data, color2.data);???
+		std::swap(y1, y2);
+		std::swap(x1, x2);
+		//std::swap(color1.data, color2.data);???
 	}
 
 	int dy1 = y2 - y1;
@@ -455,7 +450,7 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math
 		int bx = x2;
 
 		if (bx < ax)
-			swap(ax, bx);
+			std::swap(ax, bx);
 
 		for (int i = ax; i <= bx; i++) {
 			Vector2D p(i, round(y1 + (float)(i - x1) * 1.0f / k));
@@ -463,20 +458,20 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math
 			if (param.shadingType == GOURAUD_SHADING) {
 				float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2)
 					+ pow((param.vert1.y - param.vert2.y), 2));
-				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2) 
+				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2)
 					+ pow((param.vert1.y - p.y), 2));
 				float lamda1 = 1 - lamdaPointAbs / lamdaAbs;
 				float lamda2 = 1 - lamda1;
 
 				PsxColor24 calculatedColor;
 
-				calculatedColor.component.red = (((float)color1.component.red * lamda1 
+				calculatedColor.component.red = (((float)color1.component.red * lamda1
 					+ (float)color2.component.red * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.red * lamda1 + (float)color2.component.red * lamda2;
-				calculatedColor.component.green = (((float)color1.component.green * lamda1 
+				calculatedColor.component.green = (((float)color1.component.green * lamda1
 					+ (float)color2.component.green * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.green * lamda1 + (float)color2.component.green * lamda2;
-				calculatedColor.component.blue = (((float)color1.component.blue * lamda1 
+				calculatedColor.component.blue = (((float)color1.component.blue * lamda1
 					+ (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
 
@@ -497,22 +492,22 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math
 			Vector2D p(round(x1 + (float)(i - y1) * k), i);
 
 			if (param.shadingType == GOURAUD_SHADING) {
-				float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2) 
+				float lamdaAbs = sqrt(pow((param.vert1.x - param.vert2.x), 2)
 					+ pow((param.vert1.y - param.vert2.y), 2));
-				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2) 
+				float lamdaPointAbs = sqrt(pow((param.vert1.x - p.x), 2)
 					+ pow((param.vert1.y - p.y), 2));
 				float lamda1 = 1 - lamdaPointAbs / lamdaAbs;
 				float lamda2 = 1 - lamda1;
 
 				PsxColor24 calculatedColor;
 
-				calculatedColor.component.red = (((float)color1.component.red * lamda1 
+				calculatedColor.component.red = (((float)color1.component.red * lamda1
 					+ (float)color2.component.red * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.red * lamda1 + (float)color2.component.red * lamda2;
-				calculatedColor.component.green = (((float)color1.component.green * lamda1 
+				calculatedColor.component.green = (((float)color1.component.green * lamda1
 					+ (float)color2.component.green * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.green * lamda1 + (float)color2.component.green * lamda2;
-				calculatedColor.component.blue = (((float)color1.component.blue * lamda1 
+				calculatedColor.component.blue = (((float)color1.component.blue * lamda1
 					+ (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
 
@@ -547,24 +542,16 @@ void Gpu::DrawTexRect15(const Param& param) {
 	PsxColor16 frontPixelColor;
 	Vector2D p;
 
-	float ratioX = ((float)(u2 - u1) / (float)(x2 - x1));
-	float ratioY = ((float)(v2 - v1) / (float)(y2 - y1));
-
-#if DISABLE_SCALING
-	ratioX = 1.f;
-	ratioY = 1.f;
-#endif
-
 	for (int16_t y = 0; y < y2 - y1; y++) {
 		pTex.y = gpuStat.elem.texPageYBase << 8;
-		pTex.y += ((v1 + (int16_t)((float)y * ratioY)) & 255 & (~(texWinMask.y << 3))) 
+		pTex.y += ((v1 + y) & 255 & (~(texWinMask.y << 3)))
 			| ((texWinOffset.y & texWinMask.y) << 3);
 
 		p.y = y1 + y;
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += ((u1 + ((int16_t)((float)x * ratioX))) & 255 & (~(texWinMask.x << 3))) 
+			pTex.x += ((u1 + x) & 255 & (~(texWinMask.x << 3)))
 				| ((texWinOffset.x & texWinMask.x) << 3);
 
 			p.x = x1 + x;
@@ -574,11 +561,11 @@ void Gpu::DrawTexRect15(const Param& param) {
 
 			if (frontPixelColor.data) {
 				if (param.modulationType == TEXTURE_BLENDING) {
-					float red = ((float)blendingColor.component.red / 128.) 
+					float red = ((float)blendingColor.component.red / 128.)
 						* ((float)frontPixelColor.component.red * 8.);
-					float green = ((float)blendingColor.component.green / 128.) 
+					float green = ((float)blendingColor.component.green / 128.)
 						* ((float)frontPixelColor.component.green * 8.);
-					float blue = ((float)blendingColor.component.blue / 128.) 
+					float blue = ((float)blendingColor.component.blue / 128.)
 						* ((float)frontPixelColor.component.blue * 8.);
 					frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
 					frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;
@@ -611,35 +598,27 @@ void Gpu::DrawTexRect8(const Param& param) {
 	PsxColor16 frontPixelColor;
 	Vector2D p;
 
-	float ratioX = ((float)(u2 - u1) / (float)(x2 - x1));
-	float ratioY = ((float)(v2 - v1) / (float)(y2 - y1));
-
-#if DISABLE_SCALING
-	ratioX = 1.f;
-	ratioY = 1.f;
-#endif
-
 	for (int16_t y = 0; y < y2 - y1; y++) {
 		pTex.y = gpuStat.elem.texPageYBase << 8;
-		pTex.y += ((v1 + (int16_t)((float)y * ratioY)) & 255 & (~(texWinMask.y << 3))) 
+		pTex.y += ((v1 + y) & 255 & (~(texWinMask.y << 3)))
 			| ((texWinOffset.y & texWinMask.y) << 3);
 
 		p.y = y1 + y;
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 1) + (((int16_t)((float)x * ratioX) + (u1 & 0x1)) >> 1)) 
+			pTex.x += (((u1 >> 1) + (((x + (u1 & 0x1)) >> 1)))
 				& (255 >> 1) & (~(texWinMask.x << 2))) | ((texWinOffset.x & texWinMask.x) << 2);
 
 			p.x = x1 + x;
 
 			ReadVram(pTex, texData, true);
-			frontPixelColor.data = clutCache.GetColor(texData >> ((((int16_t)((float)x * ratioX) 
+			frontPixelColor.data = clutCache.GetColor(texData >> (((x
 				+ (u1 & 0x1)) & 0x1) * 8) & 0xff);
 
 			if (frontPixelColor.data) {
 				if (param.modulationType == TEXTURE_BLENDING) {
-					float red = ((float)blendingColor.component.red / 128.) 
+					float red = ((float)blendingColor.component.red / 128.)
 						* ((float)frontPixelColor.component.red * 8.);
 					float green = ((float)blendingColor.component.green / 128.)
 						* ((float)frontPixelColor.component.green * 8.);
@@ -677,40 +656,32 @@ void Gpu::DrawTexRect4Bit(const Param& param) {
 	PsxColor16 randa = rand() & 0x7fff;
 	Vector2D p;
 
-	float ratioX = ((float)(u2 - u1) / (float)(x2 - x1));
-	float ratioY = ((float)(v2 - v1) / (float)(y2 - y1));
-
-#if DISABLE_SCALING
-	ratioX = 1.f;
-	ratioY = 1.f;
-#endif
-
 	for (int16_t y = 0; y < y2 - y1; y++) {
 		pTex.y = gpuStat.elem.texPageYBase << 8;
-		pTex.y += ((v1 + (int16_t)((float)y * ratioY)) & 255 & (~(texWinMask.y << 3))) 
+		pTex.y += ((v1 + y) & 255 & (~(texWinMask.y << 3)))
 			| ((texWinOffset.y & texWinMask.y) << 3);
 
 		p.y = y1 + y;
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 2) + (((int16_t)((float)x * ratioX) + (u1 & 0x3)) >> 2)) 
+			pTex.x += (((u1 >> 2) + ((x + (u1 & 0x3)) >> 2))
 				& (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
 
 			p.x = x1 + x;
 
 			ReadVram(pTex, texData, true);
-			frontPixelColor.data = clutCache.GetColor((texData >> ((((int16_t)((float)x * ratioX) 
+			frontPixelColor.data = clutCache.GetColor((texData >> (((x
 				+ (u1 & 0x3)) & 0x3) << 2)) & 0xf);
 
 
 			if (frontPixelColor.data) {
 				if (param.modulationType == TEXTURE_BLENDING) {
-					float red = ((float)blendingColor.component.red / 128.) 
+					float red = ((float)blendingColor.component.red / 128.)
 						* ((float)frontPixelColor.component.red * 8.);
-					float green = ((float)blendingColor.component.green / 128.) 
+					float green = ((float)blendingColor.component.green / 128.)
 						* ((float)frontPixelColor.component.green * 8.);
-					float blue = ((float)blendingColor.component.blue / 128.) 
+					float blue = ((float)blendingColor.component.blue / 128.)
 						* ((float)frontPixelColor.component.blue * 8.);
 					frontPixelColor.component.red = ((uint16_t)red / 8) > 0x1f ? 0x1f : (uint16_t)red / 8;
 					frontPixelColor.component.green = ((uint16_t)green / 8) > 0x1f ? 0x1f : (uint16_t)green / 8;

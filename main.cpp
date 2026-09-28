@@ -278,7 +278,7 @@ public:
 				psx.debugger.dump("logs/scratchpad.bin", psx.bus.scratchpad, 1024);
 
 			if (GetKey(olc::Key::V).bPressed)
-				psx.debugger.dump("logs/vram.bin", psx.gpu.vram, 2048 * 512);
+				psx.debugger.dump("logs/vram.bin", psx.gpu.vram.get(), 2048 * 512);
 
 			if (GetKey(olc::Key::S).bPressed)
 				psx.debugger.dump("logs/spu_dram.bin", psx.bus.spu.dram, 512 * 1024);

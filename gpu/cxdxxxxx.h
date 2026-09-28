@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <memory>
 
 #include "../defines/defines.h"
 #include "../debug_utilities/debug_utilities.h"
@@ -13,9 +14,43 @@
 #define size_x 1024 //in half words
 #define size_y 512
 
-inline uint16_t Signed11bit(uint16_t val) {
+inline uint16_t Signed11bit(const uint16_t& val) {
 	return ((int16_t)(val << 5)) >> 5;
 }
+
+struct Vector2D {
+
+	Vector2D() : x(0), y(0) {}
+
+	Vector2D(const uint32_t& xTemp, const uint32_t& yTemp) {
+		*(&x) = uint16_t(xTemp);
+		*(&y) = uint16_t(yTemp);
+	}
+
+	Vector2D(const uint32_t& coord) {
+		*(&x) = Signed11bit(coord & 0x7ff);
+		*(&y) = Signed11bit((coord >> 16) & 0x7ff);
+	}
+
+	int16_t x;
+	int16_t y;
+
+	Vector2D operator<< (const int& c) {
+		return Vector2D(x << c, y << c);
+	}
+	Vector2D operator+ (const Vector2D& b) {
+		return Vector2D(x + b.x, y + b.y);
+	}
+	Vector2D operator+= (const Vector2D& b) {
+		return Vector2D(x + b.x, y + b.y);
+	}
+	Vector2D operator- (const Vector2D& b) {
+		return Vector2D(x - b.x, y - b.y);
+	}
+	Vector2D operator* (const int& c) {
+		return Vector2D(x * c, y * c);
+	}
+};
 
 template <typename T>
 struct Fifo { //have some bugs and quarks
@@ -29,7 +64,7 @@ struct Fifo { //have some bugs and quarks
 	uint32_t currentPossitionWrite;
 	uint32_t currentPossitionRead;
 
-	void Resize(uint32_t newSize) {
+	void Resize(const uint32_t& newSize) {
 		ptr = new T[newSize];
 	}
 
@@ -38,7 +73,7 @@ struct Fifo { //have some bugs and quarks
 		currentPossitionRead = 0;
 	}
 
-	void PushBack(T data) {
+	void PushBack(const T& data) {
 		ptr[currentPossitionWrite] = data;
 		currentPossitionWrite++;
 	}
@@ -59,7 +94,7 @@ struct Fifo { //have some bugs and quarks
 		return ptr[currentPossitionRead++];
 	}
 
-	T operator[](uint32_t i) {
+	T operator[](const uint32_t& i) {
 		return ptr[i];
 	}
 };
@@ -77,6 +112,8 @@ public:
 	void WriteGpu32(const uint32_t& addr, const uint32_t& data);
 
 	void VideoClock();
+
+	void ResetGpu();
 
 	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
 	const uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
@@ -96,24 +133,16 @@ public:
 		CPU_CLOCK / 7
 	};
 
-	const uint32_t dotsPerScanline[5] = {
-		341,
-		426,
-		682,
-		853,
-		487
-	};
-
 	uint8_t dotClockDevider = 4;
 	uint16_t horizontalResolution = 640;
 
-	uint32_t cpuClocks = 0;
-	uint32_t cpuFrameClocks = 0;
-	uint32_t cpuScanlineClocks = 0;
-	uint32_t cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
-	uint32_t cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
-	uint32_t scanlineNumber = SCANLINE_NUMBER_NTSC;
-	uint32_t scanlineCount = -1;
+	uint32_t cpuClocks;
+	uint32_t cpuFrameClocks;
+	uint32_t cpuScanlineClocks;
+	uint32_t cpuClocksToHblank;
+	uint32_t cpuScanlineClocksNumber;
+	uint32_t scanlineNumber;
+	uint32_t scanlineCount;
 
 	union GpuStat {
 		uint32_t data;
@@ -170,7 +199,7 @@ public:
 
 	union PsxColor16 {
 		PsxColor16() : data(0) {}
-		PsxColor16(uint16_t input) : data(input) {}
+		PsxColor16(const uint16_t& input) : data(input) {}
 		uint16_t data;
 		struct {
 			uint16_t red : 5;
@@ -178,32 +207,32 @@ public:
 			uint16_t blue : 5;
 			uint16_t semiTransparencyFlag : 1;
 		}component;
-		PsxColor16 operator* (float a) {
-			PsxColor16 v;
-			v.component.red = (uint16_t)(a * (float)component.red);
-			v.component.green = (uint16_t)(a * (float)component.green);
-			v.component.blue = (uint16_t)(a * (float)component.blue);
-			return v;
+		PsxColor16 operator* (const float& c) {
+			PsxColor16 a;
+			a.component.red = (uint16_t)(c * (float)component.red);
+			a.component.green = (uint16_t)(c * (float)component.green);
+			a.component.blue = (uint16_t)(c * (float)component.blue);
+			return a;
 		}
-		PsxColor16 operator/ (float a) {
-			PsxColor16 v;
-			v.component.red = (uint16_t)(a / (float)component.red);
-			v.component.green = (uint16_t)(a / (float)component.green);
-			v.component.blue = (uint16_t)(a / (float)component.blue);
-			return v;
+		PsxColor16 operator/ (const float& c) {
+			PsxColor16 a;
+			a.component.red = (uint16_t)(c / (float)component.red);
+			a.component.green = (uint16_t)(c / (float)component.green);
+			a.component.blue = (uint16_t)(c / (float)component.blue);
+			return a;
 		}
-		PsxColor16 operator+ (PsxColor16 v1) {
-			PsxColor16 v2;
-			v2.component.red = v1.component.red + component.red;
-			v2.component.green = v1.component.green + component.green;
-			v2.component.blue = v1.component.blue + component.blue;
-			return v2;
+		PsxColor16 operator+ (const PsxColor16& b) {
+			PsxColor16 a;
+			a.component.red = component.red + b.component.red;
+			a.component.green = component.green + b.component.green;
+			a.component.blue = component.blue + b.component.blue;
+			return a;
 		}
 	};
 
 	union PsxColor24 {
 		PsxColor24() : data(0) {}
-		PsxColor24(uint32_t input) : data(input << 8 >> 8) {}
+		PsxColor24(const uint32_t& input) : data(input << 8 >> 8) {}
 		uint32_t data;
 		struct {
 			uint32_t red : 8;
@@ -230,34 +259,6 @@ public:
 		return color24.data;
 	}
 
-	struct Vector2D {
-		Vector2D() : x(0), y(0) {}
-		Vector2D(uint32_t xTemp, uint32_t yTemp) {
-			*(&x) = uint16_t(xTemp);
-			*(&y) = uint16_t(yTemp);
-		}
-		Vector2D(uint32_t coord) {
-			*(&x) = Signed11bit(coord & 0x7ff);
-			*(&y) = Signed11bit((coord >> 16) & 0x7ff);
-		}
-
-		int16_t x;
-		int16_t y;
-
-		Vector2D operator+(Vector2D a) {
-			return Vector2D(x + a.x, y + a.y);
-		}
-		Vector2D operator+=(Vector2D a) {
-			return Vector2D(x + a.x, y + a.y);
-		}
-		Vector2D operator-(Vector2D a) {
-			return Vector2D(x - a.x, y - a.y);
-		}
-		Vector2D operator*(int c) {
-			return Vector2D(c * x, c * y);
-		}
-	};
-
 	Vector2D drawOffset;
 
 	Fifo<uint32_t> fifo;
@@ -275,7 +276,7 @@ public:
 
 	union TexCoord {
 		TexCoord() : data(0) {}
-		TexCoord(uint32_t data) : data(data) {}
+		TexCoord(const uint32_t& data) : data(data) {}
 		uint32_t data;
 		struct {
 			uint32_t u : 8;
@@ -388,14 +389,15 @@ public:
 	uint32_t gp1BottomRight = 0;
 	uint32_t gp1DrawOffset = 0;
 
-	uint8_t* vram = new uint8_t[size_x_b * size_y];
+	std::unique_ptr<uint8_t[]> vram = std::make_unique<uint8_t[]>(size_x_b * size_y);
 
-	void WriteVram(const Vector2D& position, const uint16_t& data, const bool bIgnoreDrawingArea = false, const bool bDithering = false);
-	void ReadVram(const Vector2D& position, uint16_t& data, const bool bIgnoreDrawingArea = false);
+	void WriteVram(const Vector2D& position, const uint16_t& data, 
+		const bool bIgnoreDrawingArea = false, const bool bDithering = false);
+	void ReadVram(const Vector2D& position, uint16_t& data, 
+		const bool bIgnoreDrawingArea = false) const;
 
 	olc::Sprite* GetVramSprite();
-	olc::Sprite vramView = olc::Sprite(1024, 512);
-	olc::Sprite* vramViewPtr = new olc::Sprite(1024, 512);
+	std::unique_ptr<olc::Sprite> vramView = std::make_unique<olc::Sprite>(1024, 512);
 	void UpdateVramView(const Vector2D& position, const PsxColor16& color16);
 
 	struct ClutCache {
@@ -435,7 +437,7 @@ public:
 			isValid = false;
 		}
 
-		uint16_t GetColor(int i) {
+		uint16_t GetColor(const int& i) {
 			return cacheData[i];
 		}
 	}clutCache;

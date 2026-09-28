@@ -14,7 +14,6 @@ extern bool g_logPixel;
 extern bool g_manualInterruptDMA;
 
 Gpu::Gpu() {
-	gpuStat.data = 0x14000000;
 
 	fifo.Resize(size_x * size_y);
 
@@ -278,6 +277,29 @@ Gpu::Gpu() {
 		{"NOP (?)", 1},
 		{"NOP (?)", 1},
 	};
+
+	ResetGpu();
+}
+
+void Gpu::ResetGpu() {
+	cpuClocks = 0;
+	cpuFrameClocks = 0;
+	cpuScanlineClocks = 0;
+
+#if NTSC
+	cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
+	cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
+	scanlineNumber = SCANLINE_NUMBER_NTSC;
+#else
+	cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_PAL;
+	cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_PAL;
+	scanlineNumber = SCANLINE_NUMBER_PAL;
+#endif
+
+	scanlineCount = 0;
+	gpuStat.data = 0x14000000;
+	fifo.Reset();
+	outputFifo.Reset();
 }
 
 void Gpu::ReadGpu32(const uint32_t& addr, uint32_t& data) {
@@ -480,9 +502,9 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			}
 		}
 		break;
-	case 0b001: { //Polygon primitive
-		Param param;
+	case 0b001: {
 
+		Param param;
 		param.primitiveType = POLYGON;
 		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
 		param.verticesNumber = (command & 0x08000000) ? 4 : 3;
@@ -563,10 +585,10 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 			  break;
 
-	case 0b010: { //Line primitive
+	case 0b010: {
+
 		Param param;
 		param.primitiveType = LINE;
-
 		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
 		param.isPolyline = (command & 0x08000000) ? true : false;
 		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
@@ -609,9 +631,9 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			  break;
 
 	case 0b011: { //Rectangle primitive
+
 		Param param;
 		param.primitiveType = RECT;
-
 		param.rectSize = command << 3 >> 30;
 		param.isTextured = (command & 0x04000000) ? true : false;
 		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
@@ -991,10 +1013,10 @@ void Gpu::UpdateVramView(const Vector2D& possition, const PsxColor16& color16) {
 		return pixel;
 		};
 
-	vramView.SetPixel(possition.x, possition.y, ConvertPSXtoPC_RGB_Values(color16));
+	vramView->SetPixel(possition.x, possition.y, ConvertPSXtoPC_RGB_Values(color16));
 
 	/*if (g_logPixel && (possition.x == g_mousePossitionX) && (possition.y == g_mousePossitionY)) {
-		vramView.SetPixel(possition.x, possition.y, olc::YELLOW);
+		vramView->SetPixel(possition.x, possition.y, olc::YELLOW);
 		std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
 		<< " " << gp0Lookup[gp0Command >> 24].name << std::endl;
 		g_emulationPaused = true;
@@ -1019,7 +1041,7 @@ void Gpu::WriteVram(const Vector2D& position, const uint16_t& data,
 		if ((gpuStat.elem.drawPixels &&
 			((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
 
-			*((uint16_t*)(vram + ((position.x & 1023) << 1) + ((position.y & 511) << 11))) =
+			*((uint16_t*)(vram.get() + ((position.x & 1023) << 1) + ((position.y & 511) << 11))) =
 				data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			UpdateVramView(position, data);
 		}
@@ -1052,7 +1074,7 @@ void Gpu::WriteVram(const Vector2D& position, const uint16_t& data,
 		uint16_t backPixel;
 		ReadVram(position, backPixel, bIgnoreDrawingArea);
 		if ((gpuStat.elem.drawPixels && ((backPixel & 0x8000) == 0x0000)) || (gpuStat.elem.drawPixels == 0)) {
-			*((uint16_t*)(vram + ((position.x & 1023) << 1) + ((position.y & 511) << 11))) =
+			*((uint16_t*)(vram.get() + ((position.x & 1023) << 1) + ((position.y & 511) << 11))) =
 				data | ((gpuStat.elem.setMaskBitWhileDrawing) ? 0x8000 : 0);
 			UpdateVramView(position, data);
 		}
@@ -1060,7 +1082,7 @@ void Gpu::WriteVram(const Vector2D& position, const uint16_t& data,
 }
 
 void Gpu::ReadVram(const Vector2D& position, uint16_t& data,
-	const bool bIgnoreDrawingArea) {
+	const bool bIgnoreDrawingArea) const {
 
 	if (bIgnoreDrawingArea) {
 		/*if ((position.x < 0) || (position.y < 0)) {
@@ -1071,7 +1093,7 @@ void Gpu::ReadVram(const Vector2D& position, uint16_t& data,
 			return;
 		}*/
 
-		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + ((position.y & 511) << 11)));
+		data = *((uint16_t*)(vram.get() + ((position.x & 1023) << 1) + ((position.y & 511) << 11)));
 		return;
 	}
 
@@ -1080,10 +1102,10 @@ void Gpu::ReadVram(const Vector2D& position, uint16_t& data,
 		(position.x <= drawAreaBottomRight.x) &&
 		(position.y <= drawAreaBottomRight.y)) {
 
-		data = *((uint16_t*)(vram + ((position.x & 1023) << 1) + ((position.y & 511) << 11)));
+		data = *((uint16_t*)(vram.get() + ((position.x & 1023) << 1) + ((position.y & 511) << 11)));
 	}
 }
 
 olc::Sprite* Gpu::GetVramSprite() {
-	return &vramView;
+	return vramView.get();
 }
