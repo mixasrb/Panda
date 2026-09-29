@@ -665,8 +665,6 @@ void Gpu::DrawTexRect4Bit(const Param& param) {
 
 		for (int16_t x = 0; x < x2 - x1; x++) {
 			pTex.x = gpuStat.elem.texPageXBase << 6;
-			pTex.x += (((u1 >> 2) + ((x + (u1 & 0x3)) >> 2))
-				& (255 >> 2) & (~(texWinMask.x << 1))) | ((texWinOffset.x & texWinMask.x) << 1);
 
 			p.x = x1 + x;
 
