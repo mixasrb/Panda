@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <stdio.h>
+#include <memory>
 
 #include "../cpu/cw33300.h"
 #include "../bus/dma/dma_controller.h"
@@ -9,7 +9,6 @@
 #include "../cd_drive/hc05_pux.h"
 #include "../gpu/cxdxxxxx.h"
 #include "../bios_chip/bios_chip.h"
-#include "../timers/timer.h"
 #include "../timers/timer_0.h"
 #include "../timers/timer_1.h"
 #include "../timers/timer_2.h"
@@ -58,8 +57,8 @@ public:
 
 	biosChip_t biosChip;
 
-	uint8_t* ram = new uint8_t[RAM_SIZE];
-	uint8_t* scratchpad = new uint8_t[SCRATCHPAD_SIZE];
+	std::unique_ptr<uint8_t[]> ram = std::make_unique<uint8_t[]>(RAM_SIZE);
+	std::unique_ptr<uint8_t[]> scratchpad = std::make_unique<uint8_t[]>(SCRATCHPAD_SIZE);
 
 	uint32_t interruptStat = 0;
 	uint32_t interruptMask = 0;

@@ -94,7 +94,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		//	return;
 		//}
 
-		data = *((uint32_t*)(ram + (addr & 0x1fffff)));
+		data = *((uint32_t*)(ram.get() + (addr & 0x1fffff)));
 
 		//skullmonkeys patch
 	/*	if ((addr & 0x1fffff) == 0x131fc)
@@ -109,7 +109,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
-		data = *((uint32_t*)(scratchpad + (addr & 0x1fffff)));
+		data = *((uint32_t*)(scratchpad.get() + (addr & 0x1fffff)));
 		clocks = 1;
 	}
 	else if (MEMORY_CONTROL_1) {
@@ -236,14 +236,14 @@ void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 		}
 
 
-		*((uint32_t*)(ram + (addr & 0x1fffff))) = data;
+		*((uint32_t*)(ram.get() + (addr & 0x1fffff))) = data;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
 		return;
 	}
 	else if (SCRATCHPAD)
-		*((uint32_t*)(scratchpad + (addr & 0x1fffff))) = data;
+		*((uint32_t*)(scratchpad.get() + (addr & 0x1fffff))) = data;
 
 	else if (MEMORY_CONTROL_1) {
 		switch (addr) {
@@ -390,7 +390,7 @@ void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		//	return;
 		//}
 
-		data = *((uint16_t*)(ram + (addr & 0x1fffff)));
+		data = *((uint16_t*)(ram.get() + (addr & 0x1fffff)));
 
 		clocks = 5;
 	}
@@ -401,7 +401,7 @@ void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 	}
 	//Scratchpad
 	else if (SCRATCHPAD) {
-		data = *((uint16_t*)(scratchpad + (addr & 0x1fffff)));
+		data = *((uint16_t*)(scratchpad.get() + (addr & 0x1fffff)));
 		clocks = 1;
 	}
 	else if (INTERRUPT_STAT) {
@@ -486,14 +486,14 @@ void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 			return;
 		}
 
-		*((uint16_t*)(ram + (addr & 0x1fffff))) = data;
+		*((uint16_t*)(ram.get() + (addr & 0x1fffff))) = data;
 	}
 	//Expansion 1
 	else if (EXPANSION1) {
 		return;
 	}
 	else if (SCRATCHPAD)
-		*((uint16_t*)(scratchpad + (addr & 0x1fffff))) = data;
+		*((uint16_t*)(scratchpad.get() + (addr & 0x1fffff))) = data;
 	else if (INTERRUPT_STAT) {
 		interruptStat &= 0xffff0000 | (uint32_t)data;
 		pCpu->cp0.updateInterruptMaskStat();

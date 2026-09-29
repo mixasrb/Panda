@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
 #include <sstream>
 #include <vector>
 #include <memory>
@@ -105,22 +104,22 @@ public:
 
 	Gpu();
 
-	BusInterface* Bus;
+	BusInterface* BusPtr;
 
 	void ReadGpu32(const uint32_t& addr, uint32_t& data);
 	void WriteGpu32(const uint32_t& addr, const uint32_t& data);
 
 	void VideoClock();
 
-	const uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-	const uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
-	const uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
-	const uint32_t SCANLINE_NUMBER_NTSC = 263;
-	const uint32_t SCANLINE_NUMBER_PAL = 314;
-	const uint32_t CPU_CLOCKS_PER_SCANLINE_NTSC = CPU_CLOCKS_PER_FRAME_NTSC / SCANLINE_NUMBER_NTSC;
-	const uint32_t CPU_CLOCKS_PER_SCANLINE_PAL = CPU_CLOCKS_PER_FRAME_PAL / SCANLINE_NUMBER_PAL;
-	const uint32_t CPU_CLOCKS_TO_HBLANK_NTSC = CPU_CLOCKS_PER_SCANLINE_NTSC * 3 / 4;
-	const uint32_t CPU_CLOCKS_TO_HBLANK_PAL = CPU_CLOCKS_PER_SCANLINE_PAL * 3 / 4;
+	static constexpr uint32_t CPU_CLOCK = 44100 * 0x300;
+	static constexpr uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
+	static constexpr uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
+	static constexpr uint32_t SCANLINE_NUMBER_NTSC = 263;
+	static constexpr uint32_t SCANLINE_NUMBER_PAL = 314;
+	static constexpr uint32_t CPU_CLOCKS_PER_SCANLINE_NTSC = CPU_CLOCKS_PER_FRAME_NTSC / SCANLINE_NUMBER_NTSC;
+	static constexpr uint32_t CPU_CLOCKS_PER_SCANLINE_PAL = CPU_CLOCKS_PER_FRAME_PAL / SCANLINE_NUMBER_PAL;
+	static constexpr uint32_t CPU_CLOCKS_TO_HBLANK_NTSC = CPU_CLOCKS_PER_SCANLINE_NTSC * 3 / 4;
+	static constexpr uint32_t CPU_CLOCKS_TO_HBLANK_PAL = CPU_CLOCKS_PER_SCANLINE_PAL * 3 / 4;
 
 	const uint32_t cpuDotClocks[5] = {
 		CPU_CLOCK / 10,
@@ -172,22 +171,12 @@ public:
 		}elem;
 	}gpuStat;
 
-	typedef struct {
-		uint8_t x;
-		uint8_t y;
-	}TexWinOffset, TexWinMask;
-
-	TexWinMask texWinMask;
-	TexWinOffset texWinOffset;
-
-	typedef struct {
-		uint16_t x;
-		uint16_t y;
-	}DrawArea, Coord;
-
-	DrawArea drawAreaTopLeft;
-	DrawArea drawAreaBottomRight;
-	Coord displayStart;
+	Vector2D texWinMask;
+	Vector2D texWinOffset;
+	Vector2D drawAreaTopLeft;
+	Vector2D drawAreaBottomRight;
+	Vector2D displayStart;
+	Vector2D drawOffset;
 
 	uint16_t screenX1;
 	uint16_t screenX2;
@@ -256,8 +245,6 @@ public:
 		return color24.data;
 	}
 
-	Vector2D drawOffset;
-
 	Fifo<uint32_t> fifo;
 	Fifo<uint32_t> outputFifo;
 
@@ -302,7 +289,8 @@ public:
 
 	struct Param {
 		Param() : primitiveType(UNDEFINED), shadingType(UNDEFINED_SHADING),
-			rectSize(0), sizeYX(0), verticesNumber(0), isPolyline(false), isTextured(false),
+			rectSize(0), sizeYX(0), verticesNumber(0),
+			isPolyline(false), isTextured(false),
 			transpanencyType(UNDEFINED_TRANSPARENCY), modulationType(UNDEFINED_MODULATION),
 			commandColor1(0), vert1(0, 0), texCoord1Palette(0),
 			color2(0), vert2(0, 0), texCoord2TexPage(0),
@@ -339,7 +327,7 @@ public:
 	std::vector <GP0Commands> gp0Lookup;
 
 	uint32_t gp0Command;
-	uint32_t collectCount = 0;
+	uint32_t fifoCollectCount = 0;
 
 	void DecodeExecuteGp0Command(const uint32_t& command);
 
@@ -349,15 +337,23 @@ public:
 
 	void DrawPolygon(const Param& param);
 
+	struct TextureBitness {
+		bool is15BitTexture;
+		uint8_t shiftRight;
+		uint8_t firstAnd;
+		uint8_t shiftLeft;
+		uint8_t secondAnd;
+	};
+
+	TextureBitness GetTextureBitness() const;
+
 	void DrawTexPolygon(const Param& p_param);
 
 	void DrawLine(const Param& param);
 	bool collectPolylineParam = false;
 
 	void DrawMonochromeRect(const Param& param);
-	void DrawTexRect15(const Param& param);
-	void DrawTexRect8(const Param& param);
-	void DrawTexRect4Bit(const Param& param);
+	void DrawTexRect(const Param& param);
 
 	void CopyRectVramToVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight);
 	void CopyRectCpuToVram(const uint32_t& dest_coord, const uint32_t& width_height);
@@ -434,7 +430,7 @@ public:
 			isValid = false;
 		}
 
-		uint16_t GetColor(const int& i) {
+		uint16_t GetColor(const int& i) const {
 			return cacheData[i];
 		}
 	}clutCache;

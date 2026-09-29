@@ -330,14 +330,14 @@ void Gpu::ReadGpu32(const uint32_t& addr, uint32_t& data) {
 
 void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		if (collectCount) {
+		if (fifoCollectCount) {
 			fifo.PushBack(data);
-			collectCount--;
-			if ((collectCount == 0) && (collectPolylineParam))
+			fifoCollectCount--;
+			if ((fifoCollectCount == 0) && (collectPolylineParam))
 				if ((data & 0xf000f000) == 0x50005000)
 					collectPolylineParam = false;
 				else
-					collectCount = 1;
+					fifoCollectCount = 1;
 		}
 		else {
 			gp0Command = data;
@@ -349,7 +349,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 
 			fifo.Reset();
 
-			collectCount = gp0Lookup[gp0Command >> 24].collectPramCount - 1;
+			fifoCollectCount = gp0Lookup[gp0Command >> 24].collectPramCount - 1;
 
 			if (((gp0Command >> 24) >= 0xa0) && ((gp0Command >> 24) < 0xc0))
 				collectCopyCpuToVramData = true;
@@ -357,7 +357,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 				collectPolylineParam = true;
 		}
 
-		if (collectCount == 0) {
+		if (fifoCollectCount == 0) {
 
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
@@ -382,38 +382,38 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 void Gpu::VideoClock() {
 	if (cpuScanlineClocks == cpuClocksToHblank) {
 		//Hblank clocking timer 1
-		Bus->timer0.bHblank = true;
-		Bus->timer0.clock(_HBLANK_CLOCK);
-		Bus->timer1.clock(_HBLANK_CLOCK);
+		BusPtr->timer0.bHblank = true;
+		BusPtr->timer0.clock(_HBLANK_CLOCK);
+		BusPtr->timer1.clock(_HBLANK_CLOCK);
 	}
 
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
 
 		cpuScanlineClocks = 0;
 		scanlineCount++;
-		Bus->timer0.bHblank = false;
+		BusPtr->timer0.bHblank = false;
 
 		if (gpuStat.elem.verticalInterlace)
 			if (!gpuStat.elem.verticalRes)
 				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
 
 		if (scanlineCount == screenY2) {
-			Bus->timer1.bVblank = true;
+			BusPtr->timer1.bVblank = true;
 
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU VBlank" << '\n';
 
 			//V-Sync interrupt is naturally edge trigered
-			Bus->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
+			BusPtr->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
 
 
 			//Vblank synchronization timer 1
-			Bus->timer1.clock(_VBLANK_CLOCK);
+			BusPtr->timer1.clock(_VBLANK_CLOCK);
 		}
 		else if (scanlineCount == scanlineNumber) {
 
 			scanlineCount = 0;
-			Bus->timer1.bVblank = false;
+			BusPtr->timer1.bVblank = false;
 
 			if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU non VBlank" << '\n';
@@ -425,7 +425,7 @@ void Gpu::VideoClock() {
 	}
 
 	if ((cpuClocks % dotClockDevider) == 0)
-		Bus->timer0.clock(_DOT_CLOCK);
+		BusPtr->timer0.clock(_DOT_CLOCK);
 
 	if (cpuClocks == CPU_CLOCK)
 		cpuClocks = 0;
@@ -615,7 +615,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			}
 		}
 
-		fifo.Reset();
+		fifo.Reset(); //??
 	}
 
 			  break;
@@ -635,7 +635,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		param.vert1 += drawOffset;
 
 		if (param.isTextured)
-			param.texCoord1Palette = (TexCoord)fifo.GetNext();
+			param.texCoord1Palette = fifo.GetNext();
 
 		switch (param.rectSize) {
 		case 0b00:
@@ -653,20 +653,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		}
 
 		if (param.isTextured)
-			switch (gpuStat.elem.texPageColors) {
-			case 0:
-				DrawTexRect4Bit(param);
-				break;
-			case 1:
-				DrawTexRect8(param);
-				break;
-			case 2:
-				DrawTexRect15(param);
-				break;
-			case 3:
-				DrawTexRect15(param);
-				break;
-			}
+			DrawTexRect(param);
 		else
 			DrawMonochromeRect(param);
 		break;
@@ -709,9 +696,9 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			maskSizCopy(xsiz, ysiz);
 			widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
-			collectCount = xsiz * ysiz / 2;
-			if ((collectCount * 2) < xsiz * ysiz)
-				collectCount++;
+			fifoCollectCount = xsiz * ysiz / 2;
+			if ((fifoCollectCount * 2) < xsiz * ysiz)
+				fifoCollectCount++;
 		}
 		else
 			CopyRectCpuToVram(destCoord, widthHeight);

@@ -272,10 +272,10 @@ public:
 			}
 
 			if (GetKey(olc::Key::R).bPressed)
-				psx.debugger.dump("logs/ram.bin", psx.bus.ram, 2048 * 1024);
+				psx.debugger.dump("logs/ram.bin", psx.bus.ram.get(), 2048 * 1024);
 
 			if (GetKey(olc::Key::Y).bPressed)
-				psx.debugger.dump("logs/scratchpad.bin", psx.bus.scratchpad, 1024);
+				psx.debugger.dump("logs/scratchpad.bin", psx.bus.scratchpad.get(), 1024);
 
 			if (GetKey(olc::Key::V).bPressed)
 				psx.debugger.dump("logs/vram.bin", psx.gpu.vram.get(), 2048 * 512);
