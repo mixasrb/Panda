@@ -1240,7 +1240,7 @@ void Spu::reverbClock(const Output& input) {
 		reverbCurrentBufferAddress = max(mBASE << 3, (reverbCurrentBufferAddress + 2) & 0x7fffe);
 	}
 
-	bReverbCycle != bReverbCycle;
+	bReverbCycle = !bReverbCycle;
 }
 
 
