@@ -1098,11 +1098,6 @@ Output Spu::Voices::voiceRegister_t::envelope(const int16_t& input) {
 	return output;
 }
 
-template<typename T>
-static T max(T a, T b) {
-	return (a > b) ? a : b;
-}
-
 void Spu::ReverbClock(const Output& input) {
 
 #undef vLOUT
@@ -1530,7 +1525,7 @@ Output Spu::clockCDDA() {
 	if (pBus->pCdDrive->bPlay) {
 		if (counterCDDA == 0x930) {
 			counterCDDA = 0;
-			pBus->pCdDrive->readSectorCDDA(ammCDDA, assCDDA, asectCDDA, pBufferCDDA);
+			pBus->pCdDrive->ReadCddaSector(ammCDDA, assCDDA, asectCDDA, pBufferCDDA);
 		}
 
 		outputSample.channel0 = *((int16_t*)(pBufferCDDA + counterCDDA)) / 32767.0f;

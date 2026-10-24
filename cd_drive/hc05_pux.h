@@ -3,10 +3,13 @@
 #include <cstdint>
 #include <sstream>
 #include <vector>
+#include <queue>
 #include <fstream>
 #include <string>
 
 #include "../debug_utilities/debug_utilities.h"
+
+constexpr uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
 class BusInterface;
 
@@ -17,14 +20,14 @@ public:
 
 	BusInterface* pBus;
 
-	void readCdDrive8(const uint32_t& addr, uint8_t& data);
-	void writeCdDrive8(const uint32_t& addr, const uint8_t& data);
+	void Read8(const uint32_t& addr, uint8_t& data);
+	void Write8(const uint32_t& addr, const uint8_t& data);
 
-	void clock();
+	void Clock();
 	uint32_t clocks = 0;
 	uint32_t dataClocks = 0;
 
-	enum driveStatus_t :uint8_t {
+	enum DriveStatus :uint8_t {
 		DOOR_OPEN = 0,
 		SPIN_UP = 1,
 		DETECT_BUSY = 2,
@@ -38,7 +41,7 @@ public:
 		MODCHIP_AUDIO_MODE_1 = 10
 	}driveStatus;
 
-	union indexStatus_t {
+	union IndexStatus {
 		uint8_t data;
 		struct {
 			uint8_t index : 2;
@@ -51,13 +54,13 @@ public:
 		}elem;
 	};
 
-	indexStatus_t indexStatus = { 0 };
+	IndexStatus indexStatus = { 0 };
 
-	//it is not vecor it is just a register??
+	//it is not vector it is just a register??
 	std::vector<uint8_t> commandVector;
 	std::vector<uint8_t> paramFifo;
 
-	union requestRegister_t {
+	union RequestRegister {
 		uint8_t data;
 		struct {
 			uint8_t notUsed : 5;
@@ -66,7 +69,7 @@ public:
 			uint8_t bfrd : 1;
 		}elem;
 	};
-	requestRegister_t requestReg = { 0 };
+	RequestRegister requestReg = { 0 };
 
 	//data fifo
 	uint8_t* pBuffer = nullptr;
@@ -75,17 +78,7 @@ public:
 
 	std::vector<uint8_t> responseFifo;
 
-	union interruptEnable_t {
-		uint8_t data;
-		struct {
-			uint8_t enableBits : 5;
-			uint8_t : 3;
-		}elem;
-	};
-
-	interruptEnable_t interruptEnable = { 0 };
-
-	union irqFlagRead_t {
+	union InterruptEnable {
 		uint8_t data;
 		struct {
 			uint8_t int_1_7 : 3;
@@ -94,48 +87,64 @@ public:
 			uint8_t : 3;
 		}elem;
 	};
-	irqFlagRead_t irqFlagRead = { 0 };
 
-	enum responseINT_t :uint8_t {
-		INT0,
-		INT1,
-		INT2,
-		INT3,
-		INT4,
-		INT5
+	InterruptEnable interruptEnable = { 0 };
+
+	union IrqFlagRead {
+		uint8_t data;
+		struct {
+			uint8_t int_1_7 : 3;
+			uint8_t int_8 : 1;
+			uint8_t int_10 : 1;
+			uint8_t : 3;
+		}elem;
+	};
+	IrqFlagRead irqFlagRead = { 0 };
+
+	enum ResponseInterrupt :uint8_t {
+		INTERRUPT_0,
+		INTERRUPT_1,
+		INTERRUPT_2,
+		INTERRUPT_3,
+		INTERRUPT_4,
+		INTERRUPT_5
 	};
 
-	std::vector<responseINT_t> responsesINT;
+	std::queue<ResponseInterrupt> responsesINT;
 
-	void sendResponseINT(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
+	void SendResponseInterrupt(const ResponseInterrupt& responseINT, 
+		uint8_t* pResponses, const uint8_t& responseCount);
 
-	responseINT_t firstResponseINT;
+	ResponseInterrupt firstResponseINT;
 	bool bFirstResponse = false;
 	uint32_t waitClocksFirstResponse = 0;
-	void setFirstResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
+	void SetFirstResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
+		uint8_t* pResponses, const uint8_t& responseCount);
 
-	responseINT_t secondResponseINT;
+	ResponseInterrupt secondResponseINT;
 	bool bSecondResponse = false;
 	uint32_t waitClocksSecondResponse = 0;
-	void setSecondResponse(const uint32_t& waitClocks, const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
+	void SetSecondResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
+		uint8_t* pResponses, const uint8_t& responseCount);
 
-	responseINT_t dataResponseINT;
+	ResponseInterrupt dataResponseINT;
 	bool bDataResponse = false;
 	uint32_t waitClocksDataResponse = 0;
-	void setDataResponse(const responseINT_t& responseINT, uint8_t* pResponses, const uint8_t& responseCount);
+	void SetDataResponse(const ResponseInterrupt& responseINT, 
+		uint8_t* pResponses, const uint8_t& responseCount);
 
 	std::vector<uint8_t> tempFirstResponseVector;
 	std::vector<uint8_t> tempSecondResponseVector;
 	std::vector<uint8_t> tempDataResponseVector;
 
-	struct command_t {
+	struct Command {
 		std::string name;
 		void(cdDrive::* command)(const uint8_t& command);
 	};
 
-	std::vector<command_t> commandLookup;
+	std::vector<Command> commandLookup;
 
-	void executeCommand(const uint8_t& command);
+	void ExecuteCommand(const uint8_t& command);
 
 	void sync(const uint8_t& command);
 	void xxxxx(const uint8_t& command);
@@ -175,7 +184,7 @@ public:
 		STAT_NULL = 0x0
 	};
 
-	union stat_t {
+	union Status {
 		uint8_t data;
 		struct {
 			uint8_t error : 1;
@@ -189,7 +198,7 @@ public:
 		}elem;
 	}stat;
 
-	//Shell same as Door??
+	//Shell same as door??
 	bool bShellOpen = false;
 
 	uint8_t amm;
@@ -205,8 +214,8 @@ public:
 	uint8_t unprocessed_ass;
 	uint8_t unprocessed_asect;
 
-	void readSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
-	void cancelReading();
+	void ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
+	void CancelReading();
 
 	uint16_t sectorSize;
 
@@ -224,8 +233,6 @@ public:
 		}elem;
 	}mode;
 
-	void printDriveMode();
-
 	uint8_t filterFile;
 	uint8_t filterChannel;
 
@@ -237,22 +244,22 @@ public:
 	bool bSetLocUnprocessed = false;
 	bool bMuted = true;
 
-	struct cdSector_t {
+	struct Sector {
 		uint16_t amm;
 		uint16_t ass;
 		uint16_t asect;
 	};
 
-	struct cdTrack_t {
+	struct Track {
 		uint8_t track;
-		cdSector_t trackStart;
-		cdSector_t trackEnd;
+		Sector trackStart;
+		Sector trackEnd;
 	};
 
 	size_t fileSize;
-	std::vector<cdTrack_t> cdTracks;
+	std::vector<Track> cdTracks;
 
-	void addSector(cdSector_t& sector, int8_t mm, int8_t ss, int8_t sect) {
+	void AddSector(Sector& sector, int8_t mm, int8_t ss, int8_t sect) {
 		if (sect < 0)
 			if (ss == 0) {
 				mm--;
@@ -271,11 +278,9 @@ public:
 		sector.ass %= 60;
 	}
 
-	void readSectorXA_ADPCM(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
+	void ReadXaAdpcmSector(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
 
-	void readSectorCDDA(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
-
-	const uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
+	void ReadCddaSector(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t*& src);
 
 	uint16_t tempVolumeLeftLeft = 0;
 	uint16_t tempVolumeLeftRight = 0;
@@ -292,5 +297,7 @@ public:
 	//debug
 	DebugUtilities* p_debugger;
 
-	void printStat();
+
+	void PrintDriveMode();
+	void PrintStatus();
 };

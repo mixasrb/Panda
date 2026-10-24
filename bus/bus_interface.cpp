@@ -574,7 +574,7 @@ void BusInterface::Read8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, c
 		clocks = 11;
 	}
 	else if (CD_DRIVE) {
-		pCdDrive->readCdDrive8(addr, data);
+		pCdDrive->Read8(addr, data);
 		clocks = 8;//??
 	}
 	else if (SPU) {
@@ -617,7 +617,7 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 	else if (POST)
 		post = data;
 	else if (CD_DRIVE)
-		pCdDrive->writeCdDrive8(addr, data);
+		pCdDrive->Write8(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite8(addr, data);
 	else {

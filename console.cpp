@@ -63,7 +63,7 @@ void psxConsole_t::clock() {
 
 	gpu.Clock();
 
-	cdDrive.clock();
+	cdDrive.Clock();
 
 	bus.timer0.Clock(_SYSTEM_CLOCK);
 	bus.timer1.Clock(_SYSTEM_CLOCK);
