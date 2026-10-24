@@ -47,7 +47,7 @@ void psxConsole_t::connectDebugger() {
 }
 
 void psxConsole_t::reset() {
-	cpuSOC.reset();
+	cpuSOC.Reset();
 	for (int i = 0; i < 2 * 1024 * 1024; i++) {
 		bus.ram[i] = 0;
 	}
@@ -55,7 +55,7 @@ void psxConsole_t::reset() {
 
 void psxConsole_t::clock() {
 	if (!bus.dma.isCpuStopped)
-		cpuSOC.clock();
+		cpuSOC.Clock();
 
 	bus.dma.Clock();
 

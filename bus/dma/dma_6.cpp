@@ -68,7 +68,7 @@ void Dma6::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 }
 
 void Dma6::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
-	pbus->cpuWrite32(addr, data, cycles);
+	pbus->Write32(addr, data, cycles);
 }
 
 void Dma6::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {

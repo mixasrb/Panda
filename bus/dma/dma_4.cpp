@@ -73,14 +73,14 @@ void Dma4::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void Dma4::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	pBus->cpuRead32(addr, data, cycles);
+	pBus->Read32(addr, data, cycles);
 }
 
 void Dma4::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 }
 
 void Dma4::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	pBus->cpuRead16(addr, data, cycles);
+	pBus->Read16(addr, data, cycles);
 }
 
 void Dma4::DmaWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
@@ -137,17 +137,17 @@ void Dma4::Clock() {
 
 		if (channelControl.reg.transDir == toMainRAM) {
 			DmaRead16(0x1f801da8, data, cycles);
-			pBus->cpuWrite16(memAddrTemp, data, cycles);
+			pBus->Write16(memAddrTemp, data, cycles);
 			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
 			DmaRead16(0x1f801da8, data, cycles);
-			pBus->cpuWrite16(memAddrTemp, data, cycles);
+			pBus->Write16(memAddrTemp, data, cycles);
 		}
 		else {
 			DmaRead16(memAddrTemp, data, cycles);
-			pBus->cpuWrite16(0x1f801da8, data, cycles);
+			pBus->Write16(0x1f801da8, data, cycles);
 			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
 			DmaRead16(memAddrTemp, data, cycles);
-			pBus->cpuWrite16(0x1f801da8, data, cycles);
+			pBus->Write16(0x1f801da8, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
 

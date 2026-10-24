@@ -11,22 +11,22 @@
 
 class BusInterface;
 
-struct output_t {
+struct Output {
 	float channel0;
 	float channel1;
 
-	output_t operator+(output_t a) {
-		output_t output;
+	Output operator+(Output a) {
+		Output output;
 		output.channel0 = channel0 + a.channel0;
 		output.channel1 = channel1 + a.channel1;
 		return output;
 	}
 };
 
-class spu_t {
+class Spu {
 public:
 
-	spu_t();
+	Spu();
 
 	void read32(const uint32_t& addr, uint32_t& data);
 	void write32(const uint32_t& addr, const uint32_t& data);
@@ -37,7 +37,7 @@ public:
 	void read8(const uint32_t& addr, uint8_t& data);
 	void write8(const uint32_t& addr, const uint8_t& data);
 
-	output_t clock();
+	Output Clock();
 
 	BusInterface* pBus;
 
@@ -55,7 +55,7 @@ public:
 
 	class voices_t {
 	public:
-		spu_t* p_spu;
+		Spu* p_spu;
 
 		struct voiceRegister_t {
 
@@ -179,7 +179,7 @@ public:
 			void startEnvelopeSustain();
 			void startEnvelopeRelease();
 
-			output_t envelope(const int16_t& input);
+			Output envelope(const int16_t& input);
 		};
 
 		voiceRegister_t voiceRegisters[24];
@@ -317,8 +317,8 @@ public:
 
 	uint32_t reverbCurrentBufferAddress;
 	bool bReverbCycle = false;
-	void reverbClock(const output_t& input);
-	output_t reverbOutput = { 0, 0 };
+	void reverbClock(const Output& input);
+	Output reverbOutput = { 0, 0 };
 
 	voices_t voices;
 
@@ -419,10 +419,10 @@ public:
 	uint32_t irqAddress = 0;
 	void irqSend();
 
-	output_t clockXA_ADPCM();
+	Output clockXA_ADPCM();
 
-	output_t outputSamplesBufferXA[7];
-	output_t OldOutputSampleXA;
+	Output outputSamplesBufferXA[7];
+	Output OldOutputSampleXA;
 
 	uint8_t asectXA;
 	uint8_t assXA;
@@ -487,8 +487,8 @@ public:
 	const float step44kHz = 1.0f / 44100.0f;
 	const float step37kHz = 1.0f / 37800.0f;
 	float counter37kHz = 0.0f;
-	output_t outputCDXA;
-	output_t outputCD_DriveAudio;
+	Output outputCDXA;
+	Output outputCD_DriveAudio;
 
 	uint16_t cdAudioBufferCounter = 0;
 	uint16_t voice1MonoBufferCounter = 0;
@@ -501,7 +501,7 @@ public:
 
 	uint32_t counterCDDA = 0x930;
 
-	output_t clockCDDA();
+	Output clockCDDA();
 
 	uint8_t* pBufferCDDA = nullptr;
 

@@ -25,17 +25,17 @@
 class BusInterface {
 public:
 
-	void cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug = false);
-	void cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
+	void Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug = false);
+	void Write32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
 
-	void cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles,const bool& debug = false);
-	void cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
+	void Read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles,const bool& debug = false);
+	void Write16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
 
-	void cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles,const bool& debug = false);
-	void cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
+	void Read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles,const bool& debug = false);
+	void Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
 	//cw33300
-	cpu_t* pCpu = nullptr;
+	Cpu* pCpu = nullptr;
 
 	DmaController dma;
 
@@ -53,7 +53,7 @@ public:
 
 	joyMemCard_t* pJoyMemCard = nullptr;
 
-	spu_t spu;
+	Spu spu;
 
 	biosChip_t biosChip;
 

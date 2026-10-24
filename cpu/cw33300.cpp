@@ -11,7 +11,7 @@ extern bool g_biosCallbacksLogged;
 extern const char* g_sideloadPath;
 extern bool g_sideload;
 
-cpu_t::cpu_t() {
+Cpu::Cpu() {
 	cp0.pCpu = this;
 	cp2.pCpu = this;
 
@@ -39,199 +39,131 @@ cpu_t::cpu_t() {
 		{"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}
 	};
 
-	shift_imm.resize(4);
-	shift_imm = {
-		{&cpu_t::SLL}, {&cpu_t::XXX}, {&cpu_t::SRL}, {&cpu_t::SRA}
-	};
+	shift_imm[0] = {&Cpu::SLL};
+	shift_imm[1] = {&Cpu::XXX};
+	shift_imm[2] = {&Cpu::SRL};
+	shift_imm[3] = {&Cpu::SRA};
 
-	shift_reg.resize(4);
-	shift_reg = {
-		{&cpu_t::SLLV}, {&cpu_t::XXX2}, {&cpu_t::SRLV}, {&cpu_t::SRAV}
-	};
+	shift_reg[0] = {&Cpu::SLLV};
+	shift_reg[1] = {&Cpu::XXX2};
+	shift_reg[2] = {&Cpu::SRLV};
+	shift_reg[3] = {&Cpu::SRAV};
 
-	sys_brk.resize(2);
-	sys_brk = {
-		{&cpu_t::SYSCALL}, { &cpu_t::BREAK }
-	};
+	sys_brk[0] = {&Cpu::SYSCALL};
+	sys_brk[1] = {&Cpu::BREAK};
 
-	alu_reg.resize(16);
-	alu_reg = {
-		{&cpu_t::ADD}, {&cpu_t::ADDU}, {&cpu_t::SUB}, {&cpu_t::SUBU}, {&cpu_t::AND}, {&cpu_t::OR}, {&cpu_t::XOR}, {&cpu_t::NOR},
-		{&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::SLT}, {&cpu_t::SLTU}, {&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::XXX2}, {&cpu_t::XXX2}
-	};
+	mul_div[0] = { &Cpu::MULT };
+	mul_div[1] = { &Cpu::MULTU };
+	mul_div[2] = { &Cpu::DIV };
+	mul_div[3] = { &Cpu::DIVU };
 
-	mfhi_mflo.resize(2);
-	mfhi_mflo = {
-		{&cpu_t::MFHI}, {&cpu_t::MFLO}
-	};
+	mfhi_mflo[0] = { &Cpu::MFHI };
+	mfhi_mflo[1] = { &Cpu::MFLO };
 
-	mthi_mtlo.resize(2);
-	mthi_mtlo = {
-		{&cpu_t::MTHI}, {&cpu_t::MTLO}
-	};
+	mthi_mtlo[0] = { &Cpu::MTHI };
+	mthi_mtlo[1] = { &Cpu::MTLO };
 
-	mul_div.resize(4);
-	mul_div = {
-		{&cpu_t::MULT}, {&cpu_t::MULTU}, {&cpu_t::DIV}, {&cpu_t::DIVU}
-	};
+	alu_reg[0] = { &Cpu::ADD };
+	alu_reg[1] = { &Cpu::ADDU };
+	alu_reg[2] = { &Cpu::SUB };
+	alu_reg[3] = { &Cpu::SUBU };
+	alu_reg[4] = { &Cpu::AND };
+	alu_reg[5] = { &Cpu::OR };
+	alu_reg[6] = { &Cpu::XOR };
+	alu_reg[7] = { &Cpu::NOR };
+	alu_reg[8] = { &Cpu::XXX2 };
+	alu_reg[9] = { &Cpu::XXX2 };
+	alu_reg[10] = { &Cpu::SLT };
+	alu_reg[11] = { &Cpu::SLTU };
+	alu_reg[12] = { &Cpu::XXX2 };
+	alu_reg[13] = { &Cpu::XXX2 };
+	alu_reg[14] = { &Cpu::XXX2 };
+	alu_reg[15] = { &Cpu::XXX2 };
 
-	b_cond_z.resize(4);
-	b_cond_z = {
-		{&cpu_t::BLTZ}, {&cpu_t::BGEZ}, {&cpu_t::BLTZAL}, {&cpu_t::BGEZAL}
-	};
+	b_cond_z[0] = {&Cpu::BLTZ};
+	b_cond_z[1] = {&Cpu::BGEZ};
+	b_cond_z[2] = {&Cpu::BLTZAL};
+	b_cond_z[3] = {&Cpu::BGEZAL};
 
-	j_jal.resize(2);
-	j_jal = {
-		{&cpu_t::J}, {&cpu_t::JAL}
-	};
+	j_jal[0] = {&Cpu::J};
+	j_jal[1] = {&Cpu::JAL};
 
-	beq_bne.resize(2);
-	beq_bne = {
-		{&cpu_t::BEQ}, {&cpu_t::BNE}
-	};
+	beq_bne[0] = {&Cpu::BEQ};
+	beq_bne[1] = {&Cpu::BNE};
 
-	blez_bgtz.resize(2);
-	blez_bgtz = {
-		{&cpu_t::BLEZ}, {&cpu_t::BGTZ}
-	};
+	blez_bgtz[0] = {&Cpu::BLEZ};
+	blez_bgtz[1] = {&Cpu::BGTZ};
 
-	alu_imm.resize(7);
-	alu_imm = {
-		{&cpu_t::ADDI}, {&cpu_t::ADDIU}, {&cpu_t::SLTI}, {&cpu_t::SLTIU}, {&cpu_t::ANDI}, {&cpu_t::ORI}, {&cpu_t::XORI}
-	};
+	alu_imm[0] = {&Cpu::ADDI};
+	alu_imm[1] = {&Cpu::ADDIU};
+	alu_imm[2] = {&Cpu::SLTI};
+	alu_imm[3] = {&Cpu::SLTIU};
+	alu_imm[4] = {&Cpu::ANDI};
+	alu_imm[5] = {&Cpu::ORI};
+	alu_imm[6] = {&Cpu::XORI};
 
-	load_rt.resize(8);
-	load_rt = {
-		{&cpu_t::LB}, {&cpu_t::LH}, {&cpu_t::LWL}, {&cpu_t::LW}, {&cpu_t::LBU}, {&cpu_t::LHU}, {&cpu_t::LWR}, {&cpu_t::XXX2}
-	};
+	load_rt[0] = {&Cpu::LB};
+	load_rt[1] = {&Cpu::LH};
+	load_rt[2] = {&Cpu::LWL};
+	load_rt[3] = {&Cpu::LW};
+	load_rt[4] = {&Cpu::LBU};
+	load_rt[5] = {&Cpu::LHU};
+	load_rt[6] = {&Cpu::LWR};
+	load_rt[7] = {&Cpu::XXX2};
 
-	store_rt.resize(8);
-	store_rt = {
-		{&cpu_t::SB}, {&cpu_t::SH}, {&cpu_t::SWL}, {&cpu_t::SW}, {&cpu_t::XXX1}, {&cpu_t::XXX1}, {&cpu_t::SWR}, {&cpu_t::XXX1}
-	};
-
-
-	/*for (uint16_t i = 0; i < 16; i++) {
-		iCache[i].pc = 0xffffffff;
-	}*/
+	store_rt[0] = {&Cpu::SB};
+	store_rt[1] = {&Cpu::SH};
+	store_rt[2] = {&Cpu::SWL};
+	store_rt[3] = {&Cpu::SW};
+	store_rt[4] = {&Cpu::XXX1};
+	store_rt[5] = {&Cpu::XXX1};
+	store_rt[6] = {&Cpu::SWR};
+	store_rt[7] = {&Cpu::XXX1};
 
 	//debug
 	executedOpcodes.resize(32);
 }
 
-void cpu_t::read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug) {
-	pBus->cpuRead32(addr, data, cycles, debug);
+void Cpu::Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug) {
+	pBus->Read32(addr, data, cycles, debug);
 }
 
-void cpu_t::write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cycles) {
-	pBus->cpuWrite32(addr, data, wr_cycles);
-
-	/*if (cycle == 0) {
-		cycle0.bWrite = true;
-		cycle0.addr = addr;
-		cycle0.data = data;
-		cycle0.bitness = 32;
-	}
-	else if (cycle == 1) {
-		cycle1.bWrite = true;
-		cycle1.addr = addr;
-		cycle1.data = data;
-		cycle1.bitness = 32;
-	}*/
+void Cpu::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& wr_cycles) {
+	pBus->Write32(addr, data, wr_cycles);
 }
 
-void cpu_t::read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
-	pBus->cpuRead16(addr, data, cycles);
+void Cpu::Read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+	pBus->Read16(addr, data, cycles);
 }
 
-void cpu_t::write16(const uint32_t& addr, const uint16_t& data, uint8_t& wr_cycles) {
-	pBus->cpuWrite16(addr, data, wr_cycles);
-
-	/*if (cycle == 0) {
-		cycle0.bWrite = true;
-		cycle0.addr = addr;
-		cycle0.data = data;
-		cycle0.bitness = 16;
-	}
-	else if (cycle == 1) {
-		cycle1.bWrite = true;
-		cycle1.addr = addr;
-		cycle1.data = data;
-		cycle1.bitness = 16;
-	}*/
+void Cpu::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& wr_cycles) {
+	pBus->Write16(addr, data, wr_cycles);
 }
 
-void cpu_t::read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
-	pBus->cpuRead8(addr, data, cycles);
+void Cpu::Read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
+	pBus->Read8(addr, data, cycles);
 }
 
-void cpu_t::write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
-	pBus->cpuWrite8(addr, data, writeClocks);
-
-	/*if (cycle == 0) {
-		cycle0.bWrite = true;
-		cycle0.addr = addr;
-		cycle0.data = data;
-		cycle0.bitness = 8;
-	}
-	else if (cycle == 1) {
-		cycle1.bWrite = true;
-		cycle1.addr = addr;
-		cycle1.data = data;
-		cycle1.bitness = 8;
-	}*/
+void Cpu::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+	pBus->Write8(addr, data, writeClocks);
 }
 
-uint32_t cpu_t::get(const uint8_t& reg) {
-	//if (g_executedCpuInstructionsLogged) {
-	//	std::stringstream ss;
-	//	ss << "r" << (uint16_t)reg << " 0x" << std::hex << r[reg] << '\n';
-	//	//p_debugger->log(ss.str());
-	//	loggedOpcodes.push_back(ss.str());
-	//}
+uint32_t Cpu::GetRegister(const uint8_t& reg) {
 	return r[reg];
 }
 
-void cpu_t::set(const uint8_t& reg, const uint32_t& value, const bool loadOpcode) {
-	//if (!loadOpcode) {
-	if (reg != 0)
+void Cpu::SetRegister(const uint8_t& reg, const uint32_t& value, const bool& loadOpcode) {
+	if (reg)
 		r[reg] = value;
-	return;
-	//}
-
-	/*if (pipelineCycle == 0) {
-		if (cycle0.bWrite == true)
-			g_emulationPaused = true;
-		cycle0.bWrite = true;
-		cycle0.addr = reg;
-		cycle0.data = value;
-	}
-	else if (pipelineCycle == 1) {
-		if (cycle1.bWrite == true)
-			g_emulationPaused = true;
-		cycle1.bWrite = true;
-		cycle1.addr = reg;
-		cycle1.data = value;
-	}*/
 }
 
-void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
-	//debug
-	//if (g_executedCpuInstructionsLogged) {
-	//	//p_debugger->log(getInstructionStr(opcode, pc_old, false) + "\n");
-	//	if (loggedOpcodes.size() >= 128)
-	//		loggedOpcodes.clear();
-	//	loggedOpcodes.push_back(getInstructionStr(opcode, pc_old, false) + "\n");
-	//}
-
+void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 #if CPU_DEBUG
 	if (g_executedCpuInstructionsLogged)
 		std::cout << getInstructionStr(opcode, pc_old, false) + "\n";
 #endif
 
 	isCurrentOpcodeBranch = false;
-	//if (opcode == 0)
-	//	return;
 
 	uint8_t prim_opcode = opcode >> 26;
 
@@ -508,7 +440,7 @@ void cpu_t::decodeExecuteOpcode(const uint32_t& opcode) {
 
 }
 
-void cpu_t::reset() {
+void Cpu::Reset() {
 	cycle = 0;
 	pc = 0xbfc00000;
 
@@ -516,7 +448,7 @@ void cpu_t::reset() {
 	cycle1.bWrite = false;
 }
 
-void cpu_t::clock() {
+void Cpu::Clock() {
 
 	//SIDELOAD debug
 #if CPU_DEBUG
@@ -524,36 +456,15 @@ void cpu_t::clock() {
 		sideLoad();
 #endif
 
-	//debug
-	/*if (isInstructionExecuted && (cycle == 0)) {
-		pipelineCycle = 1;
-		isInstructionExecuted = false;
-		if (cycle0.bWrite) {
-			cycle0.bWrite = false;
-			if (cycle0.addr != 0)
-				r[cycle0.addr] = cycle0.data;
-		}
-	}
-	if (isInstructionExecuted && (cycle == 1)) {
-		pipelineCycle = 0;
-		isInstructionExecuted = false;
-		if (cycle1.bWrite) {
-			cycle1.bWrite = false;
-			if (cycle1.addr != 0)
-				r[cycle1.addr] = cycle1.data;
-		}
-	}*/
-
 	if (clocks == 0) {
 
-		//r[0] = 0;
-
 		if (cp0.executeInterrupt) {
-			bIRQ = true;
-			pBus->cpuRead32(pc - 1 * 4, opcode, clocks, true);
-			bIRQ &= !checkForCopOpcode(opcode) & !cycle0.bWrite & !cycle1.bWrite; //Maybe can cause problems but possibilties should be small
+			bInterrupt = true;
+			pBus->Read32(pc - 1 * 4, opcode, clocks, true);
+			//Maybe can cause problems but possibilty should be small
+			bInterrupt &= !checkForCopOpcode(opcode) & !cycle0.bWrite & !cycle1.bWrite;
 
-			if (bIRQ) {
+			if (bInterrupt) {
 				cp0.executeInterrupt = false;
 				cp0.exceptionHandler(_INT);
 			}
@@ -569,7 +480,7 @@ void cpu_t::clock() {
 			cycle = 1;
 
 			//fetch
-			pBus->cpuRead32(pc, opcodes[0], instructionFetchClocks);
+			pBus->Read32(pc, opcodes[0], instructionFetchClocks);
 			if (pc >= 0xa0000000)
 				clocks += instructionFetchClocks;
 
@@ -602,7 +513,7 @@ void cpu_t::clock() {
 			cycle = 0;
 
 			//fetch
-			pBus->cpuRead32(pc, opcodes[1], instructionFetchClocks);
+			pBus->Read32(pc, opcodes[1], instructionFetchClocks);
 			if (pc >= 0xa0000000)
 				clocks += instructionFetchClocks;
 
@@ -638,11 +549,11 @@ void cpu_t::clock() {
 		/*if (pc == 0x800133fc)
 			r[2] = 1; */
 
-			//Hot Wheels - Turbo Racing (USA)
-			//if (pc == 0x80101310)
-			//	r[2] = 1;
-			///*if (pc == 0x800b42e0)
-			//	r[2] = 0x200;*/
+		//Hack Hot Wheels - Turbo Racing (USA)
+		/*if (pc == 0x80101310)
+			r[2] = 1;
+		if (pc == 0x800b42e0)
+			r[2] = 0x200;*/
 
 
 		pc += 4;
@@ -667,7 +578,7 @@ void cpu_t::clock() {
 
 		r[0] = 0;
 
-		decodeExecuteOpcode(opcode);
+		DecodeExecuteOpcode(opcode);
 
 		//assumes that all instructions from cached regions are cached
 		clocks += memoryClocks + gteClocks;
@@ -688,44 +599,44 @@ void cpu_t::clock() {
 
 //instructions
 
-void cpu_t::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void Cpu::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	r[rd] = r[rt] << imm;
 }
 
-void cpu_t::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void Cpu::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
-void cpu_t::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void Cpu::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	r[rd] = r[rt] >> imm;
 }
 
-void cpu_t::SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
+void Cpu::SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	r[rd] = (int32_t)r[rt] >> imm;
 }
 
-void cpu_t::SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rt] << (r[rs] & 0x1f);
 }
 
-void cpu_t::SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rt] >> (r[rs] & 0x1f);
 }
 
-void cpu_t::SRAV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SRAV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = (int32_t)r[rt] >> (r[rs] & 0x1f);
 }
 
-void cpu_t::JR(const uint8_t& rs) {
+void Cpu::JR(const uint8_t& rs) {
 	if (r[rs] & 0x3)
 		cp0.exceptionHandler(_ADEL, r[rs]);
 	else
 		pc = r[rs];
 }
 
-void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
+void Cpu::JALR(const uint8_t& rs, const uint8_t& rd) {
 	uint32_t tempAddr = r[rs];
 	r[rd] = pc;
 	if (tempAddr & 0x3)
@@ -734,18 +645,15 @@ void cpu_t::JALR(const uint8_t& rs, const uint8_t& rd) {
 		pc = tempAddr;
 }
 
-void cpu_t::SYSCALL(const uint32_t& imm) {
+void Cpu::SYSCALL(const uint32_t& imm) {
 	cp0.exceptionHandler(_SYSCALL);
 }
 
-void cpu_t::BREAK(const uint32_t& imm) {
-	/*std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
-		<< "op 0x" << std::hex << opcode << '\n';
-	g_emulationPaused = true;*/
+void Cpu::BREAK(const uint32_t& imm) {
 	cp0.exceptionHandler(_BP);
 }
 
-void cpu_t::MULT(const uint8_t& rs, const uint8_t& rt) {
+void Cpu::MULT(const uint8_t& rs, const uint8_t& rt) {
 	int64_t operandA = (int32_t)r[rs];
 	int64_t operandB = (int32_t)r[rt];
 	int64_t temp = operandA * operandB;
@@ -753,7 +661,7 @@ void cpu_t::MULT(const uint8_t& rs, const uint8_t& rt) {
 	lo = temp << 32 >> 32;
 }
 
-void cpu_t::MULTU(const uint8_t& rs, const uint8_t& rt) {
+void Cpu::MULTU(const uint8_t& rs, const uint8_t& rt) {
 	uint64_t operandA = (uint32_t)r[rs];
 	uint64_t operandB = (uint32_t)r[rt];
 	uint64_t temp = operandA * operandB;
@@ -761,7 +669,7 @@ void cpu_t::MULTU(const uint8_t& rs, const uint8_t& rt) {
 	lo = temp << 32 >> 32;
 }
 
-void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
+void Cpu::DIV(const uint8_t& rs, const uint8_t& rt) {
 	int32_t operandA = r[rs];
 	int32_t operandB = r[rt];
 
@@ -787,11 +695,13 @@ void cpu_t::DIV(const uint8_t& rs, const uint8_t& rt) {
 		lo = operandA / operandB;
 		hi = operandA % operandB;
 	}
-	else
+	else {
 		std::cout << "~[CPU] DIV divider = 0, potential problem \n";
+		g_emulationPaused = true;
+	}
 }
 
-void cpu_t::DIVU(const uint8_t& rs, const uint8_t& rt) {
+void Cpu::DIVU(const uint8_t& rs, const uint8_t& rt) {
 	uint32_t operand_a = r[rs];
 	uint32_t operand_b = r[rt];
 
@@ -805,27 +715,29 @@ void cpu_t::DIVU(const uint8_t& rs, const uint8_t& rt) {
 		lo = operand_a / operand_b;
 		hi = operand_a % operand_b;
 	}
-	else
+	else {
 		std::cout << "~[CPU] DIVU divider = 0, potential problem \n";
+		g_emulationPaused = true;
+	}
 }
 
-void cpu_t::MFHI(const uint8_t& rd) {
+void Cpu::MFHI(const uint8_t& rd) {
 	r[rd] = hi;
 }
 
-void cpu_t::MFLO(const uint8_t& rd) {
+void Cpu::MFLO(const uint8_t& rd) {
 	r[rd] = lo;
 }
 
-void cpu_t::MTHI(const uint8_t& rs) {
+void Cpu::MTHI(const uint8_t& rs) {
 	hi = r[rs];
 }
 
-void cpu_t::MTLO(const uint8_t& rs) {
+void Cpu::MTLO(const uint8_t& rs) {
 	lo = r[rs];
 }
 
-void cpu_t::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	uint32_t a = r[rs];
 	uint32_t b = r[rt];
 	uint32_t res = a + b;
@@ -837,11 +749,11 @@ void cpu_t::ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 		r[rd] = res;
 }
 
-void cpu_t::ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rs] + r[rt];
 }
 
-void cpu_t::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	uint32_t a = r[rs];
 	uint32_t b = r[rt];
 	uint32_t res = a - b;
@@ -853,94 +765,94 @@ void cpu_t::SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 		r[rd] = res;
 }
 
-void cpu_t::SUBU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SUBU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rs] - r[rt];
 }
 
-void cpu_t::AND(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::AND(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rs] & r[rt];
 }
 
-void cpu_t::OR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::OR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rs] | r[rt];
 }
 
-void cpu_t::XOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::XOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = r[rs] ^ r[rt];
 }
 
-void cpu_t::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = ~(r[rs] | r[rt]);
 }
 
-void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
-void cpu_t::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = ((int32_t)r[rs] < (int32_t)r[rt]) ? 1 : 0;
 }
 
-void cpu_t::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
+void Cpu::SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	r[rd] = (r[rs] < r[rt]) ? 1 : 0;
 }
 
-void cpu_t::BLTZ(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BLTZ(const uint8_t& rs, const uint16_t& imm) {
 	if ((int32_t)r[rs] < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BGEZ(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BGEZ(const uint8_t& rs, const uint16_t& imm) {
 	if ((int32_t)r[rs] >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BLTZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = r[rs];
 	r[31] = pc;
 	if (temp < 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BGEZAL(const uint8_t& rs, const uint16_t& imm) {
 	int32_t temp = r[rs];
 	r[31] = pc;
 	if (temp >= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::J(const uint32_t& imm) {
+void Cpu::J(const uint32_t& imm) {
 	pc = (pc - 8 & 0xf0000000) | (imm << 2);
 }
 
-void cpu_t::JAL(const uint32_t& imm) {
+void Cpu::JAL(const uint32_t& imm) {
 	r[31] = pc;
 	pc = (pc - 8 & 0xf0000000) | (imm << 2);
 }
 
-void cpu_t::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	if (r[rs] == r[rt])
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	if (r[rs] != r[rt])
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BLEZ(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BLEZ(const uint8_t& rs, const uint16_t& imm) {
 	if ((int32_t)r[rs] <= 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::BGTZ(const uint8_t& rs, const uint16_t& imm) {
+void Cpu::BGTZ(const uint8_t& rs, const uint16_t& imm) {
 	if ((int32_t)r[rs] > 0)
 		pc = pc + (int16_t)imm * 4 - 4;
 }
 
-void cpu_t::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	uint32_t a = r[rs];
 	uint16_t b = imm;
 	uint32_t temp = a + (int16_t)b;
@@ -952,106 +864,62 @@ void cpu_t::ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 		r[rt] = temp;
 }
 
-void cpu_t::ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = r[rs] + (int16_t)imm;
 }
 
-void cpu_t::SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = ((int32_t)r[rs] < (int32_t)((int16_t)imm)) ? 1 : 0;
 }
 
-void cpu_t::SLTIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::SLTIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = (r[rs] < (uint32_t)(int32_t)((int16_t)imm)) ? 1 : 0;
 }
 
-void cpu_t::ANDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::ANDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = r[rs] & imm;
 }
 
-void cpu_t::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::ORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = r[rs] | imm;
 }
 
-void cpu_t::XORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
+void Cpu::XORI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = r[rs] ^ imm;
 }
 
-void cpu_t::LUI(const uint8_t& rt, const uint16_t& imm) {
+void Cpu::LUI(const uint8_t& rt, const uint16_t& imm) {
 	r[rt] = imm << 16;
 }
 
-void cpu_t::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 	uint8_t temp;
-	pBus->cpuRead8(temp_addr, temp, memoryClocks);
+	pBus->Read8(temp_addr, temp, memoryClocks);
 
 	r[rt] = (int32_t)((int8_t)temp);
-
-	/*uint32_t value = (int32_t)((int8_t)temp);
-	if (cycle == 0) {
-
-		if (cycle0.bWrite == true)
-			g_emulationPaused = true;
-
-		cycle0.bWrite = true;
-		cycle0.old = r[rt];
-		cycle0.addr = rt;
-		cycle0.data = value;
-	}
-	else if (cycle == 1) {
-
-		if (cycle1.bWrite == true)
-			g_emulationPaused = true;
-
-		cycle1.bWrite = true;
-		cycle1.old = r[rt];
-		cycle1.addr = rt;
-		cycle1.data = value;
-	}*/
 }
 
-void cpu_t::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 
 	if (temp_addr & 0x1)
 		cp0.exceptionHandler(_ADEL, temp_addr);
 	else {
 		uint16_t temp;
-		pBus->cpuRead16(temp_addr, temp, memoryClocks);
+		pBus->Read16(temp_addr, temp, memoryClocks);
 
 		r[rt] = (int32_t)((int16_t)temp);
-
-		/*uint32_t value = (int32_t)((int16_t)temp);
-		if (cycle == 0) {
-
-			if (cycle0.bWrite == true)
-				g_emulationPaused = true;
-
-			cycle0.bWrite = true;
-			cycle0.old = r[rt];
-			cycle0.addr = rt;
-			cycle0.data = value;
-		}
-		else if (cycle == 1) {
-
-			if (cycle1.bWrite == true)
-				g_emulationPaused = true;
-
-			cycle1.bWrite = true;
-			cycle1.old = r[rt];
-			cycle1.addr = rt;
-			cycle1.data = value;
-		}*/
 	}
 }
 
-void cpu_t::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
-	pBus->cpuRead32(temp_addr, data, memoryClocks);
+	pBus->Read32(temp_addr, data, memoryClocks);
 
 	switch (offset) {
 	case 0:
@@ -1069,136 +937,44 @@ void cpu_t::LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cpu_t::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 
 	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADEL, temp_addr);
-	else {
-		pBus->cpuRead32(temp_addr, r[rt], memoryClocks);
-
-		/*if (cycle0.bWrite) {
-			cycle0.bWrite = false;
-			if (r[cycle0.addr] == cycle0.old)
-				r[cycle0.addr] = cycle0.data;
-		}
-		if (cycle1.bWrite) {
-			cycle1.bWrite = false;
-			if (r[cycle1.addr] == cycle1.old)
-				r[cycle1.addr] = cycle1.data;
-		}*/
-
-	/*	uint32_t value;
-		pBus->cpuRead32(temp_addr, value, memoryClocks);*/
-
-
-		//if (cycle == 0) {
-
-		//	if (cycle0.bWrite == true)
-		//		g_emulationPaused = true;
-
-		//	cycle0.bWrite = true;
-		//	cycle0.old = r[rt];
-		//	cycle0.addr = rt;
-		//	cycle0.data = value;
-		//}
-		//else if (cycle == 1) {
-
-		//	if (cycle1.bWrite == true)
-		//		g_emulationPaused = true;
-
-		//	cycle1.bWrite = true;
-		//	cycle1.old = r[rt];
-		//	cycle1.addr = rt;
-		//	cycle1.data = value;
-		//}
-	}
+	else
+		pBus->Read32(temp_addr, r[rt], memoryClocks);
 }
 
-void cpu_t::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LBU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint8_t temp;
-	pBus->cpuRead8(r[rs] + (int32_t)imm, temp, memoryClocks);
+	pBus->Read8(r[rs] + (int32_t)imm, temp, memoryClocks);
 
 	r[rt] = temp;
 
 	//skullmonkeys
-
-	/*if (cycle0.bWrite) {
-		cycle0.bWrite = false;
-		if (r[cycle0.addr] == cycle0.old)
-			r[cycle0.addr] = cycle0.data;
-	}
-	if (cycle1.bWrite) {
-		cycle1.bWrite = false;
-		if (r[cycle1.addr] == cycle1.old)
-			r[cycle1.addr] = cycle1.data;
-	}
-
-	uint32_t value = temp;
-	if (cycle == 0) {
-
-		if (cycle0.bWrite == true)
-			g_emulationPaused = true;
-
-		cycle0.bWrite = true;
-		cycle0.old = r[rt];
-		cycle0.addr = rt;
-		cycle0.data = value;
-	}
-	else if (cycle == 1) {
-
-		if (cycle1.bWrite == true)
-			g_emulationPaused = true;
-
-		cycle1.bWrite = true;
-		cycle1.old = r[rt];
-		cycle1.addr = rt;
-		cycle1.data = value;
-	}*/
 }
 
-void cpu_t::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LHU(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 
 	if (temp_addr & 0x1)
 		cp0.exceptionHandler(_ADEL, temp_addr);
 	else {
 		uint16_t temp;
-		pBus->cpuRead16(temp_addr, temp, memoryClocks);
+		pBus->Read16(temp_addr, temp, memoryClocks);
 
 		r[rt] = temp;
-
-		/*uint32_t value = temp;
-		if (cycle == 0) {
-
-			if (cycle0.bWrite == true)
-				g_emulationPaused = true;
-
-			cycle0.bWrite = true;
-			cycle0.old = r[rt];
-			cycle0.addr = rt;
-			cycle0.data = value;
-		}
-		else if (cycle == 1) {
-
-			if (cycle1.bWrite == true)
-				g_emulationPaused = true;
-
-			cycle1.bWrite = true;
-			cycle1.old = r[rt];
-			cycle1.addr = rt;
-			cycle1.data = value;
-		}*/
 	}
 }
 
-void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
-	pBus->cpuRead32(temp_addr, data, memoryClocks);
+	pBus->Read32(temp_addr, data, memoryClocks);
 
 	switch (offset) {
 	case 0:
@@ -1216,94 +992,94 @@ void cpu_t::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	}
 }
 
-void cpu_t::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
-void cpu_t::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
-	write8(temp_addr, r[rt], writeClocks);
+	Write8(temp_addr, r[rt], writeClocks);
 }
 
-void cpu_t::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 
 	if (temp_addr & 0x1) {
 		cp0.exceptionHandler(_ADES, temp_addr);
 	}
 	else
-		pBus->cpuWrite16(temp_addr, r[rt], writeClocks);
+		pBus->Write16(temp_addr, r[rt], writeClocks);
 }
 
-void cpu_t::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
-	pBus->cpuRead32(temp_addr, data, memoryClocks);
+	pBus->Read32(temp_addr, data, memoryClocks);
 
 	switch (offset) {
 	case 0:
-		pBus->cpuWrite32(temp_addr, (r[rt] >> 24) | (data >> 8 << 8), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] >> 24) | (data >> 8 << 8), writeClocks);
 		break;
 	case 1:
-		pBus->cpuWrite32(temp_addr, (r[rt] >> 16) | (data >> 16 << 16), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] >> 16) | (data >> 16 << 16), writeClocks);
 		break;
 	case 2:
-		pBus->cpuWrite32(temp_addr, (r[rt] >> 8) | (data >> 24 << 24), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] >> 8) | (data >> 24 << 24), writeClocks);
 		break;
 	case 3:
-		pBus->cpuWrite32(temp_addr, r[rt], writeClocks);
+		pBus->Write32(temp_addr, r[rt], writeClocks);
 		break;
 	}
 }
 
-void cpu_t::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	uint32_t temp_addr = r[rs] + (int32_t)imm;
 
 	if (temp_addr & 0x3)
 		cp0.exceptionHandler(_ADES, temp_addr);
 	else
-		pBus->cpuWrite32(temp_addr, r[rt], writeClocks);
+		pBus->Write32(temp_addr, r[rt], writeClocks);
 }
 
-void cpu_t::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op " << std::hex << opcode << '\n';
 	g_emulationPaused = true;
 }
 
-void cpu_t::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
+void Cpu::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	int32_t addr_offset = (int32_t)imm & 0xfffffffc;
 	uint32_t temp_addr = r[rs] + addr_offset;
 	uint32_t offset = (uint32_t)imm & 0x3;
 	uint32_t data;
 
-	pBus->cpuRead32(temp_addr, data, memoryClocks);
+	pBus->Read32(temp_addr, data, memoryClocks);
 
 	switch (offset)
 	{
 	case 0:
-		pBus->cpuWrite32(temp_addr, r[rt], memoryClocks);
+		pBus->Write32(temp_addr, r[rt], memoryClocks);
 		break;
 	case 1:
-		pBus->cpuWrite32(temp_addr, (r[rt] << 8) | (data << 24 >> 24), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] << 8) | (data << 24 >> 24), writeClocks);
 		break;
 	case 2:
-		pBus->cpuWrite32(temp_addr, (r[rt] << 16) | (data << 16 >> 16), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] << 16) | (data << 16 >> 16), writeClocks);
 		break;
 	case 3:
-		pBus->cpuWrite32(temp_addr, (r[rt] << 24) | (data << 8 >> 8), writeClocks);
+		pBus->Write32(temp_addr, (r[rt] << 24) | (data << 8 >> 8), writeClocks);
 		break;
 	}
 }
 
 //debug
 
-void cpu_t::setBiosCallFlag() {
+void Cpu::setBiosCallFlag() {
 	if (pc == 0xa0) {
 		biosCallFlag = 'a';
 		return;
@@ -1318,8 +1094,8 @@ void cpu_t::setBiosCallFlag() {
 	}
 }
 
-void cpu_t::printBiosCall() {
-	uint8_t call = get(9);
+void Cpu::printBiosCall() {
+	uint8_t call = GetRegister(9);
 
 	if (biosCallFlag.has_value()) {
 		switch (biosCallFlag.value()) {
@@ -1330,23 +1106,23 @@ void cpu_t::printBiosCall() {
 				std::cout << "[KERNEL] " << pBus->biosChip.A[call].info << '\n';
 
 				if (call == 0x2a) {
-					std::cout << "~[KERNEL] dst 0x" << std::hex << get(4) << '\n';
-					std::cout << "~[KERNEL] src 0x" << std::hex << get(5) << '\n';
-					std::cout << "~[KERNEL] len 0x" << std::hex << get(6) << '\n';
+					std::cout << "~[KERNEL] dst 0x" << std::hex << GetRegister(4) << '\n';
+					std::cout << "~[KERNEL] src 0x" << std::hex << GetRegister(5) << '\n';
+					std::cout << "~[KERNEL] len 0x" << std::hex << GetRegister(6) << '\n';
 				}
 
 				if (call == 0xab) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] port 0x" << std::hex << GetRegister(4) << '\n';
 				}
 
 				if (call == 0xaf) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] port 0x" << std::hex << GetRegister(4) << '\n';
 				}
 			}
 
 			if (call == 0x3c) {
 				std::stringstream ss;
-				ss << (char)get(4);
+				ss << (char)GetRegister(4);
 				p_debugger->log(ss.str());
 				std::cout << ss.str();
 			}
@@ -1365,45 +1141,45 @@ void cpu_t::printBiosCall() {
 				oldCall = call;
 
 				if (call == 0x4a) {
-					std::cout << "~[KERNEL] pad_enable 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] pad_enable 0x" << std::hex << GetRegister(4) << '\n';
 				}
 
 				if (call == 0x4d) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] port 0x" << std::hex << GetRegister(4) << '\n';
 				}
 
 				if (call == 0x02) {
-					std::cout << "~[KERNEL] t 0x" << std::hex << get(4) << '\n';
-					std::cout << "~[KERNEL] reload 0x" << std::hex << get(5) << '\n';
-					std::cout << "~[KERNEL] flags 0x" << std::hex << get(6) << '\n';
+					std::cout << "~[KERNEL] t 0x" << std::hex << GetRegister(4) << '\n';
+					std::cout << "~[KERNEL] reload 0x" << std::hex << GetRegister(5) << '\n';
+					std::cout << "~[KERNEL] flags 0x" << std::hex << GetRegister(6) << '\n';
 				}
 
 				if (call == 0x08) {
-					std::cout << "~[KERNEL] class 0x" << std::hex << get(4) << '\n';
-					std::cout << "~[KERNEL] spec 0x" << std::hex << get(5) << '\n';
-					std::cout << "~[KERNEL] mode 0x" << std::hex << get(6) << '\n';
-					std::cout << "~[KERNEL] func 0x" << std::hex << get(7) << '\n';
+					std::cout << "~[KERNEL] class 0x" << std::hex << GetRegister(4) << '\n';
+					std::cout << "~[KERNEL] spec 0x" << std::hex << GetRegister(5) << '\n';
+					std::cout << "~[KERNEL] mode 0x" << std::hex << GetRegister(6) << '\n';
+					std::cout << "~[KERNEL] func 0x" << std::hex << GetRegister(7) << '\n';
 				}
 
 				if ((call == 0x07) || (call == 0x20)) {
-					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << '\n';
-					std::cout << "~[KERNEL] specs 0x" << std::hex << get(5) << '\n';
+					std::cout << "~[KERNEL] event 0x" << std::hex << GetRegister(4) << '\n';
+					std::cout << "~[KERNEL] specs 0x" << std::hex << GetRegister(5) << '\n';
 				}
 
 				if ((call == 0x0b) || (call == 0x0c) || (call == 0x09)) {
 					uint8_t cycles;
 					uint32_t ptr;
 					uint32_t data;
-					read32(0x120, ptr, cycles);
-					ptr += 7 * 4 * (get(4) & 0xffff);
-					read32(ptr, data, cycles);
-					std::cout << "~[KERNEL] event 0x" << std::hex << get(4) << '\n';
+					Read32(0x120, ptr, cycles);
+					ptr += 7 * 4 * (GetRegister(4) & 0xffff);
+					Read32(ptr, data, cycles);
+					std::cout << "~[KERNEL] event 0x" << std::hex << GetRegister(4) << '\n';
 					std::cout << "~[KERNEL] class 0x" << std::hex << data << '\n';
-					read32(ptr + 0x4, data, cycles);
+					Read32(ptr + 0x4, data, cycles);
 					std::cout << "~[KERNEL] flag 0x" << std::hex << data << '\n';
-					read32(ptr + 0x8, data, cycles);
+					Read32(ptr + 0x8, data, cycles);
 					std::cout << "~[KERNEL] specs 0x" << std::hex << data << '\n';
-					read32(ptr + 0xc, data, cycles);
+					Read32(ptr + 0xc, data, cycles);
 					std::cout << "~[KERNEL] mode 0x" << std::hex << data << '\n';
 				}
 			}
@@ -1429,21 +1205,21 @@ void cpu_t::printBiosCall() {
 
 			if (call == 0x3d) {
 				std::stringstream ss;
-				ss << (char)get(4);
+				ss << (char)GetRegister(4);
 				p_debugger->log(ss.str());
 				std::cout << ss.str();
 			}
 
 			if (g_biosCallbacksLogged) {
 				if ((call == 0x4e) || (call == 0x4f)) {
-					std::cout << "~[KERNEL] port 0x" << std::hex << get(4) << '\n';
-					std::cout << "~[KERNEL] sector 0x" << std::hex << get(5) << '\n';
-					std::cout << "~[KERNEL] dst/src 0x" << std::hex << get(6) << '\n';
+					std::cout << "~[KERNEL] port 0x" << std::hex << GetRegister(4) << '\n';
+					std::cout << "~[KERNEL] sector 0x" << std::hex << GetRegister(5) << '\n';
+					std::cout << "~[KERNEL] dst/src 0x" << std::hex << GetRegister(6) << '\n';
 					g_emulationPaused = true;
 				}
 
 				if ((call == 0x5c) || (call == 0x5d)) {
-					std::cout << "~[KERNEL] slot 0x" << std::hex << get(4) << '\n';
+					std::cout << "~[KERNEL] slot 0x" << std::hex << GetRegister(4) << '\n';
 				}
 			}
 
@@ -1462,7 +1238,7 @@ void cpu_t::printBiosCall() {
 	}
 }
 
-std::string cpu_t::getInstructionStr(const uint32_t& opcode, const uint32_t& pc, const bool& b) {
+std::string Cpu::getInstructionStr(const uint32_t& opcode, const uint32_t& pc, const bool& b) {
 	std::string s;
 	std::stringstream ss;
 	ss << "0x" << std::hex << pc << ": ";
@@ -1501,7 +1277,7 @@ std::string cpu_t::getInstructionStr(const uint32_t& opcode, const uint32_t& pc,
 	return s;
 }
 
-std::string cpu_t::getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc) {
+std::string Cpu::getDecodedInstructionStr(const uint32_t& opcode, const uint32_t& pc) {
 	uint8_t prim_opcode = opcode >> 26;
 
 	std::stringstream ss;
@@ -1572,11 +1348,11 @@ std::string cpu_t::getDecodedInstructionStr(const uint32_t& opcode, const uint32
 		ss << "rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
 	else if (prim_opcode >= 0x20 && prim_opcode <= 0x27) // load rt,[rs+imm]
-		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (int16_t)(opcode & 0x0000ffff) + get(opcode << 6 >> 27) << "]"
+		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (int16_t)(opcode & 0x0000ffff) + GetRegister(opcode << 6 >> 27) << "]"
 		<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
 	else if (prim_opcode >= 0x28 && prim_opcode <= 0x2f) // store rt,[rs+imm]
-		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (int16_t)(opcode & 0x0000ffff) + get(opcode << 6 >> 27) << "]"
+		ss << "rs" << (opcode << 6 >> 27) << " [0x" << std::hex << (int16_t)(opcode & 0x0000ffff) + GetRegister(opcode << 6 >> 27) << "]"
 		<< std::dec << " rt" << (opcode << 11 >> 27) << " imm16 0x" << std::hex << (opcode & 0x0000ffff);
 
 	else if (prim_opcode & 0x10) { //coprocessors
@@ -1650,7 +1426,7 @@ std::string cpu_t::getDecodedInstructionStr(const uint32_t& opcode, const uint32
 	return ss.str();
 }
 
-void cpu_t::sideLoad() {
+void Cpu::sideLoad() {
 	g_sideload = false;
 	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
 	if (!file.is_open()) {
@@ -1667,7 +1443,7 @@ void cpu_t::sideLoad() {
 	pc = (((uint32_t)buffer[0x13]) << 24) | (((uint32_t)buffer[0x12]) << 16)
 		| (((uint32_t)buffer[0x11]) << 8) | (uint32_t)buffer[0x10];
 
-	set(28, (((uint32_t)buffer[0x17]) << 24) | (((uint32_t)buffer[0x16]) << 16)
+	SetRegister(28, (((uint32_t)buffer[0x17]) << 24) | (((uint32_t)buffer[0x16]) << 16)
 		| (((uint32_t)buffer[0x15]) << 8) | (uint32_t)buffer[0x14]);
 
 	uint32_t ramAddr = (((uint32_t)buffer[0x1b]) << 24) | (((uint32_t)buffer[0x1a]) << 16)
@@ -1679,8 +1455,8 @@ void cpu_t::sideLoad() {
 	uint32_t initialSpFp = (((uint32_t)buffer[0x33]) << 24) | (((uint32_t)buffer[0x32]) << 16)
 		| (((uint32_t)buffer[0x31]) << 8) | (uint32_t)buffer[0x30];
 	if (initialSpFp) {
-		set(29, initialSpFp);
-		set(30, initialSpFp);
+		SetRegister(29, initialSpFp);
+		SetRegister(30, initialSpFp);
 	}
 
 	uint32_t initialSpFpOffset = (((uint32_t)buffer[0x37]) << 24) | (((uint32_t)buffer[0x36]) << 16)
@@ -1692,11 +1468,11 @@ void cpu_t::sideLoad() {
 
 	uint8_t cycles;
 	for (uint32_t i = 0; i < size; i++) {
-		write8(ramAddr + i, buffer[i + 0x800], cycles);
+		Write8(ramAddr + i, buffer[i + 0x800], cycles);
 	}
 }
 
-bool cpu_t::checkForCopOpcode(const uint32_t& opcode) {
+bool Cpu::checkForCopOpcode(const uint32_t& opcode) {
 	uint8_t prim_opcode = opcode >> 26;
 
 	if (prim_opcode & 0x10) { //coprocessors

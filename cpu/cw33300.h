@@ -13,48 +13,38 @@
 
 class BusInterface;
 
-class cpu_t {
+class Cpu {
 public:
 
-	cpu_t();
+	Cpu();
 
-	void read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug = false);
-	void write32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
+	void Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug = false);
+	void Write32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
 
-	void read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
-	void write16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
+	void Read16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
+	void Write16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
 
-	void read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
-	void write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
+	void Read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
+	void Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
-	void reset();
-	void clock();
+	void Reset();
+	void Clock();
 
-	cp0_t cp0;
-	cp2_t cp2;
+	CP0 cp0;
+	CP2 cp2;
 
 	BusInterface* pBus;
 
 	uint32_t pc;
 	uint32_t pc_old = 0xbfc00000;
 
-	void decodeExecuteOpcode(const uint32_t& op);
+	void DecodeExecuteOpcode(const uint32_t& op);
 
 	uint32_t opcodes[2];
 	uint32_t opcode_pc_0;
 	uint32_t opcode_pc_1;
 	uint32_t opcode_pc;
 	bool isCurrentOpcodeBranch = false;
-
-	struct iCache_t {
-		uint32_t pc;
-		uint32_t opcode;
-	};
-
-	iCache_t iCache[16];
-	bool iCacheEnabled = true;
-	uint16_t iCacheCounter = 0;
-
 
 	uint32_t opcode;
 	uint8_t instructionFetchClocks = 0;
@@ -65,8 +55,8 @@ public:
 	uint8_t memoryClocks = 0;
 	uint8_t gteClocks = 0;
 
-	uint32_t get(const uint8_t& reg);
-	void set(const uint8_t& reg, const uint32_t& v, const bool loadOpcode = false);
+	uint32_t GetRegister(const uint8_t& reg);
+	void SetRegister(const uint8_t& reg, const uint32_t& v, const bool& loadOpcode = false);
 
 	uint32_t r[32] = {};
 	uint32_t hi;
@@ -74,30 +64,28 @@ public:
 
 	//inctruction
 private:
-	struct instruction {
+	struct Instruction {
 		std::string name;
 	};
 
-	std::vector <instruction> primLookup;
-	std::vector <instruction> secLookup;
+	std::vector <Instruction> primLookup;
+	std::vector <Instruction> secLookup;
 
 	struct ShiftImm {
-		void (cpu_t::* instr)(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
+		void (Cpu::* instr)(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 	};
 
-	std::vector <ShiftImm> shift_imm;
-
+	ShiftImm shift_imm[4];
 	void SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 	void XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 	void SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 	void SRA(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm);
 
 	struct ShiftReg {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	};
 
-	std::vector <ShiftReg> shift_reg;
-
+	ShiftReg shift_reg[4];
 	void SLLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	//   XXX
 	void SRLV(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
@@ -107,48 +95,44 @@ private:
 	void JALR(const uint8_t& rs, const uint8_t& rd);
 
 	struct SysBrk {
-		void (cpu_t::* instr)(const uint32_t& imm);
+		void (Cpu::* instr)(const uint32_t& imm);
 	};
 
-	std::vector <SysBrk> sys_brk;
+	SysBrk sys_brk[2];
 	void SYSCALL(const uint32_t& imm);
 	void BREAK(const uint32_t& imm);
 
 	struct MulDiv {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt);
 	};
 
-	std::vector <MulDiv>mul_div;
-
+	MulDiv mul_div[4];
 	void MULT(const uint8_t& rs, const uint8_t& rt);
 	void MULTU(const uint8_t& rs, const uint8_t& rt);
 	void DIV(const uint8_t& rs, const uint8_t& rt);
 	void DIVU(const uint8_t& rs, const uint8_t& rt);
 
 	struct MfhiMflo {
-		void (cpu_t::* instr)(const uint8_t& rd);
+		void (Cpu::* instr)(const uint8_t& rd);
 	};
 
-	std::vector <MfhiMflo>mfhi_mflo;
-
+	MfhiMflo mfhi_mflo[2];
 	void MFHI(const uint8_t& rd);
 	void MFLO(const uint8_t& rd);
 
 	struct MthiMtlo {
-		void (cpu_t::* instr)(const uint8_t& rs);
+		void (Cpu::* instr)(const uint8_t& rs);
 	};
 
-	std::vector <MthiMtlo>mthi_mtlo;
-
+	MthiMtlo mthi_mtlo[2];
 	void MTHI(const uint8_t& rs);
 	void MTLO(const uint8_t& rs);
 
 	struct AluReg {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	};
 
-	std::vector <AluReg> alu_reg;
-
+	AluReg alu_reg[16];
 	void ADD(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	void ADDU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 	void SUB(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
@@ -163,49 +147,44 @@ private:
 	void SLTU(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd);
 
 	struct BcondZ {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint16_t& imm);
+		void (Cpu::* instr)(const uint8_t& rs, const uint16_t& imm);
 	};
 
-	std::vector<BcondZ> b_cond_z;
-
+	BcondZ b_cond_z[4];
 	void BLTZ(const uint8_t& rs, const uint16_t& imm);
 	void BGEZ(const uint8_t& rs, const uint16_t& imm);
 	void BLTZAL(const uint8_t& rs, const uint16_t& imm);
 	void BGEZAL(const uint8_t& rs, const uint16_t& imm);
 
 	struct JJal {
-		void (cpu_t::* instr)(const uint32_t& imm);
+		void (Cpu::* instr)(const uint32_t& imm);
 	};
 
-	std::vector <JJal> j_jal;
-
+	JJal j_jal[2];
 	void J(const uint32_t& imm);
 	void JAL(const uint32_t& imm);
 
 	struct BeqBne {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);;
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);;
 	};
 
-	std::vector <BeqBne> beq_bne;
-
+	BeqBne beq_bne[2];
 	void BEQ(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 	void BNE(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 
 	struct BlezBgtz {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint16_t& imm);
+		void (Cpu::* instr)(const uint8_t& rs, const uint16_t& imm);
 	};
 
-	std::vector <BlezBgtz> blez_bgtz;
-
+	BlezBgtz blez_bgtz[2];
 	void BLEZ(const uint8_t& rs, const uint16_t& imm);
 	void BGTZ(const uint8_t& rs, const uint16_t& imm);
 
 	struct AluImm {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 	};
 
-	std::vector <AluImm> alu_imm;
-
+	AluImm alu_imm[7];
 	void ADDI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 	void ADDIU(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
 	void SLTI(const uint8_t& rs, const uint8_t& rt, const uint16_t& imm);
@@ -217,11 +196,10 @@ private:
 	void LUI(const uint8_t& rt, const uint16_t& imm);
 
 	struct LoadRt {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	};
 
-	std::vector <LoadRt> load_rt;
-
+	LoadRt load_rt[8];
 	void LB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	void LH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	void LWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
@@ -232,11 +210,10 @@ private:
 	void XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 
 	struct StoreRt {
-		void (cpu_t::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
+		void (Cpu::* instr)(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	};
 
-	std::vector <StoreRt> store_rt;
-
+	StoreRt store_rt[8];
 	void SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	void SH(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
 	void SWL(const uint8_t& rs, const uint8_t& rt, const int16_t& imm);
@@ -257,7 +234,7 @@ public:
 
 	bool gteCommandFlag = false;
 	bool gteCommandFlagTemp = false;
-	bool bIRQ = false;
+	bool bInterrupt = false;
 
 
 	//debug

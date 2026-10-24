@@ -73,7 +73,7 @@ extern bool g_emulationPaused;
 #define CACHE_CONTROL (addr == 0xfffe0130)
 
 
-void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,const bool& debug) {
+void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,const bool& debug) {
 	data = 0;
 	clocks = 4;
 
@@ -218,7 +218,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		}
 }
 
-void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
+void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& clocks) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write32 0x"
@@ -371,7 +371,7 @@ void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	}
 }
 
-void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, const bool& debug) {
+void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, const bool& debug) {
 	data = 0;
 	clocks = 4;
 
@@ -471,7 +471,7 @@ void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		}
 }
 
-void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void BusInterface::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write16 0x"
@@ -535,7 +535,7 @@ void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 	}
 }
 
-void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, const bool& debug) {
+void BusInterface::Read8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, const bool& debug) {
 	data = 0x00;
 	clocks = 3;
 
@@ -592,7 +592,7 @@ void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 		}
 }
 
-void BusInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (RAM) {
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write8 0x"

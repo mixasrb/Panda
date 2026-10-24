@@ -697,9 +697,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			maskSizCopy(xsiz, ysiz);
 			widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
-			fifoCollectCount = xsiz * ysiz / 2;
-			if ((fifoCollectCount * 2) < xsiz * ysiz)
-				fifoCollectCount++;
+			fifoCollectCount = (xsiz * ysiz + 1) / 2;
 		}
 		else
 			CopyRectCpuToVram(destCoord, widthHeight);

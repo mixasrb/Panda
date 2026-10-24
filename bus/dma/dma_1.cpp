@@ -74,7 +74,7 @@ void Dma1::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void Dma1::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	pBus->cpuRead32(addr, data, cycles);
+	pBus->Read32(addr, data, cycles);
 }
 
 void Dma1::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
@@ -139,7 +139,7 @@ void Dma1::Clock() {
 
 		if (channelControl.reg.transDir == toMainRAM) {
 			DmaRead32(0x1f801820, data, cycles);
-			pBus->cpuWrite32(memAddrTemp, data, cycles);
+			pBus->Write32(memAddrTemp, data, cycles);
 		}
 		else {
 			//Unhandled

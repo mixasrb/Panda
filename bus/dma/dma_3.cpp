@@ -73,15 +73,15 @@ void Dma3::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 }
 
 void Dma3::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
-	p_bus->cpuWrite32(addr, data, cycles);
+	p_bus->Write32(addr, data, cycles);
 }
 
 void Dma3::DMAWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
-	p_bus->cpuWrite8(addr, data, cycles);
+	p_bus->Write8(addr, data, cycles);
 }
 
 void Dma3::DMARead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
-	p_bus->cpuRead8(addr, data, cycles);
+	p_bus->Read8(addr, data, cycles);
 }
 
 void Dma3::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {

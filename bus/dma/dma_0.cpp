@@ -72,7 +72,7 @@ void Dma0::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void Dma0::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	pBus->cpuRead32(addr, data, cycles);
+	pBus->Read32(addr, data, cycles);
 }
 
 void Dma0::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
@@ -140,7 +140,7 @@ void Dma0::Clock() {
 		}
 		else {
 			DmaRead32(memAddrTemp, data, cycles);
-			pBus->cpuWrite32(0x1f801820, data, cycles);
+			pBus->Write32(0x1f801820, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
 

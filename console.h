@@ -15,7 +15,7 @@ public:
 	psxConsole_t();
 
 	BusInterface bus;
-	cpu_t cpuSOC;
+	Cpu cpuSOC;
 	Mdec mdec;
 	Gpu gpu;
 	cdDrive cdDrive;

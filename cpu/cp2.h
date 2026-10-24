@@ -7,13 +7,13 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class cpu_t;
+class Cpu;
 
-class cp2_t {
+class CP2 {
 public:
 
-	cp2_t();
-	cpu_t* pCpu;
+	CP2();
+	Cpu* pCpu;
 
 	void clock();
 	uint8_t clocks = 0;
@@ -31,7 +31,7 @@ public:
 
 	struct opcode_t {
 		std::string name;
-		void (cp2_t::* opcode)(uint32_t imm);
+		void (CP2::* opcode)(uint32_t imm);
 		uint8_t clocks;
 	};
 

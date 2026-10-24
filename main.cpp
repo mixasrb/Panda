@@ -39,7 +39,7 @@ public:
 
 	static psxEmulator_t* pInstance;
 
-	output_t sampleLR = { 0.0f, 0.0f };
+	Output sampleLR = { 0.0f, 0.0f };
 
 	bool isDebuggerViewed = false;
 	bool bDrawScreenWindow = false;
@@ -65,7 +65,7 @@ public:
 			}
 #endif
 
-			pInstance->sampleLR = pInstance->psx.bus.spu.clock();
+			pInstance->sampleLR = pInstance->psx.bus.spu.Clock();
 			//pInstance->psx.gpu.loopGp0();
 		}
 
@@ -237,7 +237,7 @@ public:
 
 				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
-					psx.cpuSOC.clock();
+					psx.cpuSOC.Clock();
 					//psx.clock();
 				}
 
@@ -434,7 +434,7 @@ public:
 				uint32_t data;
 				uint8_t cycels;
 
-				psx.bus.cpuRead32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
+				psx.bus.Read32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
 				uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
 				DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
 				if (i == 16) {
@@ -450,9 +450,9 @@ public:
 			for (int i = 0; i < 32; i++) {
 				std::stringstream ss;
 				if (i < 10)
-					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.GetRegister(i);
 				else
-					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.get(i);
+					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.GetRegister(i);
 				DrawString(0, i * 9, ss.str());
 			}
 			std::stringstream ss;

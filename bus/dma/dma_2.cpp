@@ -99,7 +99,7 @@ void Dma2::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycle
 }
 
 void Dma2::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
-	pBus->cpuRead32(addr, data, cycles);
+	pBus->Read32(addr, data, cycles);
 	//if (addr & 0x3)
 	//	g_emulationPaused = true;
 }
@@ -236,11 +236,11 @@ void Dma2::Clock() {
 
 		if (channelControl.reg.transDir == toMainRAM) {
 			DmaRead32(0x1f801810, data, cycles);
-			pBus->cpuWrite32(memAddrTemp, data, cycles);
+			pBus->Write32(memAddrTemp, data, cycles);
 		}
 		else {
 			DmaRead32(memAddrTemp, data, cycles);
-			pBus->cpuWrite32(0x1f801810, data, cycles);
+			pBus->Write32(0x1f801810, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)
 		/*if ((memAddrTemp >= 0x001c0000) && (memAddrTemp <= 0x001c0100))

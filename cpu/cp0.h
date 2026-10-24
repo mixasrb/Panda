@@ -4,13 +4,13 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-class cpu_t;
+class Cpu;
 class BusInterface;
 
-class cp0_t {
+class CP0 {
 public:
 
-	cpu_t* pCpu;
+	Cpu* pCpu;
 
 	void MFC0(const uint8_t& rt, const uint8_t& rd);
 	void CFC0(const uint8_t& rt, const uint8_t& rd);
