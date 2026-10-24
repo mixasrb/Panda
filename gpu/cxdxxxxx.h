@@ -104,10 +104,10 @@ public:
 
 	BusInterface* BusPtr;
 
-	void ReadGpu32(const uint32_t& addr, uint32_t& data);
-	void WriteGpu32(const uint32_t& addr, const uint32_t& data);
+	void Read32(const uint32_t& addr, uint32_t& data);
+	void Write32(const uint32_t& addr, const uint32_t& data);
 
-	void VideoClock();
+	void Clock();
 
 	static constexpr uint32_t CPU_CLOCK = 44100 * 0x300;
 	static constexpr uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);

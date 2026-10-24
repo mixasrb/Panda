@@ -8,6 +8,7 @@
 
 #include "cp0.h"
 #include "cp2.h"
+#include "../defines/defines.h"
 
 #include "../debug_utilities/debug_utilities.h"
 

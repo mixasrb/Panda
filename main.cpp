@@ -282,7 +282,7 @@ public:
 				psx.debugger.dump("logs/vram.bin", psx.gpu.vram.get(), 2048 * 512);
 
 			if (GetKey(olc::Key::S).bPressed)
-				psx.debugger.dump("logs/spu_dram.bin", psx.bus.spu.dram, 512 * 1024);
+				psx.debugger.dump("logs/spu_dram.bin", psx.bus.spu.ls, 512 * 1024);
 
 			if (GetKey(olc::Key::M).bPressed)
 				psx.debugger.dump("logs/memcard_dumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);

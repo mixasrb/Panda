@@ -6,8 +6,8 @@
 
 #include "../debug_utilities/debug_utilities.h"
 
-#define DRAM_SIZE 512 * 1024 
-#define XA_ADPCM_SECTOR_SIZE 0x930
+constexpr auto LS_SIZE = 512 * 1024; 
+constexpr auto XA_ADPCM_SECTOR_SIZE = 0x930;
 
 class BusInterface;
 
@@ -28,32 +28,28 @@ public:
 
 	Spu();
 
-	void read32(const uint32_t& addr, uint32_t& data);
-	void write32(const uint32_t& addr, const uint32_t& data);
+	void Read32(const uint32_t& addr, uint32_t& data);
+	void Write32(const uint32_t& addr, const uint32_t& data);
 
-	void read16(const uint32_t& addr, uint16_t& data);
-	void write16(const uint32_t& addr, const uint16_t& data);
+	void Read16(const uint32_t& addr, uint16_t& data);
+	void Write16(const uint32_t& addr, const uint16_t& data);
 
-	void read8(const uint32_t& addr, uint8_t& data);
-	void write8(const uint32_t& addr, const uint8_t& data);
+	void Read8(const uint32_t& addr, uint8_t& data);
+	void Write8(const uint32_t& addr, const uint8_t& data);
 
 	Output Clock();
 
 	BusInterface* pBus;
 
-	uint8_t* dram = new uint8_t[DRAM_SIZE];
+	uint8_t* ls = new uint8_t[LS_SIZE];
 	int16_t reverb[32];
 
-	uint32_t readDram32(const uint32_t& addr);
-	void writeDram32(const uint32_t& addr, const uint32_t& data);
+	uint16_t ReadLs16(const uint32_t& addr);
+	void WriteLs16(const uint32_t& addr, const uint16_t& data);
 
-	uint16_t readDram16(const uint32_t& addr);
-	void writeDram16(const uint32_t& addr, const uint16_t& data);
+	uint8_t ReadLs8(const uint32_t& addr);
 
-	void readDram8(const uint32_t& addr, uint8_t& data);
-	void writeDram8(const uint32_t& addr, const uint8_t& data);
-
-	class voices_t {
+	class Voices {
 	public:
 		Spu* p_spu;
 
@@ -320,7 +316,7 @@ public:
 	void reverbClock(const Output& input);
 	Output reverbOutput = { 0, 0 };
 
-	voices_t voices;
+	Voices voices;
 
 	union mainVolumeLeftRight_t {
 		uint32_t data;
@@ -417,7 +413,7 @@ public:
 	std::vector<int16_t> table;
 
 	uint32_t irqAddress = 0;
-	void irqSend();
+	void IrqSend();
 
 	Output clockXA_ADPCM();
 

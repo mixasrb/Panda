@@ -170,7 +170,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 		clocks = 3;//??
 	}
 	else if (GPU) {
-		pGpu->ReadGpu32(addr, data);
+		pGpu->Read32(addr, data);
 		clocks = 4;
 	}
 	else if (MDEC) {
@@ -178,7 +178,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 		clocks = 3;
 	}
 	else if (SPU) {
-		spu.read32(addr, data);
+		spu.Read32(addr, data);
 		clocks = 39;
 	}
 	//BIOS ROM
@@ -338,11 +338,11 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 		}
 	}
 	else if (SPU)
-		spu.write32(addr, data);
+		spu.Write32(addr, data);
 	else if (DMA)
 		dma.WriteDmaController32(addr, data, clocks);
 	else if (GPU)
-		pGpu->WriteGpu32(addr, data);
+		pGpu->Write32(addr, data);
 	else if (MDEC)
 		pMdec->Write32(addr, data);
 	else if (JOY_MEM_CARD)
@@ -449,7 +449,7 @@ void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks,
 		clocks = 13;
 	}
 	else if (SPU) {
-		spu.read16(addr, data);
+		spu.Read16(addr, data);
 		clocks = 18;
 	}
 	else if (JOY_MEM_CARD) {
@@ -520,7 +520,7 @@ void BusInterface::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& 
 		}
 	}
 	else if (SPU)
-		spu.write16(addr, data);
+		spu.Write16(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite16(addr, data);
 	else if (SERIAL)
@@ -578,7 +578,7 @@ void BusInterface::Read8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, c
 		clocks = 8;//??
 	}
 	else if (SPU) {
-		spu.read8(addr, data);
+		spu.Read8(addr, data);
 		clocks = 18;
 	}
 	else if (JOY_MEM_CARD) {

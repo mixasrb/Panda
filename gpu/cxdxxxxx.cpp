@@ -293,7 +293,7 @@ Gpu::Gpu() {
 	outputFifo.Reset();
 }
 
-void Gpu::ReadGpu32(const uint32_t& addr, uint32_t& data) {
+void Gpu::Read32(const uint32_t& addr, uint32_t& data) {
 	data = 0;
 
 	if (addr == 0x1f801810) {
@@ -329,7 +329,7 @@ void Gpu::ReadGpu32(const uint32_t& addr, uint32_t& data) {
 	}
 }
 
-void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
+void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
 		if (fifoCollectCount) {
 			fifo.PushBack(data);
@@ -380,7 +380,7 @@ void Gpu::WriteGpu32(const uint32_t& addr, const uint32_t& data) {
 	}
 }
 
-void Gpu::VideoClock() {
+void Gpu::Clock() {
 	if (cpuScanlineClocks == cpuClocksToHblank) {
 		//Hblank clocking timer 1
 		BusPtr->timer0.bHblank = true;

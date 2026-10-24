@@ -2,7 +2,7 @@
 
 #include "dma.h"
 
-#define CLOCKS_PER_WORD_DMA_0 272.f/256.f
+constexpr auto CLOCKS_PER_WORD_DMA_0 = 272.f/256.f;
 
 class DmaController;
 
