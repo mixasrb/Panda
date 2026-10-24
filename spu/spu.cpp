@@ -393,7 +393,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		case 0x1f801da2:
-			data = dramReverbWorkAreaStartAddress.data;
+			data = lsReverbWorkAreaStartAddress.data;
 			break;
 
 		case 0x1f801da4:
@@ -668,8 +668,8 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0x1f801da2:
-			dramReverbWorkAreaStartAddress.data = data;
-			reverbCurrentBufferAddress = dramReverbWorkAreaStartAddress.data << 3;
+			lsReverbWorkAreaStartAddress.data = data;
+			reverbCurrentBufferAddress = lsReverbWorkAreaStartAddress.data << 3;
 			break;
 
 		case 0x1f801da4:
@@ -801,15 +801,15 @@ void Spu::IrqSend() {
 
 uint16_t Spu::ReadLs16(const uint32_t& addr) {
 	if (addr & 0x1) {
-		/*std::cout << "[SPU] EMULATION PASUED! LS Read16 Address unaligned : 0x"
+		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address unaligned : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;*/
+		g_emulationPaused = true;
 		return 0;
 	}
 	if (addr >= LS_SIZE) {
-		/*std::cout << "[SPU] EMULATION PASUED! LS Read16 Address > DRAM_SIZE : 0x"
+		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;*/
+		g_emulationPaused = true;
 		return 0;
 	}
 
@@ -821,15 +821,15 @@ uint16_t Spu::ReadLs16(const uint32_t& addr) {
 
 void Spu::WriteLs16(const uint32_t& addr, const uint16_t& data) {
 	if (addr & 0x1) {
-		/*std::cout << "[SPU] EMULATION PASUED! LS Write16 Address unaligned : 0x"
+		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address unaligned : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;*/
+		g_emulationPaused = true;
 		return;
 	}
 	if (addr >= LS_SIZE) {  // spyro 1 sends 0x10 more hw's and also Monkey Hero //??maybe warping??
-		/*std::cout << "[SPU] EMULATION PASUED! LS Write16 Address > DRAM_SIZE : 0x"
+		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;*/
+		g_emulationPaused = true;
 		return;
 	}
 
@@ -842,9 +842,9 @@ void Spu::WriteLs16(const uint32_t& addr, const uint16_t& data) {
 
 uint8_t Spu::ReadLs8(const uint32_t& addr) {
 	if (addr >= LS_SIZE) {
-		/*std::cout << "[SPU] EMULATION PASUED! LS Read8 Address > DRAM_SIZE : 0x"
+		std::cout << "[SPU] EMULATION PASUED! LS Read8 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;*/
+		g_emulationPaused = true;
 		return 0;
 	}
 
@@ -1103,7 +1103,7 @@ static T max(T a, T b) {
 	return (a > b) ? a : b;
 }
 
-void Spu::reverbClock(const Output& input) {
+void Spu::ReverbClock(const Output& input) {
 
 #undef vLOUT
 #undef vROUT
@@ -1143,7 +1143,7 @@ void Spu::reverbClock(const Output& input) {
 
 #define vLOUT (int32_t)reverbOutputVolumeLeftRight.hw.l
 #define vROUT (int32_t)reverbOutputVolumeLeftRight.hw.h
-#define mBASE dramReverbWorkAreaStartAddress.data
+#define mBASE lsReverbWorkAreaStartAddress.data
 #define dAPF1 (int32_t)reverb[0x00]
 #define dAPF2 (int32_t)reverb[0x01]
 #define vIIR (int32_t)reverb[0x02]
@@ -1177,26 +1177,32 @@ void Spu::reverbClock(const Output& input) {
 #define vLIN (int32_t)reverb[0x1e]
 #define vRIN (int32_t)reverb[0x1f]
 
-	auto sramRead = [&](int32_t addr) {
+	auto lsRead = [&](int32_t addr) {
 
 		addr = reverbCurrentBufferAddress + (addr << 3);
 
 		if (addr > 0x7fffe)
-			addr += -0x80000 + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
-		else if (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))
-			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+			addr += -0x80000 + ((uint32_t)mBASE << 3);
+		else if (addr < ((int32_t)mBASE << 3))
+			addr += 0x80000 - ((uint32_t)mBASE << 3);
+
+		if (addr >= LS_SIZE)
+			return 0;
 
 		return (int32_t)(int16_t)ReadLs16(addr);
 		};
 
-	auto sramWrite = [&](uint32_t addr, uint16_t data) {
+	auto lsWrite = [&](uint32_t addr, uint16_t data) {
 
 		addr = reverbCurrentBufferAddress + (addr << 3);
 
 		if (addr > 0x7fffe)
-			addr += -0x80000 + ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
-		else if (addr < ((int32_t)dramReverbWorkAreaStartAddress.data << 3))
-			addr += 0x80000 - ((uint32_t)dramReverbWorkAreaStartAddress.data << 3);
+			addr += -0x80000 + ((uint32_t)mBASE << 3);
+		else if (addr < ((int32_t)mBASE << 3))
+			addr += 0x80000 - ((uint32_t)mBASE << 3);
+
+		if (addr >= LS_SIZE)
+			return;
 
 		if (spuControlRegister.elem.reverbMasterEnable)
 			WriteLs16(addr, data);
@@ -1206,24 +1212,24 @@ void Spu::reverbClock(const Output& input) {
 
 		int32_t Lin = (vLIN * int16_t(input.channel0 * 32767.0f)) >> 15;
 
-		sramWrite(mLSAME,
-			saturate(((Lin + (sramRead(dLSAME) * vWALL >> 15) - sramRead(mLSAME - 2)) * vIIR >> 15) +
-				sramRead(mLSAME - 2), -0x8000, 0x7fff));
+		lsWrite(mLSAME,
+			saturate(((Lin + (lsRead(dLSAME) * vWALL >> 15) - lsRead(mLSAME - 2)) * vIIR >> 15) +
+				lsRead(mLSAME - 2), -0x8000, 0x7fff));
 
-		sramWrite(mLDIFF,
-			saturate(((Lin + (sramRead(dRDIFF) * vWALL >> 15) - sramRead(mLDIFF - 2)) * vIIR >> 15) +
-				sramRead(mLDIFF - 2), -0x8000, 0x7fff));
+		lsWrite(mLDIFF,
+			saturate(((Lin + (lsRead(dRDIFF) * vWALL >> 15) - lsRead(mLDIFF - 2)) * vIIR >> 15) +
+				lsRead(mLDIFF - 2), -0x8000, 0x7fff));
 
-		int32_t Lout = (vCOMB1 * sramRead(mLCOMB1) >> 15) + (vCOMB2 * sramRead(mLCOMB2) >> 15) +
-			(vCOMB3 * sramRead(mLCOMB3) >> 15) + (vCOMB4 * sramRead(mLCOMB4) >> 15);
+		int32_t Lout = (vCOMB1 * lsRead(mLCOMB1) >> 15) + (vCOMB2 * lsRead(mLCOMB2) >> 15) +
+			(vCOMB3 * lsRead(mLCOMB3) >> 15) + (vCOMB4 * lsRead(mLCOMB4) >> 15);
 
-		Lout = Lout - (vAPF1 * sramRead(mLAPF1 - dAPF1) >> 15);
-		sramWrite(mLAPF1, saturate(Lout, -0x8000, 0x7fff));
-		Lout = (vAPF1 * Lout >> 15) + sramRead(mLAPF1 - dAPF1);
+		Lout = Lout - (vAPF1 * lsRead(mLAPF1 - dAPF1) >> 15);
+		lsWrite(mLAPF1, saturate(Lout, -0x8000, 0x7fff));
+		Lout = (vAPF1 * Lout >> 15) + lsRead(mLAPF1 - dAPF1);
 
-		Lout = Lout - (vAPF2 * sramRead(mLAPF2 - dAPF2) >> 15);
-		sramWrite(mLAPF2, saturate(Lout, -0x8000, 0x7fff));
-		Lout = saturate((vAPF2 * Lout >> 15) + sramRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
+		Lout = Lout - (vAPF2 * lsRead(mLAPF2 - dAPF2) >> 15);
+		lsWrite(mLAPF2, saturate(Lout, -0x8000, 0x7fff));
+		Lout = saturate((vAPF2 * Lout >> 15) + lsRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
 
 		reverbOutput.channel0 = float(vLOUT * Lout >> 15) / 32767.0f;
 	}
@@ -1231,24 +1237,24 @@ void Spu::reverbClock(const Output& input) {
 
 		int32_t Rin = (vRIN * int16_t(input.channel1 * 32767.0f)) >> 15;
 
-		sramWrite(mRSAME,
-			saturate(((Rin + (sramRead(dRSAME) * vWALL >> 15) - sramRead(mRSAME - 2)) * vIIR >> 15) +
-				sramRead(mRSAME - 2), -0x8000, 0x7fff));
+		lsWrite(mRSAME,
+			saturate(((Rin + (lsRead(dRSAME) * vWALL >> 15) - lsRead(mRSAME - 2)) * vIIR >> 15) +
+				lsRead(mRSAME - 2), -0x8000, 0x7fff));
 
-		sramWrite(mRDIFF,
-			saturate(((Rin + (sramRead(dLDIFF) * vWALL >> 15) - sramRead(mRDIFF - 2)) * vIIR >> 15) +
-				sramRead(mRDIFF - 2), -0x8000, 0x7fff));
+		lsWrite(mRDIFF,
+			saturate(((Rin + (lsRead(dLDIFF) * vWALL >> 15) - lsRead(mRDIFF - 2)) * vIIR >> 15) +
+				lsRead(mRDIFF - 2), -0x8000, 0x7fff));
 
-		int32_t Rout = (vCOMB1 * sramRead(mRCOMB1) >> 15) + (vCOMB2 * sramRead(mRCOMB2) >> 15) +
-			(vCOMB3 * sramRead(mRCOMB3) >> 15) + (vCOMB4 * sramRead(mRCOMB4) >> 15);
+		int32_t Rout = (vCOMB1 * lsRead(mRCOMB1) >> 15) + (vCOMB2 * lsRead(mRCOMB2) >> 15) +
+			(vCOMB3 * lsRead(mRCOMB3) >> 15) + (vCOMB4 * lsRead(mRCOMB4) >> 15);
 
-		Rout = Rout - (vAPF1 * sramRead(mRAPF1 - dAPF1) >> 15);
-		sramWrite(mRAPF1, saturate(Rout, -0x8000, 0x7fff));
-		Rout = (vAPF1 * Rout >> 15) + sramRead(mRAPF1 - dAPF1);
+		Rout = Rout - (vAPF1 * lsRead(mRAPF1 - dAPF1) >> 15);
+		lsWrite(mRAPF1, saturate(Rout, -0x8000, 0x7fff));
+		Rout = (vAPF1 * Rout >> 15) + lsRead(mRAPF1 - dAPF1);
 
-		Rout = Rout - (vAPF2 * sramRead(mRAPF2 - dAPF2) >> 15);
-		sramWrite(mRAPF2, saturate(Rout, -0x8000, 0x7fff));
-		Rout = saturate((vAPF2 * Rout >> 15) + sramRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
+		Rout = Rout - (vAPF2 * lsRead(mRAPF2 - dAPF2) >> 15);
+		lsWrite(mRAPF2, saturate(Rout, -0x8000, 0x7fff));
+		Rout = saturate((vAPF2 * Rout >> 15) + lsRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
 
 		reverbOutput.channel1 = float(vROUT * Rout >> 15) / 32767.0f;
 
@@ -1358,7 +1364,7 @@ Output Spu::Clock() {
 
 	//Reverb
 
-	reverbClock(inputReverb);
+	ReverbClock(inputReverb);
 
 	if (spuControlRegister.elem.reverbMasterEnable)
 		output = output + reverbOutput;

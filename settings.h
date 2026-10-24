@@ -2,7 +2,7 @@
 
 #define CONSOLE_LOGGING 1
 #define SCREEN 1
-#define ACCURATE_SPU_CLOCKING 1
+#define ACCURATE_SPU_CLOCKING 0
 
 //gpu settings
 #undef ENABLE_DITHERING

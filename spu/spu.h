@@ -313,7 +313,7 @@ public:
 
 	uint32_t reverbCurrentBufferAddress;
 	bool bReverbCycle = false;
-	void reverbClock(const Output& input);
+	void ReverbClock(const Output& input);
 	Output reverbOutput = { 0, 0 };
 
 	Voices voices;
@@ -334,7 +334,7 @@ public:
 
 	union dramReverbWorkAreaStartAddress_t {
 		uint16_t data;
-	}dramReverbWorkAreaStartAddress;
+	}lsReverbWorkAreaStartAddress;
 
 	union dram_IRQ_Address_t {
 		uint16_t data;
