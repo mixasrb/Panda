@@ -869,7 +869,7 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.data = 0x14802000;
 		break;
 	case 0x1:
-		std::cout << "~[GPU] Unhandled GPU1 command: Reset Command Buffer" << '\n';
+		//std::cout << "~[GPU] Unhandled GPU1 command: Reset Command Buffer" << '\n';
 		break;
 	case 0x2:
 		gpuStat.elem.irq1 = 0;
@@ -1001,7 +1001,7 @@ void Gpu::UpdateVramView(const Vector2D& possition, const PsxColor16& color16) {
 }
 
 void Gpu::WriteVram(const Vector2D& position, const uint16_t& data,
-	const bool bIgnoreDrawingArea, const bool bDithering) {
+	const bool& bIgnoreDrawingArea, const bool& bDithering) {
 
 	if (bIgnoreDrawingArea) {
 		/*if ((position.x < 0) || (position.y < 0)) {
@@ -1059,7 +1059,7 @@ void Gpu::WriteVram(const Vector2D& position, const uint16_t& data,
 }
 
 void Gpu::ReadVram(const Vector2D& position, uint16_t& data,
-	const bool bIgnoreDrawingArea) const {
+	const bool& bIgnoreDrawingArea) const {
 
 	if (bIgnoreDrawingArea) {
 		/*if ((position.x < 0) || (position.y < 0)) {

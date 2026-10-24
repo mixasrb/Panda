@@ -540,7 +540,7 @@ void Gpu::DrawTexRect(const Param& param) {
 		for (int16_t x = 0; x < x2 - x1; x++) {
 
 			pointTex.x = gpuStat.elem.texPageXBase << 6;
-			//TO check
+			//TODO Clean code
 			pointTex.x += (((((u1 >> textureBitness.shiftRight)
 				+ ((x + (u1 & textureBitness.firstAnd)) >> textureBitness.shiftRight))
 				& (255 >> textureBitness.shiftRight)

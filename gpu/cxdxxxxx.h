@@ -50,9 +50,10 @@ struct Vector2D {
 	}
 };
 
+//TODO REWRITE THIS IS CATASTROPHE
 template <typename T>
-struct Fifo { //have some bugs and quarks
-	Fifo() {
+struct Deque { //have some bugs and quarks
+	Deque() {
 		ptr = nullptr;
 		currentPossitionWrite = 0;
 		currentPossitionRead = 0;
@@ -245,8 +246,8 @@ public:
 		return color24.data;
 	}
 
-	Fifo<uint32_t> fifo;
-	Fifo<uint32_t> outputFifo;
+	Deque<uint32_t> fifo;
+	Deque<uint32_t> outputFifo;
 
 	enum PrimitiveType {
 		UNDEFINED,
@@ -385,9 +386,9 @@ public:
 	std::unique_ptr<uint8_t[]> vram = std::make_unique<uint8_t[]>(size_x_b * size_y);
 
 	void WriteVram(const Vector2D& position, const uint16_t& data, 
-		const bool bIgnoreDrawingArea = false, const bool bDithering = false);
+		const bool& bIgnoreDrawingArea = false, const bool& bDithering = false);
 	void ReadVram(const Vector2D& position, uint16_t& data, 
-		const bool bIgnoreDrawingArea = false) const;
+		const bool& bIgnoreDrawingArea = false) const;
 
 	olc::Sprite* GetVramSprite();
 	std::unique_ptr<olc::Sprite> vramView = std::make_unique<olc::Sprite>(1024, 512);

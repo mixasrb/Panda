@@ -10,6 +10,7 @@
 
 #include "console.h"
 #include "settings.h"
+#include "gpu/cxdxxxxx.h"
 
 uint32_t g_systemClocks = 0;
 uint32_t g_systemFrames = 0;
@@ -382,26 +383,26 @@ public:
 							switch ((/*x1 +*/ x + i) % 3) {
 							case 0: {
 								uint16_t data;
-								gpu_t::vertex_t p;
+								Vector2D p;
 								p.x = x1 + x + i;
 								p.y = y1 + y;
-								psx.bus.pGpu->readVram(p, data, true);
+								psx.bus.pGpu->ReadVram(p, data, true);
 								pixel.r = data & 0xff;
 								pixel.g = (data >> 8) & 0xff;
 								p.x = x1 + x + 1 + i;
-								psx.bus.pGpu->readVram(p, data, true);
+								psx.bus.pGpu->ReadVram(p, data, true);
 								pixel.b = data & 0xff;
 								break;
 							}
 							case 1: {
 								uint16_t data;
-								gpu_t::vertex_t p;
+								Vector2D p;
 								p.x = x1 + x + i;
 								p.y = y1 + y;
-								psx.bus.pGpu->readVram(p, data, true);
+								psx.bus.pGpu->ReadVram(p, data, true);
 								pixel.r = (data >> 8) & 0xff;
 								p.x = x1 + x + 1 + i;
-								psx.bus.pGpu->readVram(p, data, true);
+								psx.bus.pGpu->ReadVram(p, data, true);
 								pixel.g = data & 0xff;
 								pixel.b = (data >> 8) & 0xff;
 								break;
@@ -417,7 +418,7 @@ public:
 					DrawDecal({ 0, 0 }, decSprite.get(), { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}
 				else {
-					decSprite.reset(new olc::Decal(psx.gpu.getVramSprite()));
+					decSprite.reset(new olc::Decal(psx.gpu.GetVramSprite()));
 					DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
 						{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}

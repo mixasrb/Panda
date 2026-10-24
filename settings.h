@@ -1,7 +1,7 @@
 #pragma once
 
 #define CONSOLE_LOGGING 1
-#define SCREEN 0
+#define SCREEN 1
 #define ACCURATE_SPU_CLOCKING 0
 
 //gpu settings
@@ -92,7 +92,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");//GetTN, Mdec // no input fixed//get stuck// DMA 2 linked-list loop ??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Rebel Assault II - The Hidden Empire (USA) (Disc 1).bin");// DMA3 CDROM 0x11400100h //unhandled timer0 mode 0x14b //mdec //hangs??->mdec
 
@@ -323,7 +323,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Puzzle Bobble 2 (Japan) (Track 01).bin");
 
 
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profile (Disc 1).bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT)?? // spu irq sync sensitive
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profile (Disc 1).bin");//probably stuct at 1F801DAAh 2  SPU Control Register (SPUCNT)?? // spu irq sync sensitive
 // graphic bugs around character pictures at left side while in dialog looks fixed with adding leftover bits for 4bit and 8bit textures
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tactics Ogre (USA)/Tactics Ogre (USA) (Track 1).bin");//fps drop dma2/gpu timing
@@ -434,7 +434,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Valkyrie Profil
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider - The Last Revelation (USA) (v1.1).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tomb Raider (v1.1)/Tomb Raider (v1.1) (Track 01).bin"); // GetlocP loop??//VSync: timeout
 
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spider-Man (USA).bin");//very low fps
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spider-Man (USA).bin");//very low fps // sound is probably not playing good
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Tom Clancy's Rainbow Six - Lone Wolf (USA).bin"); //sound buffer overflow
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Quake II/Quake II (USA) (Track 1).bin");//gte
