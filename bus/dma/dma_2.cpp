@@ -7,7 +7,7 @@ extern bool g_emulationPaused;
 extern uint32_t g_systemClocks;
 extern bool g_manualInterruptDMA;
 
-void dma2_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma2::ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = memoryAddress.reg.memAddr;
@@ -21,7 +21,7 @@ void dma2_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	}
 }
 
-void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma2::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
@@ -66,7 +66,7 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 				//	return;
 				uint8_t cycles;
 				uint32_t node;
-				DMARead32(memAddrTemp, node, cycles);
+				DmaRead32(memAddrTemp, node, cycles);
 				memAddrTemp += 4;
 				memoryAddress.data = node & 0x00ffffff;
 				elementCount = node >> 24;
@@ -88,32 +88,32 @@ void dma2_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	}
 }
 
-void dma2_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma2::ReadDma16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA2] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
-void dma2_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma2::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA2] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
-void dma2_t::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma2::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	pBus->cpuRead32(addr, data, cycles);
 	//if (addr & 0x3)
 	//	g_emulationPaused = true;
 }
 
-void dma2_t::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma2::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 }
 
-void dma2_t::DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma2::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 }
 
-void dma2_t::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma2::DmaWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 }
 
-void dma2_t::triggerIRQ() {
+void Dma2::TriggerInterrupt() {
 	if (pDMAController->interruptRegister.reg.IRQ_enable_dma2)
 		pDMAController->interruptRegister.reg.IRQ_flag_dma2 = 1;
 	else
@@ -127,7 +127,7 @@ void dma2_t::triggerIRQ() {
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;*/
 }
 
-void dma2_t::endDMATransfer() {
+void Dma2::endDMATransfer() {
 	clocks = 0;
 	bTransferActive = false;
 	channelControl.reg.startBusy = 0;
@@ -138,11 +138,11 @@ void dma2_t::endDMATransfer() {
 	pDMAController->currentClockFunction = 8;
 
 	dma2_Pending = false;
-	triggerIRQ();
+	TriggerInterrupt();
 	//std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@DMA2 end" << std::dec << g_systemClocks << '\n';
 }
 
-void dma2_t::Clock() {
+void Dma2::Clock() {
 
 	/*if (pDMAController->isCpuStopped == false) {
 		if (syncClocks == 0) {
@@ -176,7 +176,7 @@ void dma2_t::Clock() {
 			//}
 			uint8_t cycles;
 			uint32_t node;
-			DMARead32(memAddrTemp, node, cycles);
+			DmaRead32(memAddrTemp, node, cycles);
 			memoryAddress.data = node & 0x00fffffc;
 
 			dma2_Pending = true;
@@ -235,11 +235,11 @@ void dma2_t::Clock() {
 		uint32_t data;
 
 		if (channelControl.reg.transDir == toMainRAM) {
-			DMARead32(0x1f801810, data, cycles);
+			DmaRead32(0x1f801810, data, cycles);
 			pBus->cpuWrite32(memAddrTemp, data, cycles);
 		}
 		else {
-			DMARead32(memAddrTemp, data, cycles);
+			DmaRead32(memAddrTemp, data, cycles);
 			pBus->cpuWrite32(0x1f801810, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -4 : +4; //should always be +4 (forward)

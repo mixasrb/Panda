@@ -1,7 +1,6 @@
 #include <type_traits>
 #include <utility>
 #include <tuple>
-#include <algorithm>
 
 #include "math.hh"
 

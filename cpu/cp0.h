@@ -39,5 +39,5 @@ public:
 	bool irqFlag = false;
 
 	//debug
-	debugUtilities* pDebugger;
+	DebugUtilities* pDebugger;
 };

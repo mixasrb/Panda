@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void timer2_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
+void timer2_t::Read32(const uint32_t& addr, uint32_t& data) {
 	switch (addr & 0xf) {
 	case 0:
 		data = currentValue.data;
@@ -22,7 +22,7 @@ void timer2_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
 	}
 }
 
-void timer2_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
+void timer2_t::Write32(const uint32_t& addr, const uint32_t& data) {
 	switch (addr & 0xf) {
 	case 0:
 		currentValue.data = data;
@@ -64,14 +64,14 @@ void timer2_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 	}
 }
 
-void timer2_t::clock(const uint8_t& source) {
+void timer2_t::Clock(const uint8_t& source) {
 	if (bSynchronizationEnable) {
 		if ((counterMode.elem.synchronizationMode == 0) || (counterMode.elem.synchronizationMode == 3)) {
 			return;
 		}
 	}
 
-	if (clockSource == static_cast<clockSource_t>(source)) {
+	if (clockSource == static_cast<ClockSource>(source)) {
 
 		if (counterMode.elem.clockSource & 0x2)
 			if (clocks == 7)

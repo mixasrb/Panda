@@ -73,7 +73,7 @@ extern bool g_emulationPaused;
 #define CACHE_CONTROL (addr == 0xfffe0130)
 
 
-void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,const bool& debug) {
 	data = 0;
 	clocks = 4;
 
@@ -151,15 +151,15 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		uint32_t temp;
 		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, temp);
+			timer0.Read32(addr, temp);
 			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, temp);
+			timer1.Read32(addr, temp);
 			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, temp);
+			timer2.Read32(addr, temp);
 			data = temp;
 			break;
 		default:
@@ -174,7 +174,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		clocks = 4;
 	}
 	else if (MDEC) {
-		pMdec->readMdec32(addr, data);
+		pMdec->Read32(addr, data);
 		clocks = 3;
 	}
 	else if (SPU) {
@@ -194,7 +194,7 @@ void BusInterface::cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cloc
 		clocks = 25;
 	}
 	else if (DMA) {
-		dma.readDMA32(addr, data, clocks);
+		dma.ReadDmaController32(addr, data, clocks);
 		clocks = 3;
 	}
 	else if (JOY_MEM_CARD) {
@@ -323,13 +323,13 @@ void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	else if (TIMERS) {
 		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.WriteTimer32(addr, data);
+			timer0.Write32(addr, data);
 			break;
 		case 1:
-			timer1.WriteTimer32(addr, data);
+			timer1.Write32(addr, data);
 			break;
 		case 2:
-			timer2.WriteTimer32(addr, data);
+			timer2.Write32(addr, data);
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -340,11 +340,11 @@ void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	else if (SPU)
 		spu.write32(addr, data);
 	else if (DMA)
-		dma.writeDMA32(addr, data, clocks);
+		dma.WriteDmaController32(addr, data, clocks);
 	else if (GPU)
 		pGpu->WriteGpu32(addr, data);
 	else if (MDEC)
-		pMdec->writeMdec32(addr, data);
+		pMdec->Write32(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite32(addr, data);
 	else if (CACHE_CONTROL) {
@@ -371,7 +371,7 @@ void BusInterface::cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_
 	}
 }
 
-void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& clocks, const bool& debug) {
 	data = 0;
 	clocks = 4;
 
@@ -417,15 +417,15 @@ void BusInterface::cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cloc
 		uint32_t temp;
 		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.ReadTimer32(addr, temp);
+			timer0.Read32(addr, temp);
 			data = temp;
 			break;
 		case 1:
-			timer1.ReadTimer32(addr, temp);
+			timer1.Read32(addr, temp);
 			data = temp;
 			break;
 		case 2:
-			timer2.ReadTimer32(addr, temp);
+			timer2.Read32(addr, temp);
 			data = temp;
 			break;
 		default:
@@ -505,13 +505,13 @@ void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 	else if (TIMERS) {
 		switch ((addr & 0xf0) >> 4) {
 		case 0:
-			timer0.WriteTimer32(addr, data);
+			timer0.Write32(addr, data);
 			break;
 		case 1:
-			timer1.WriteTimer32(addr, data);
+			timer1.Write32(addr, data);
 			break;
 		case 2:
-			timer2.WriteTimer32(addr, data);
+			timer2.Write32(addr, data);
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
@@ -535,7 +535,7 @@ void BusInterface::cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_
 	}
 }
 
-void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, bool debug) {
+void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, const bool& debug) {
 	data = 0x00;
 	clocks = 3;
 
@@ -566,7 +566,7 @@ void BusInterface::cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& clocks
 		clocks = 8;
 	}
 	else if (DMA) {
-		dma.readDMA8(addr, data, clocks);
+		dma.ReadDmaController8(addr, data, clocks);
 		clocks = 4;
 	}
 	else if (POST) {
@@ -613,7 +613,7 @@ void BusInterface::cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t&
 	else if (SCRATCHPAD)
 		scratchpad[addr & 0x3ff] = data;
 	else if (DMA)
-		dma.writeDMA8(addr, data, cycles);
+		dma.WriteDmaController8(addr, data, cycles);
 	else if (POST)
 		post = data;
 	else if (CD_DRIVE)

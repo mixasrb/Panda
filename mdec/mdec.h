@@ -1,25 +1,23 @@
 #pragma once
-#include <cstdint>
-#include <iostream>
 #include <vector>
 
 class BusInterface;
 
-class mdec_t {
+class Mdec {
 public:
 
-	mdec_t();
+	Mdec();
 
 	BusInterface* pBus;
 
-	void readMdec32(const uint32_t& addr, uint32_t& data);
-	void writeMdec32(const uint32_t& addr, const uint32_t& data);
+	void Read32(const uint32_t& addr, uint32_t& data);
+	void Write32(const uint32_t& addr, const uint32_t& data);
 
-	void clock();
+	void Clock();
 	uint32_t clocks;
 
 
-	union mdecStatusRegister_t {
+	union MdecStatus {
 		uint32_t data;
 		struct {
 			uint32_t numberOfParam : 16;
@@ -36,7 +34,7 @@ public:
 		}elem;
 	}statusRegister;
 
-	union mdecControlRegister_t {
+	union MdecControl {
 		uint32_t data;
 		struct {
 			uint32_t unused : 29;
@@ -46,7 +44,7 @@ public:
 		}elem;
 	}controlRegister;
 
-	enum blockType_t {
+	enum BlockType {
 		Y1,
 		Y2,
 		Y3,
@@ -60,18 +58,18 @@ public:
 	uint16_t* scaleTable = new uint16_t[64];
 	uint8_t* source = new uint8_t[128];
 
-	void decodeMacroblock(uint32_t command);
-	void setQuantTable(uint32_t command);
-	void setScaleTable(uint32_t command);
-	void noFunction(uint32_t command);
-	void invalid(uint32_t command);
+	void DecodeMacroblock(uint32_t command);
+	void SetQuantTable(uint32_t command);
+	void SetScaleTable(uint32_t command);
+	void NoFunction(uint32_t command);
+	void Invalid(uint32_t command);
 
-	struct command_t {
-		void (mdec_t::* command)(uint32_t command);
+	struct Command {
+		void (Mdec::* command)(uint32_t command);
 		std::string name;
 	};
 
-	std::vector<command_t> commandLookup;
+	std::vector<Command> commandLookup;
 
 	std::vector<uint16_t> recievedData16;
 	std::vector<uint32_t> recievedData32;

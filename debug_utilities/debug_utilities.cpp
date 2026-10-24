@@ -1,6 +1,9 @@
+#include <iostream>
+#include <fstream>
+
 #include "debug_utilities.h"
 
-debugUtilities::debugUtilities() {
+DebugUtilities::DebugUtilities() {
 	std::fstream file("D:/projects/emulation_psx/vs/Panda/logs/TTY_output.txt");
 	if (file.is_open()) {
 		file.close();
@@ -8,7 +11,7 @@ debugUtilities::debugUtilities() {
 	}
 }
 
-void debugUtilities::dump(const char* path, void* p_memory, const size_t size) {
+void DebugUtilities::dump(const char* path, void* p_memory, const size_t size) {
 	std::ofstream file(path, std::ios::binary);
 	if (!file.is_open())
 		std::cout << "failed to create file\n";
@@ -17,7 +20,7 @@ void debugUtilities::dump(const char* path, void* p_memory, const size_t size) {
 	file.close();
 }
 
-void debugUtilities::log(const std::string& s) {
+void DebugUtilities::log(const std::string& s) {
 	std::ofstream file("D:/projects/emulation_psx/vs/Panda/logs/TTY_output.txt", std::ios::app);
 	if (!file.is_open())
 		std::cout << "failed to open logs/TTY_output.txt\n";

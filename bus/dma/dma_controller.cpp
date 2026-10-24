@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-dmaController_t::dmaController_t() {
+DmaController::DmaController() {
 	ppDMA[0] = &dma0;
 	ppDMA[1] = &dma1;
 	ppDMA[2] = &dma2;
@@ -14,20 +14,20 @@ dmaController_t::dmaController_t() {
 	controlRegister.data = 0;
 	interruptRegister.data = 0;
 
-	clockFunctionsArray[0] = &dmaController_t::clock0;
-	clockFunctionsArray[1] = &dmaController_t::clock1;
-	clockFunctionsArray[2] = &dmaController_t::clock2;
-	clockFunctionsArray[3] = &dmaController_t::clock3;
-	clockFunctionsArray[4] = &dmaController_t::clock4;
-	clockFunctionsArray[5] = &dmaController_t::clock5;
-	clockFunctionsArray[6] = &dmaController_t::clock6;
+	clockFunctionsArray[0] = &DmaController::clock0;
+	clockFunctionsArray[1] = &DmaController::clock1;
+	clockFunctionsArray[2] = &DmaController::clock2;
+	clockFunctionsArray[3] = &DmaController::clock3;
+	clockFunctionsArray[4] = &DmaController::clock4;
+	clockFunctionsArray[5] = &DmaController::clock5;
+	clockFunctionsArray[6] = &DmaController::clock6;
 }
 
-void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void DmaController::ReadDmaController32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
 			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 4) || ((addr - 0x1f801080) >> 4 == 6))
-			ppDMA[(addr - 0x1f801080) >> 4]->ReadDMA32(addr, data, cycles);
+			ppDMA[(addr - 0x1f801080) >> 4]->ReadDma32(addr, data, cycles);
 		else {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << '\n';
 			//g_emulationPaused = true;
@@ -45,11 +45,11 @@ void dmaController_t::readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& c
 	}
 }
 
-void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void DmaController::WriteDmaController32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	if (addr < 0x1f8010f0) {
 		if (((addr - 0x1f801080) >> 4 == 0) || ((addr - 0x1f801080) >> 4 == 1) || ((addr - 0x1f801080) >> 4 == 2) ||
 			((addr - 0x1f801080) >> 4 == 3) || ((addr - 0x1f801080) >> 4 == 4) || ((addr - 0x1f801080) >> 4 == 6))
-			ppDMA[(addr - 0x1f801080) >> 4]->WriteDMA32(addr, data, cycles);
+			ppDMA[(addr - 0x1f801080) >> 4]->WriteDma32(addr, data, cycles);
 		else {
 			/*std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 				<< " data 0x" << std::hex << data << '\n';*/
@@ -116,18 +116,18 @@ void dmaController_t::writeDMA32(const uint32_t& addr, const uint32_t& data, uin
 	}
 }
 
-void dmaController_t::readDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void DmaController::ReadDmaController16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled read16" << " addr 0x" << std::hex << addr << '\n';
 	g_emulationPaused = true;
 }
 
-void dmaController_t::writeDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void DmaController::WriteDmaController16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled write16" << " addr 0x" << std::hex << addr
 		<< " data 0x" << std::hex << data << '\n';
 	g_emulationPaused = true;
 }
 
-void dmaController_t::readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
+void DmaController::ReadDmaController8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
 	if (addr == 0x1f8010f6)
 		data = (interruptRegister.data & 0x00ff0000) >> 16;
 	else {
@@ -136,7 +136,7 @@ void dmaController_t::readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cyc
 	}
 }
 
-void dmaController_t::writeDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void DmaController::WriteDmaController8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	if (addr == 0x1f8010f6)
 		interruptRegister.data = (interruptRegister.data & 0xff00ffff) | ((uint32_t)data << 16);
 	else {
@@ -146,7 +146,7 @@ void dmaController_t::writeDMA8(const uint32_t& addr, const uint8_t& data, uint8
 	}
 }
 
-void dmaController_t::connectBus(BusInterface* p) {
+void DmaController::ConnectBus(BusInterface* p) {
 	pbus = p;
 
 	dma0.pBus = pbus;
@@ -169,7 +169,7 @@ void dmaController_t::connectBus(BusInterface* p) {
 	dma6.pDMAController = this;
 }
 
-void dmaController_t::clock() {
+void DmaController::Clock() {
 	//	if (((pbus->interruptStat & 0x8) == 0)/* && ((interruptRegister.data << 1 >> 25) == 0)*/) 
 	{
 
@@ -208,7 +208,7 @@ void dmaController_t::clock() {
 	}
 }
 
-bool dmaController_t::clock0() {
+bool DmaController::clock0() {
 	if (controlRegister.reg.mdecIn_master_enable && dma0.bTransferActive) { //??
 		dma0.Clock();
 		return true;
@@ -216,7 +216,7 @@ bool dmaController_t::clock0() {
 	return false;
 }
 
-bool dmaController_t::clock1() {
+bool DmaController::clock1() {
 	if (controlRegister.reg.mdecOut_master_enable && dma1.bTransferActive) {//??
 		dma1.Clock();
 		return true;
@@ -224,7 +224,7 @@ bool dmaController_t::clock1() {
 	return false;
 }
 
-bool dmaController_t::clock2() {
+bool DmaController::clock2() {
 	if (controlRegister.reg.gpu_master_enable && dma2.bTransferActive) {
 		dma2.Clock();
 		return true;
@@ -232,7 +232,7 @@ bool dmaController_t::clock2() {
 	return false;
 }
 
-bool dmaController_t::clock3() {
+bool DmaController::clock3() {
 	if (controlRegister.reg.cd_drive_master_enable && dma3.bStart) {
 		dma3.Clock();
 		return true;
@@ -240,7 +240,7 @@ bool dmaController_t::clock3() {
 	return false;
 }
 
-bool dmaController_t::clock4() {
+bool DmaController::clock4() {
 	if (controlRegister.reg.spu_master_enable && dma4.bTransferActive) {//??
 		dma4.Clock();
 		return true;
@@ -248,12 +248,12 @@ bool dmaController_t::clock4() {
 	return false;
 }
 
-bool dmaController_t::clock5() {
+bool DmaController::clock5() {
 	//	g_emulationPaused = true;
 	return false;
 }
 
-bool dmaController_t::clock6() {
+bool DmaController::clock6() {
 	if (controlRegister.reg.otc_master_enable && dma6.bStart) {
 		dma6.Clock();
 		return true;

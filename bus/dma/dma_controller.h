@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
-#include <sstream>
 
 #include "dma.h"
 #include "dma_0.h"
@@ -16,32 +14,32 @@
 
 class BusInterface;
 
-class dmaController_t {
+class DmaController {
 public:
 
-	dmaController_t();
+	DmaController();
 
 	BusInterface* pbus = nullptr;
 
-	void readDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
-	void writeDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
-	void readDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
-	void writeDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
-	void readDMA8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
-	void writeDMA8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
+	void ReadDmaController32(const uint32_t& addr, uint32_t& data, uint8_t& cycles);
+	void WriteDmaController32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
+	void ReadDmaController16(const uint32_t& addr, uint16_t& data, uint8_t& cycles);
+	void WriteDmaController16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
+	void ReadDmaController8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
+	void WriteDmaController8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
-	void connectBus(BusInterface* p);
+	void ConnectBus(BusInterface* p);
 
-	void clock();
+	void Clock();
 
-	dma_t* ppDMA[7];
+	Dma* ppDMA[7];
 
-	dma0_t dma0;
-	dma1_t dma1;
-	dma2_t dma2;
-	dma3_t dma3;
-	dma4_t dma4;
-	dma6_t dma6;
+	Dma0 dma0;
+	Dma1 dma1;
+	Dma2 dma2;
+	Dma3 dma3;
+	Dma4 dma4;
+	Dma6 dma6;
 
 	bool clock0();
 	bool clock1();
@@ -51,12 +49,12 @@ public:
 	bool clock5();
 	bool clock6();
 
-	bool (dmaController_t::* clockFunctionsArray[7])();
+	bool (DmaController::* clockFunctionsArray[7])();
 	bool bmasterEnable = false;
 	uint8_t currentClockFunction = 8;
 
 
-	union controlRegister_t {
+	union ControlRegister {
 		uint32_t data;
 		struct {
 			uint32_t mdecIn_priority : 3;
@@ -77,7 +75,7 @@ public:
 		}reg;
 	}controlRegister;
 
-	union interruptRegister_t {
+	union InterruptRegister {
 		uint32_t data;
 		struct {
 			uint32_t IRQ_control : 7;
@@ -105,5 +103,5 @@ public:
 	bool isCpuStopped = false;
 
 	//debug
-	debugUtilities* p_debugger = nullptr;
+	DebugUtilities* p_debugger = nullptr;
 };

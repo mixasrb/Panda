@@ -3,9 +3,9 @@
 #include <iostream>
 #include <fstream>
 
-class debugUtilities {
+class DebugUtilities {
 public:
-	debugUtilities();
+	DebugUtilities();
 	void dump(const char* path, void* p_memory, const size_t size);
 	void log(const std::string& s);
 };

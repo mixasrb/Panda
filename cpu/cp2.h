@@ -146,5 +146,5 @@ public:
 	void GPL(uint32_t opcode);
 
 	//debug
-	debugUtilities* pDebugger;
+	DebugUtilities* pDebugger;
 };

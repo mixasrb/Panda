@@ -1,37 +1,34 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
-
-#include "../defines/defines.h"
 
 class BusInterface;
 
-class timer_t {
+class Timer {
 public:
 	BusInterface* pBus;
 
-	virtual void ReadTimer32(const uint32_t& addr, uint32_t& data) = 0;
-	virtual void WriteTimer32(const uint32_t& addr, const uint32_t& data) = 0;
+	virtual void Read32(const uint32_t& addr, uint32_t& data) = 0;
+	virtual void Write32(const uint32_t& addr, const uint32_t& data) = 0;
 
-	virtual void clock(const uint8_t& source) = 0;
+	virtual void Clock(const uint8_t& source) = 0;
 	uint16_t clocks;
 
-	union currentValue_t {
+	union CurrentValue {
 		uint16_t data;
 		struct {
 			uint16_t currentCounterValue : 16;
 		}elem;
 	}currentValue;
 
-	enum clockSource_t : int32_t {
+	enum ClockSource : int32_t {
 		SYSTEM_CLOCK = 0,
 		HBLANK_CLOCK = 1,
 		VBLANK_CLOCK = 2,
 		DOT_CLOCK = 3
 	}clockSource;
 
-	union counterMode_t {
+	union CounterMode {
 		uint16_t data;
 		struct {
 			uint16_t synchronizationEnable : 1;
@@ -51,7 +48,7 @@ public:
 	uint16_t mode;
 	bool bSynchronize = false;
 
-	union targetValue_t {
+	union TargetValue {
 		uint16_t data;
 		struct {
 			uint16_t counterTargetValue : 16;

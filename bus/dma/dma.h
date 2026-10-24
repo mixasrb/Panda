@@ -1,32 +1,27 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
-#include <sstream>
-
-#include "../../defines/defines.h"
-#include "../../debug_utilities/debug_utilities.h"
 
 class BusInterface;
 
-class dma_t {
+class Dma {
 public:
 
-	virtual void ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) = 0;
-	virtual void WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) = 0;
-	virtual void ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) = 0;
-	virtual void WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) = 0;
+	virtual void ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) = 0;
+	virtual void WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) = 0;
+	virtual void ReadDma16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) = 0;
+	virtual void WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) = 0;
 
-	virtual void DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) = 0;
-	virtual void DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) = 0;
-	virtual void DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) = 0;
-	virtual void DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) = 0;
+	virtual void DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) = 0;
+	virtual void DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) = 0;
+	virtual void DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) = 0;
+	virtual void DmaWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) = 0;
 
 	virtual void Clock() = 0;
 
-	virtual void triggerIRQ() = 0;
+	virtual void TriggerInterrupt() = 0;
 
-	union memoryAddress_t {
+	union MemoryAddress {
 		uint32_t data;
 		struct {
 			uint32_t memAddr : 24;
@@ -34,7 +29,7 @@ public:
 		}reg;
 	};
 
-	union blockControl_t {
+	union BlockControl {
 		uint32_t data;
 		struct {
 			uint32_t bc_bs : 16;
@@ -42,26 +37,26 @@ public:
 		}reg;
 	};
 
-	enum syncMode_t : uint32_t {
+	enum SyncMode : uint32_t {
 		startImm,
 		syncBlocks,
 		linkedList,
 		reserved,
 	};
 
-	enum transDir_t : uint32_t {
+	enum TransDirection : uint32_t {
 		toMainRAM,
 		fromMainRAM
 	};
 
-	union channelControl_t {
+	union ChannelControl {
 		uint32_t data;
 		struct {
-			transDir_t transDir : 1;
+			TransDirection transDir : 1;
 			uint32_t memAddrStep : 1;
 			uint32_t : 6;
 			uint32_t chopping : 1;
-			syncMode_t syncMode : 2;
+			SyncMode syncMode : 2;
 			uint32_t : 5;
 			uint32_t choppingDMASize : 3;
 			uint32_t : 1;

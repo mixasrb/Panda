@@ -16,7 +16,7 @@ public:
 
 	BusInterface bus;
 	cpu_t cpuSOC;
-	mdec_t mdec;
+	Mdec mdec;
 	Gpu gpu;
 	cdDrive cdDrive;
 	joyMemCard_t joyMemCard;
@@ -33,5 +33,5 @@ public:
 	void clock();
 
 	//debug
-	debugUtilities debugger;
+	DebugUtilities debugger;
 };

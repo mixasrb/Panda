@@ -9,8 +9,6 @@
 #include "cp0.h"
 #include "cp2.h"
 
-#include "../defines/defines.h"
-
 #include "../debug_utilities/debug_utilities.h"
 
 class BusInterface;
@@ -264,7 +262,7 @@ public:
 
 	//debug
 public:
-	debugUtilities* p_debugger;
+	DebugUtilities* p_debugger;
 
 	uint32_t oldCall;
 

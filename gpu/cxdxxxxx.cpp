@@ -1,4 +1,5 @@
-#include <vector>
+#include <cstdint>
+#include <sstream>
 
 #include "cxdxxxxx.h"
 #include "../bus/bus_interface.h"
@@ -383,8 +384,8 @@ void Gpu::VideoClock() {
 	if (cpuScanlineClocks == cpuClocksToHblank) {
 		//Hblank clocking timer 1
 		BusPtr->timer0.bHblank = true;
-		BusPtr->timer0.clock(_HBLANK_CLOCK);
-		BusPtr->timer1.clock(_HBLANK_CLOCK);
+		BusPtr->timer0.Clock(_HBLANK_CLOCK);
+		BusPtr->timer1.Clock(_HBLANK_CLOCK);
 	}
 
 	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
@@ -408,7 +409,7 @@ void Gpu::VideoClock() {
 
 
 			//Vblank synchronization timer 1
-			BusPtr->timer1.clock(_VBLANK_CLOCK);
+			BusPtr->timer1.Clock(_VBLANK_CLOCK);
 		}
 		else if (scanlineCount == scanlineNumber) {
 
@@ -425,7 +426,7 @@ void Gpu::VideoClock() {
 	}
 
 	if ((cpuClocks % dotClockDevider) == 0)
-		BusPtr->timer0.clock(_DOT_CLOCK);
+		BusPtr->timer0.Clock(_DOT_CLOCK);
 
 	if (cpuClocks == CPU_CLOCK)
 		cpuClocks = 0;

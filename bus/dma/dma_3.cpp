@@ -4,7 +4,7 @@
 
 extern bool g_emulationPaused;
 
-void dma3_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma3::ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = memoryAddress.data;
@@ -18,7 +18,7 @@ void dma3_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	}
 }
 
-void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma3::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
@@ -59,38 +59,38 @@ void dma3_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	}
 }
 
-void dma3_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma3::ReadDma16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA3] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
-void dma3_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma3::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA3] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
-void dma3_t::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma3::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 }
 
-void dma3_t::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma3::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	p_bus->cpuWrite32(addr, data, cycles);
 }
 
-void dma3_t::DMAWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
+void Dma3::DMAWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles) {
 	p_bus->cpuWrite8(addr, data, cycles);
 }
 
-void dma3_t::DMARead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
+void Dma3::DMARead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
 	p_bus->cpuRead8(addr, data, cycles);
 }
 
-void dma3_t::DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma3::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 }
 
-void dma3_t::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma3::DmaWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 }
 
-void dma3_t::triggerIRQ() {
+void Dma3::TriggerInterrupt() {
 	if (pDMAController->interruptRegister.reg.IRQ_enable_dma3)
 		pDMAController->interruptRegister.reg.IRQ_flag_dma3 = 1;
 	else
@@ -106,7 +106,7 @@ void dma3_t::triggerIRQ() {
 	pDMAController->currentClockFunction = 8;
 }
 
-void dma3_t::Clock() {
+void Dma3::Clock() {
 	if (clocks == 0) {
 		std::cout << "~[DMA3] (CD DRIVE) finished" << '\n';
 		channelControl.reg.startBusy = 0;
@@ -114,7 +114,7 @@ void dma3_t::Clock() {
 		bStart = false;
 		pDMAController->isCpuStopped = false;
 
-		triggerIRQ();
+		TriggerInterrupt();
 		return;
 	}
 

@@ -11,7 +11,7 @@ psxConsole_t::psxConsole_t() {
 }
 
 void psxConsole_t::connectComponents() {
-	bus.dma.connectBus(&bus);
+	bus.dma.ConnectBus(&bus);
 
 	cpuSOC.pBus = &bus;
 	bus.pCpu = &cpuSOC;
@@ -57,17 +57,17 @@ void psxConsole_t::clock() {
 	if (!bus.dma.isCpuStopped)
 		cpuSOC.clock();
 
-	bus.dma.clock();
+	bus.dma.Clock();
 
-	mdec.clock();
+	mdec.Clock();
 
 	gpu.VideoClock();
 
 	cdDrive.clock();
 
-	bus.timer0.clock(_SYSTEM_CLOCK);
-	bus.timer1.clock(_SYSTEM_CLOCK);
-	bus.timer2.clock(_SYSTEM_CLOCK);
+	bus.timer0.Clock(_SYSTEM_CLOCK);
+	bus.timer1.Clock(_SYSTEM_CLOCK);
+	bus.timer2.Clock(_SYSTEM_CLOCK);
 
 	joyMemCard.clock();
 }

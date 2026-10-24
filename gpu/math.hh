@@ -1,7 +1,6 @@
 #ifndef bqtMathHH
 #define bqtMathHH
 
-#include <cmath>
 #include <array>
 #include <functional>
 

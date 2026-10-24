@@ -1,18 +1,20 @@
+#include <iostream>
+
 #include "mdec.h"
 
 extern bool g_emulationPaused;
 
-mdec_t::mdec_t() {
+Mdec::Mdec() {
 	commandLookup.resize(7);
 	commandLookup = {
-		{&mdec_t::noFunction,"No function"},
-		{&mdec_t::decodeMacroblock,"Decode Macroblock(s)"},
-		{&mdec_t::setQuantTable,"Set Quant Table(s)"},
-		{&mdec_t::setScaleTable,"Set Scale Table"},
-		{&mdec_t::invalid,"Invalid"},
-		{&mdec_t::invalid,"Invalid"},
-		{&mdec_t::invalid,"Invalid"},
-		{&mdec_t::invalid,"Invalid"}
+		{&Mdec::NoFunction,"No function"},
+		{&Mdec::DecodeMacroblock,"Decode Macroblock(s)"},
+		{&Mdec::SetQuantTable,"Set Quant Table(s)"},
+		{&Mdec::SetScaleTable,"Set Scale Table"},
+		{&Mdec::Invalid,"Invalid"},
+		{&Mdec::Invalid,"Invalid"},
+		{&Mdec::Invalid,"Invalid"},
+		{&Mdec::Invalid,"Invalid"}
 	};
 
 	zigzag.resize(64);
@@ -76,7 +78,7 @@ union psxColor16_t {
 	}
 };
 
-void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
+void Mdec::Read32(const uint32_t& addr, uint32_t& data) {
 	if (addr == 0x1f801820) {
 
 		statusRegister.elem.dataOutRequest = 0;//??
@@ -116,7 +118,7 @@ void mdec_t::readMdec32(const uint32_t& addr, uint32_t& data) {
 	}
 }
 
-void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
+void Mdec::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801820) {
 		if (recievedData32Count) {
 			uint16_t temp;
@@ -207,7 +209,7 @@ void mdec_t::writeMdec32(const uint32_t& addr, const uint32_t& data) {
 	}
 }
 
-void mdec_t::clock() {
+void Mdec::Clock() {
 	if (clocks) {
 		clocks--;
 
@@ -231,7 +233,7 @@ void mdec_t::clock() {
 	}
 }
 
-void mdec_t::decodeMacroblock(uint32_t command) {
+void Mdec::DecodeMacroblock(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
@@ -276,7 +278,7 @@ void mdec_t::decodeMacroblock(uint32_t command) {
 		}
 }
 
-void mdec_t::setQuantTable(uint32_t command) {
+void Mdec::SetQuantTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
@@ -291,7 +293,7 @@ void mdec_t::setQuantTable(uint32_t command) {
 				quantTableUV[(i - 16) * 4 + j] = (uint8_t)(recievedData32[i] >> (8 * j));
 }
 
-void mdec_t::setScaleTable(uint32_t command) {
+void Mdec::SetScaleTable(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
@@ -301,13 +303,13 @@ void mdec_t::setScaleTable(uint32_t command) {
 			scaleTable[i * 2 + j] = (uint16_t)(recievedData32[i] >> (16 * j));
 }
 
-void mdec_t::noFunction(uint32_t command) {
+void Mdec::NoFunction(uint32_t command) {
 	statusRegister.elem.dataOutputDepth = command << 3 >> 3 >> 27;
 	statusRegister.elem.dataOutputSigned = (command & 0x04000000) ? 1 : 0;
 	statusRegister.elem.dataOutputBit15 = (command & 0x02000000) ? 1 : 0;
 }
 
-void mdec_t::invalid(uint32_t command) {
+void Mdec::Invalid(uint32_t command) {
 }
 
 static int16_t singned10bit(uint16_t val) {
@@ -321,7 +323,7 @@ static T minMax(T min, T max, T val) {
 	return val;
 }
 
-void mdec_t::rl_decode_block(uint16_t* blk, uint16_t* src, uint32_t& srcTracker, uint8_t* qt) {
+void Mdec::rl_decode_block(uint16_t* blk, uint16_t* src, uint32_t& srcTracker, uint8_t* qt) {
 	for (int i = 0; i < 64; i++)
 		blk[i] = 0;
 
@@ -364,7 +366,7 @@ static void swap(T& a, T& b) {
 	a = temp;
 }
 
-void mdec_t::real_idct_core(uint16_t* blk) {
+void Mdec::real_idct_core(uint16_t* blk) {
 	uint16_t* src = blk;
 	uint16_t* dst = temb_buffer;
 
@@ -384,7 +386,7 @@ void mdec_t::real_idct_core(uint16_t* blk) {
 	}
 }
 
-void mdec_t::yuv_to_rgb(int xx, int yy) {
+void Mdec::yuv_to_rgb(int xx, int yy) {
 	for (int y = 0; y < 8; y++) {
 		for (int x = 0; x < 8; x++) {
 
@@ -459,7 +461,7 @@ void mdec_t::yuv_to_rgb(int xx, int yy) {
 	//clocks += 33868800 / 900;
 }
 
-void mdec_t::y_to_mono() {
+void Mdec::y_to_mono() {
 	/*if (src >= recievedData16.data() + recievedData16.size())
 		return;*/
 

@@ -1,16 +1,13 @@
 #pragma once
 
-#include <cstdint>
-#include <sstream>
 #include <vector>
 #include <memory>
 
-#include "../defines/defines.h"
 #include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
 
 #define size_x_b 2048
-#define size_x 1024 //in half words
+#define size_x 1024 //half words
 #define size_y 512
 
 inline uint16_t Signed11bit(const uint16_t& val) {
@@ -437,5 +434,5 @@ public:
 	}clutCache;
 
 	//debug
-	debugUtilities* p_debugger;
+	DebugUtilities* p_debugger;
 };

@@ -2,10 +2,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
 
 #include "../debug_utilities/debug_utilities.h"
 
@@ -189,5 +185,5 @@ public:
 	uint8_t memCards[2][128 * 1024];
 
 	//debug
-	debugUtilities* p_debugger;
+	DebugUtilities* p_debugger;
 };

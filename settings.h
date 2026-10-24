@@ -92,7 +92,7 @@ uint8_t g_driveStatus = _LICENCED_MODE_2;
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (Europe) (En,Fr,De,Es,It).bin");
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (v1.1).bin");//GetTN, Mdec // no input fixed//get stuck// DMA 2 linked-list loop ??
-const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
+//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (USA) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Star Wars - Rebel Assault II - The Hidden Empire (USA) (Disc 1).bin");// DMA3 CDROM 0x11400100h //unhandled timer0 mode 0x14b //mdec //hangs??->mdec
 
@@ -390,7 +390,7 @@ const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Gran Turismo (U
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution //needs clocks >= waitClocksFirstResponse+ <= 0x36cd2 * 5 / 20 fixed??
-//const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
+const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
 
 //const char* g_cdPath = ("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
 

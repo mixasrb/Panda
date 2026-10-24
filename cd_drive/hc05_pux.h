@@ -290,7 +290,7 @@ public:
 	uint8_t* pNullSrc = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
-	debugUtilities* p_debugger;
+	DebugUtilities* p_debugger;
 
 	void printStat();
 };

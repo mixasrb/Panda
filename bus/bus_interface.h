@@ -25,21 +25,21 @@
 class BusInterface {
 public:
 
-	void cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, bool debug = false);
+	void cpuRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug = false);
 	void cpuWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles);
 
-	void cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles, bool debug = false);
+	void cpuRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles,const bool& debug = false);
 	void cpuWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles);
 
-	void cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles, bool debug = false);
+	void cpuRead8(const uint32_t& addr, uint8_t& data, uint8_t& cycles,const bool& debug = false);
 	void cpuWrite8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
 	//cw33300
 	cpu_t* pCpu = nullptr;
 
-	dmaController_t dma;
+	DmaController dma;
 
-	mdec_t* pMdec = nullptr;
+	Mdec* pMdec = nullptr;
 
 	//cxd85xxx
 	Gpu* pGpu = nullptr;
@@ -114,5 +114,5 @@ public:
 	delayType calculateDelays(const delayRegisterType& delayRegister);
 
 	//debug
-	debugUtilities* pDebugger = nullptr;
+	DebugUtilities* pDebugger = nullptr;
 };

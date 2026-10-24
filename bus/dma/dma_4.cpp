@@ -4,7 +4,7 @@
 
 extern bool g_emulationPaused;
 
-void dma4_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma4::ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = memoryAddress.reg.memAddr;
@@ -18,7 +18,7 @@ void dma4_t::ReadDMA32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	}
 }
 
-void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma4::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		memoryAddress.data = data;
@@ -62,31 +62,31 @@ void dma4_t::WriteDMA32(const uint32_t& addr, const uint32_t& data, uint8_t& cyc
 	}
 }
 
-void dma4_t::ReadDMA16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma4::ReadDma16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA4] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
 	g_emulationPaused = true;
 }
 
-void dma4_t::WriteDMA16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma4::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA4] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << " data 0x" << data << '\n';
 	g_emulationPaused = true;
 }
 
-void dma4_t::DMARead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
+void Dma4::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	pBus->cpuRead32(addr, data, cycles);
 }
 
-void dma4_t::DMAWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
+void Dma4::DmaWrite32(const uint32_t& addr, const uint32_t& data, uint8_t& cycles) {
 }
 
-void dma4_t::DMARead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
+void Dma4::DmaRead16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	pBus->cpuRead16(addr, data, cycles);
 }
 
-void dma4_t::DMAWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
+void Dma4::DmaWrite16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 }
 
-void dma4_t::triggerIRQ() {
+void Dma4::TriggerInterrupt() {
 	if (pDMAController->interruptRegister.reg.IRQ_enable_dma4)
 		pDMAController->interruptRegister.reg.IRQ_flag_dma4 = 1;
 	else
@@ -100,17 +100,17 @@ void dma4_t::triggerIRQ() {
 		pDMAController->interruptRegister.reg.IRQ_master_flag = 0;*/
 }
 
-void dma4_t::endDMATransfer() {
+void Dma4::endDMATransfer() {
 	bTransferActive = false;
 	channelControl.reg.startBusy = 0;
 	pDMAController->isCpuStopped = false;
 
 	pDMAController->currentClockFunction = 8;
 
-	triggerIRQ();
+	TriggerInterrupt();
 }
 
-void dma4_t::Clock() {
+void Dma4::Clock() {
 
 	if (pDMAController->isCpuStopped == false) {
 		if (syncClocks == 0) {
@@ -136,17 +136,17 @@ void dma4_t::Clock() {
 		uint16_t data;
 
 		if (channelControl.reg.transDir == toMainRAM) {
-			DMARead16(0x1f801da8, data, cycles);
+			DmaRead16(0x1f801da8, data, cycles);
 			pBus->cpuWrite16(memAddrTemp, data, cycles);
 			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
-			DMARead16(0x1f801da8, data, cycles);
+			DmaRead16(0x1f801da8, data, cycles);
 			pBus->cpuWrite16(memAddrTemp, data, cycles);
 		}
 		else {
-			DMARead16(memAddrTemp, data, cycles);
+			DmaRead16(memAddrTemp, data, cycles);
 			pBus->cpuWrite16(0x1f801da8, data, cycles);
 			memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)
-			DMARead16(memAddrTemp, data, cycles);
+			DmaRead16(memAddrTemp, data, cycles);
 			pBus->cpuWrite16(0x1f801da8, data, cycles);
 		}
 		memAddrTemp += channelControl.reg.memAddrStep ? -2 : +2; //should always be +2 (forward)

@@ -1,11 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <stdio.h>
 #include <iostream>
 #include <vector>
-
-#include "../defines/defines.h"
 
 #include "../debug_utilities/debug_utilities.h"
 
@@ -509,5 +506,5 @@ public:
 	uint8_t* pBufferCDDA = nullptr;
 
 	//debug
-	debugUtilities* pDebugger = nullptr;
+	DebugUtilities* pDebugger = nullptr;
 };

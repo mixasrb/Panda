@@ -3,7 +3,7 @@
 
 extern bool g_emulationPaused;
 
-void timer1_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
+void timer1_t::Read32(const uint32_t& addr, uint32_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		data = currentValue.data;
@@ -22,7 +22,7 @@ void timer1_t::ReadTimer32(const uint32_t& addr, uint32_t& data) {
 	}
 }
 
-void timer1_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
+void timer1_t::Write32(const uint32_t& addr, const uint32_t& data) {
 	switch (addr << 28 >> 28) {
 	case 0:
 		currentValue.data = data;
@@ -65,20 +65,20 @@ void timer1_t::WriteTimer32(const uint32_t& addr, const uint32_t& data) {
 	}
 }
 
-void timer1_t::clock(const uint8_t& source) {
+void timer1_t::Clock(const uint8_t& source) {
 	if (bSynchronizationEnable) {
 		if (counterMode.elem.synchronizationMode == 0) {
 			if (bVblank)
 				return;
 		}
 		else if (counterMode.elem.synchronizationMode == 1) {
-			if (static_cast<clockSource_t>(source) == VBLANK_CLOCK) {
+			if (static_cast<ClockSource>(source) == VBLANK_CLOCK) {
 				currentValue.elem.currentCounterValue = 0;
 				return;
 			}
 		}
 		else if (counterMode.elem.synchronizationMode == 2) {
-			if (static_cast<clockSource_t>(source) == VBLANK_CLOCK) {
+			if (static_cast<ClockSource>(source) == VBLANK_CLOCK) {
 				currentValue.elem.currentCounterValue = 0;
 				return;
 			}
@@ -86,7 +86,7 @@ void timer1_t::clock(const uint8_t& source) {
 				return;
 		}
 		else if (counterMode.elem.synchronizationMode == 3) {
-			if (static_cast<clockSource_t>(source) == VBLANK_CLOCK) {
+			if (static_cast<ClockSource>(source) == VBLANK_CLOCK) {
 				bSynchronizationEnable = false;
 				return;
 			}
@@ -95,7 +95,7 @@ void timer1_t::clock(const uint8_t& source) {
 		}
 	}
 
-	if (clockSource == static_cast<clockSource_t>(source)) {
+	if (clockSource == static_cast<ClockSource>(source)) {
 		uint8_t irqOld = counterMode.elem.irq;
 
 		if ((currentValue.elem.currentCounterValue == targetValue.elem.counterTargetValue) &&
