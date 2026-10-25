@@ -150,7 +150,8 @@ void cdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 
 		indexStatus.elem.rslrrdy = (resultFifo.empty()) ? 0 : 1;
 
-		indexStatus.elem.drqsts = (bufferCounter == 0) ? 0 : 1;
+		if (bufferCounter == 0)
+			indexStatus.elem.drqsts = 0;
 
 		data = indexStatus.data;
 		break;
@@ -256,13 +257,8 @@ void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			}
 
 			if (requestReg.elem.bfrd) {
-				//bufferCounter = sectorSize; //!?
 				indexStatus.elem.drqsts = 1; //!?
 				std::cout << "~[CD_DRIVE] Load data fifo\n";
-			}
-			else {
-				indexStatus.elem.drqsts = 0;
-				std::cout << "~[CD_DRIVE] Reset data fifo\n";
 			}
 
 			break;
