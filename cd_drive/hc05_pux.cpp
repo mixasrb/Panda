@@ -401,10 +401,8 @@ void CdDrive::Clock() {
 			g_emulationPaused = true;
 		}
 
-		if (interruptEnable.data & irqFlagRead.data) {
+		if (interruptEnable.data & irqFlagRead.data)
 			busPtr->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
-			std::cout << "~[CD_DRIVE] Sent IRQ" << '\n';
-		}
 	}
 
 	if (isFirstResponsePending

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <vector>
 #include <memory>
 
@@ -45,53 +46,8 @@ struct Vector2D {
 	Vector2D operator* (const int& c) const {
 		return Vector2D(x * c, y * c);
 	}
-};
-
-//TODO REWRITE THIS IS CATASTROPHE
-template <typename T>
-struct Deque { //have some bugs and quarks
-	Deque() {
-		ptr = nullptr;
-		currentPossitionWrite = 0;
-		currentPossitionRead = 0;
-	};
-
-	T* ptr;
-	uint32_t currentPossitionWrite;
-	uint32_t currentPossitionRead;
-
-	void Resize(const uint32_t& newSize) {
-		ptr = new T[newSize];
-	}
-
-	void Reset() {
-		currentPossitionWrite = 0;
-		currentPossitionRead = 0;
-	}
-
-	void PushBack(const T& data) {
-		ptr[currentPossitionWrite] = data;
-		currentPossitionWrite++;
-	}
-
-	void PopBack() {
-		currentPossitionWrite--;
-	}
-
-	uint32_t GetSize() {
-		return currentPossitionWrite;
-	}
-
-	bool Empty() {
-		return (currentPossitionRead >= currentPossitionWrite) ? true : false;
-	}
-
-	T GetNext() {
-		return ptr[currentPossitionRead++];
-	}
-
-	T operator[](const uint32_t& i) {
-		return ptr[i];
+	bool operator== (const Vector2D& b) const {
+		return (x == b.x && y == b.y);
 	}
 };
 
@@ -243,8 +199,10 @@ public:
 		return color24.data;
 	}
 
-	Deque<uint32_t> fifo;
-	Deque<uint32_t> outputFifo;
+	std::queue<uint32_t> commandFifo;
+	uint32_t GetNextCommandFifoData();
+
+	std::queue<uint32_t> outputFifo;
 
 	enum PrimitiveType {
 		UNDEFINED,

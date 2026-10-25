@@ -64,7 +64,7 @@ public:
 	union RequestRegister {
 		uint8_t data;
 		struct {
-			uint8_t notUsed : 5;
+			uint8_t : 5;
 			uint8_t smen : 1;
 			uint8_t bfwr : 1;
 			uint8_t bfrd : 1;

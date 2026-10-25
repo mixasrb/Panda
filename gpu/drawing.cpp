@@ -596,7 +596,7 @@ void Gpu::CopyRectCpuToVram(const uint32_t& dest_coord, const uint32_t& width_he
 	for (int16_t y = y1; y < y2; y++) {
 		for (int16_t x = x1; x < x2; x++) {
 			if ((i & 0x1) == 0)
-				data = fifo.GetNext();
+				data = GetNextCommandFifoData();
 
 			Vector2D position(x, y);
 			WriteVram(position, ((i & 0x1) == 0) ? (uint16_t)data : uint16_t(data >> 16), true);
@@ -624,7 +624,7 @@ void Gpu::CopyRectVramToCpu(const uint32_t& source_coord, const uint32_t& width_
 				data32 = 0x00000000 | (uint32_t)data16;
 			else {
 				data32 |= (uint32_t)data16 << 16;
-				outputFifo.PushBack(data32);
+				outputFifo.push(data32);
 			}
 			i++;
 		}
