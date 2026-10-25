@@ -5,6 +5,14 @@ extern bool g_emulationPaused;
 extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
+static uint8_t fromBCDToHex8(const uint8_t& dec) {
+	return (dec >> 4) * 10 + (dec & 0x0f);
+}
+
+static uint8_t fromHex8ToBCD(const uint8_t& hex) {
+	return (hex / 10) * 16 + (hex % 10);
+}
+
 cdDrive::cdDrive() {
 	commandLookup.resize(20);
 	commandLookup = {
@@ -158,10 +166,15 @@ void cdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 		break;
 
 	case 0x1f801801:
-		data = responseFifo.back();
+		if (responseFifo.empty()) {
+			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Response FIFO is empty\n";
+			g_emulationPaused = true;
+		}
 
-		std::cout << "~[CD_DRIVE] response read: 0x" << std::hex << (uint16_t)data << '\n';
-		responseFifo.pop_back();
+		data = responseFifo.front();
+		responseFifo.pop();
+
+		std::cout << "~[CD_DRIVE] Response read: 0x" << std::hex << (uint16_t)data << '\n';
 		break;
 
 	case 0x1f801802:
@@ -186,26 +199,26 @@ void cdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 	switch (addr) {
 	case 0x1f801800:
-		indexStatus.elem.index = data << 6 >> 6;
+		indexStatus.elem.index = data & 0x03;
 		break;
 
 	case 0x1f801801:
 		switch (indexStatus.elem.index) {
 		case 0:
-			std::cout << "~[CD_DRIVE] command sent : " << commandLookup[data].name << '\n';
+			std::cout << "~[CD_DRIVE] Command received : " << commandLookup[data].name << '\n';
 
 			if (!commandVector.empty() || indexStatus.elem.busysts) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! command sent before previous one is executed\n";
-				//g_emulationPaused = true;
+				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Command received before previous one is executed\n";
+				g_emulationPaused = true;
 
-				bFirstResponse = false;
-				bSecondResponse = false;
+				firstResponsePending = false;
+				secondResponsePending = false;
 				while (!responsesINT.empty()) {
 					responsesINT.pop();
 				}
 			}
 
-			commandVector.push_back(data);
+			commandVector.push(data);
 			break;
 		case 1:
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index1 - Sound Map Data Out (W) 0x"
@@ -218,8 +231,6 @@ void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			g_emulationPaused = true;
 			break;
 		case 3:
-			/*std::cout << "~[CD_DRIVE] Unhandled 1F801801h.Index3 - Audio Volume for Right-CD-Out to Right-SPU-Input (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';*/
 			tempVolumeRightRight = (uint16_t)data;
 			break;
 		}
@@ -235,13 +246,9 @@ void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			interruptEnable.data = data;
 			break;
 		case 2:
-			/*std::cout << "~[CD_DRIVE] Unhandled 1F801802h.Index2 - Audio Volume for Left-CD-Out to Left-SPU-Input (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';*/
 			tempVolumeLeftLeft = (uint16_t)data;
 			break;
 		case 3:
-			/*std::cout << "~[CD_DRIVE] Unhandled 1F801802h.Index3 - Audio Volume for Right-CD-Out to Left-SPU-Input (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';*/
 			tempVolumeRightLeft = (uint16_t)data;
 			break;
 		}
@@ -278,38 +285,41 @@ void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 
 			if ((data & 0x7) == 0x7) {
 				if (irqFlagRead.elem.int_1_7)
-					std::cout << "~[CD_DRIVE] acknowledged INT" << (uint16_t)irqFlagRead.elem.int_1_7 << '\n';
-				irqFlagRead.elem.int_1_7 = 0;
+					std::cout << "~[CD_DRIVE] Acknowledged INT" << (uint16_t)irqFlagRead.elem.int_1_7 << '\n';
+				irqFlagRead.elem.int_1_7 = NO_INTERRUPT;
+			}
+			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) { // 0 < (data & 0x7) < 7
+				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Interrupt Flag Register (W) state 0x"
+					<< std::hex << (uint16_t)data << '\n';
+				g_emulationPaused = true;
 			}
 			if (data & 0x8) {
 				if (irqFlagRead.elem.int_8)
-					std::cout << "~[CD_DRIVE] acknowledged INT8" << '\n';
+					std::cout << "~[CD_DRIVE] Acknowledged INT8" << '\n';
 				irqFlagRead.elem.int_8 = 0;
 			}
 			if (data & 0x10) {
 				if (irqFlagRead.elem.int_10)
-					std::cout << "~[CD_DRIVE] acknowledged INT10" << '\n';
+					std::cout << "~[CD_DRIVE] Acknowledged INT10" << '\n';
 				irqFlagRead.elem.int_10 = 0;
 			}
+			if (data & 0x20) {
+				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Clear sound map XA - ADPCM buffer" << '\n';
+			}
 			if (data & 0x40) {
-				std::cout << "~[CD_DRIVE] parameter fifo reseted" << '\n';
+				std::cout << "~[CD_DRIVE] Parameter fifo reseted" << '\n';
 				paramFifo.clear();
 			}
-			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! unhandled Interrupt Flag Register (W) state 0x"
-					<< std::hex << (uint16_t)data << '\n';
+			if (data & 0x80) {
+				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Reset decoder chip" << '\n';
 				g_emulationPaused = true;
 			}
 
 			break;
 		case 2:
-			/*std::cout << "~[CD_DRIVE] Unhandled 1F801803h.Index2 - Audio Volume for Left-CD-Out to Right-SPU-Input (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';*/
 			tempVolumeLeftRight = (uint16_t)data;
 			break;
 		case 3:
-			/*std::cout << "~[CD_DRIVE] Unhandled 1F801803h.Index3 - Audio Volume Apply Changes (by writing bit5=1) 0x"
-				<< std::hex << (uint16_t)data << '\n';*/
 
 			if (data & 0x01) {
 				if (mode.elem.xa_adpcm) {
@@ -332,70 +342,70 @@ void cdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 	}
 }
 
-void cdDrive::SendResponseInterrupt(const ResponseInterrupt& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::SetResponseInterrupt(const ResponseInterrupt& responseINT) {
 	responsesINT.push(responseINT);
-	;
-	for (uint8_t i = 0; i < responseCount; i++) {
-		responseFifo.push_back(pResponses[i]);
-		std::cout << "~[CD_DRIVE] response sent: 0x" << std::hex << (uint16_t)pResponses[responseCount - i - 1] << '\n';
-	}
 }
 
-void cdDrive::SetFirstResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
-	bFirstResponse = true;
+void cdDrive::SetFirstResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT,
+	uint8_t* pResponses, const uint8_t& responseCount) {
+	firstResponsePending = true;
 	waitClocksFirstResponse = waitClocks;
 
 	//debug
-	std::cout << "~[CD_DRIVE] first response" << '\n';
+	std::cout << "~[CD_DRIVE] First response" << '\n';
 	PrintStatus();
 
-	//tempFirstResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++)
-		tempFirstResponseVector.push_back(pResponses[responseCount - i]);
+	for (uint8_t i = 0; i < responseCount; i++) {
+		responseFifo.push(pResponses[i]);
+		std::cout << "~[CD_DRIVE] First Response sent: 0x" << std::hex << (uint16_t)pResponses[i] << '\n';
+	}
 
 	firstResponseINT = responseINT;
 }
 
-void cdDrive::SetSecondResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
-	bSecondResponse = true;
+void cdDrive::SetSecondResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT,
+	uint8_t* pResponses, const uint8_t& responseCount) {
+	secondResponsePending = true;
 	waitClocksSecondResponse = waitClocks;
 
 	//debug
-	std::cout << "~[CD_DRIVE] second response" << '\n';
+	std::cout << "~[CD_DRIVE] Second response" << '\n';
 	PrintStatus();
 
-	tempSecondResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++)
-		tempSecondResponseVector.push_back(pResponses[responseCount - i]);
+	for (uint8_t i = 0; i < responseCount; i++) {
+		responseFifo.push(pResponses[i]);
+		std::cout << "~[CD_DRIVE] Second Response sent: 0x" << std::hex << (uint16_t)pResponses[i] << '\n';
+	}
 
 	secondResponseINT = responseINT;
 }
 
-void cdDrive::SetDataResponse(const ResponseInterrupt& responseINT, uint8_t* pResponses, const uint8_t& responseCount) {
+void cdDrive::SetDataResponse(const ResponseInterrupt& responseINT,
+	uint8_t* pResponses, const uint8_t& responseCount) {
 
 	//debug
 	std::cout << "~[CD_DRIVE] data response" << '\n';
 	PrintStatus();
 
-	tempDataResponseVector.clear();
-	for (uint8_t i = 1; i <= responseCount; i++)
-		tempDataResponseVector.push_back(pResponses[responseCount - i]);
+	for (uint8_t i = 0; i < responseCount; i++) {
+		responseFifo.push(pResponses[i]);
+		std::cout << "~[CD_DRIVE] Data Response sent: 0x" << std::hex << (uint16_t)pResponses[i] << '\n';
+	}
 
 	dataResponseINT = responseINT;
 }
 
-static uint8_t fromBCDToHex8(const uint8_t& dec) {
-	return (dec >> 4) * 10 + (dec & 0x0f);
-}
-
-static uint8_t fromHex8ToBCD(const uint8_t& hex) {
-	return (hex / 10) * 16 + (hex % 10);
-}
-
 void cdDrive::Clock() {
 
-	bool bDeliverResponseINT = !responsesINT.empty() && (irqFlagRead.data == 0);
-	if (bDeliverResponseINT) {
+	if (firstResponsePending || secondResponsePending)
+		clocks++;
+	if (dataResponseActive)
+		dataClocks++;
+
+	if (irqFlagRead.data != 0)
+		return;
+
+	if (!responsesINT.empty()) {
 		irqFlagRead.elem.int_1_7 = responsesINT.front();
 		responsesINT.pop();
 
@@ -403,103 +413,90 @@ void cdDrive::Clock() {
 			std::cout << "~[CD_DRIVE] Sent Interrupt " << uint16_t(irqFlagRead.elem.int_1_7) << " flag" << '\n';
 		if (irqFlagRead.elem.int_8) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 8 Unhandled" << '\n';
-			g_emulationPaused = true;	
+			g_emulationPaused = true;
 		}
 		if (irqFlagRead.elem.int_10) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 10 Unhandled" << '\n';
 			g_emulationPaused = true;
 		}
 
-
 		if (interruptEnable.data & irqFlagRead.data) {
 			pBus->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
-			std::cout << "~[CD_DRIVE] sent IRQ" << '\n';
+			std::cout << "~[CD_DRIVE] Sent IRQ" << '\n';
 		}
 	}
 
-	bool bExecuteCommand = responsesINT.empty() && (irqFlagRead.data == 0) && !commandVector.empty()
-		&& !bFirstResponse && !bSecondResponse;
-	if (bExecuteCommand) {
+	if (firstResponsePending
+		&& clocks >= waitClocksFirstResponse) {
+		firstResponsePending = false;
 		clocks = 0;
 
-		indexStatus.elem.busysts = 1;
-		ExecuteCommand(commandVector[0]);
-		commandVector.erase(commandVector.begin());
+		SetResponseInterrupt(firstResponseINT);
+
+		indexStatus.elem.busysts = 0;
 	}
+	else if (!firstResponsePending && secondResponsePending 
+		&& clocks >= waitClocksSecondResponse) {
+		secondResponsePending = false;
+		clocks = 0;
 
-	if (bFirstResponse || bSecondResponse || bDataResponse) {
+		SetResponseInterrupt(secondResponseINT);
+	}
+	else if (!firstResponsePending && !secondResponsePending && dataResponseActive 
+		&& dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*/)) {
+		dataClocks -= waitClocksDataResponse;
 
-		if (clocks >= waitClocksFirstResponse && bFirstResponse
-			&& responsesINT.empty() && (irqFlagRead.data == 0)) {
-			bFirstResponse = false;
-			clocks = 0;
+		ReadSector(amm, ass, asect);
 
-			SendResponseInterrupt(firstResponseINT, tempFirstResponseVector.data(), tempFirstResponseVector.size());
-			tempFirstResponseVector.clear();
+		if (sendINT1) {
+			if (!bPlay) {
+				uint8_t dataResponse[1] = { stat.data };
+				SetDataResponse(INTERRUPT_1, dataResponse, 1);
+				SetResponseInterrupt(dataResponseINT);
+			}
+			else { // Play Report
+				if ((stored_asect % 10) == 0) {
+					uint32_t diff = ((stored_amm * 60 * 75 + stored_ass * 75 + stored_asect) -
+						(cdTracks[track - 1].trackStart.amm * 60 * 75 + 
+							cdTracks[track - 1].trackStart.ass * 75 + 
+							cdTracks[track - 1].trackStart.asect));
 
-			indexStatus.elem.busysts = 0;
-		}
-		// Doom
-		if (clocks >= waitClocksSecondResponse && bSecondResponse &&
-			!bFirstResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
-			bSecondResponse = false;
-			clocks = 0;
+					uint8_t mm = diff / (60 * 75);
+					diff -= mm * (60 * 75);
 
-			SendResponseInterrupt(secondResponseINT, tempSecondResponseVector.data(), tempSecondResponseVector.size());
-			tempFirstResponseVector.clear();
-		}
-		else if (dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*/) && bDataResponse &&
-			!bFirstResponse && !bSecondResponse && responsesINT.empty() && (irqFlagRead.data == 0)) {
-			dataClocks = 0;
+					uint8_t ss = diff / 75;
+					diff -= ss * 75;
 
-			ReadSector(amm, ass, asect);
+					uint8_t sect = diff;
 
-			if (bSendINT1) {
-				if (!bPlay) {
-					uint8_t dataResponse[1] = { stat.data };
-					SetDataResponse(INTERRUPT_1, dataResponse, 1);
-					SendResponseInterrupt(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
-					tempFirstResponseVector.clear();
-				}
-				else { // Play Report
-					if ((stored_asect % 10) == 0) {
-						uint32_t diff = ((stored_amm * 60 * 75 + stored_ass * 75 + stored_asect) -
-							(cdTracks[track - 1].trackStart.amm * 60 * 75 + cdTracks[track - 1].trackStart.ass * 75 + cdTracks[track - 1].trackStart.asect));
+					uint8_t index = 0;
+					if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75))
+						index = 1;
 
-						uint8_t mm = diff / (60 * 75);
-						diff -= mm * (60 * 75);
+					std::vector<uint8_t>dataResponse;
+					dataResponse.resize(8);
+					if ((stored_asect / 10) & 0x1)
+						dataResponse = { stat.data,  fromHex8ToBCD(track), index, fromHex8ToBCD(mm), fromHex8ToBCD(ss + 80),
+							fromHex8ToBCD(sect), 0x7f, 0x00 };//??
+					else
+						dataResponse = { stat.data, fromHex8ToBCD(track), index, fromHex8ToBCD(stored_amm), fromHex8ToBCD(stored_ass),
+							fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
 
-						uint8_t ss = diff / 75;
-						diff -= ss * 75;
-
-						uint8_t sect = diff;
-
-						uint8_t index = 0;
-						if ((mm * 60 * 75 + ss * 75 + sect) >= (2 * 75))
-							index = 1;
-
-						std::vector<uint8_t>dataResponse;
-						dataResponse.resize(8);
-						if ((stored_asect / 10) & 0x1)
-							dataResponse = { stat.data,  fromHex8ToBCD(track), index, fromHex8ToBCD(mm), fromHex8ToBCD(ss + 80),
-								fromHex8ToBCD(sect), 0x7f, 0x00 };//??
-						else
-							dataResponse = { stat.data, fromHex8ToBCD(track), index, fromHex8ToBCD(stored_amm), fromHex8ToBCD(stored_ass),
-								fromHex8ToBCD(stored_asect), 0x7f, 0x00 };//??
-
-						SetDataResponse(INTERRUPT_1, dataResponse.data(), 8);
-						SendResponseInterrupt(dataResponseINT, tempDataResponseVector.data(), tempDataResponseVector.size());
-						tempFirstResponseVector.clear();
-					}
+					SetDataResponse(INTERRUPT_1, dataResponse.data(), 8);
+					SetResponseInterrupt(dataResponseINT);
 				}
 			}
 		}
 	}
 
-	if (bSecondResponse || bFirstResponse)
-		clocks++;
-	if (bDataResponse)
-		dataClocks++;
+	if (!firstResponsePending && !secondResponsePending &&
+		!commandVector.empty()) {
+		clocks = 0;
+
+		indexStatus.elem.busysts = 1;
+		ExecuteCommand(commandVector.front());
+		commandVector.pop();
+	}
 }
 
 void cdDrive::ExecuteCommand(const uint8_t& command) {
@@ -536,13 +533,13 @@ void cdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		return;
 	}
 
-	bSendINT1 = false;
+	sendINT1 = false;
 	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter && (fileDataVect[currentPossition + 0x12] & 0x04)) ||
 		(stat.elem.play && (mode.elem.report == 0)))
-		bSendINT1 = false;
+		sendINT1 = false;
 	else if ((!bPlay) ||
 		(bPlay && mode.elem.report)) {
-		bSendINT1 = true;
+		sendINT1 = true;
 		pBuffer = (uint8_t*)fileDataVect.data() + (currentPossition + (mode.elem.sectorSize ? 0x0c : 0x18));
 	}
 
@@ -659,7 +656,7 @@ void cdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 }
 
 void cdDrive::CancelReading() {
-	bDataResponse = false;
+	dataResponseActive = false;
 	bPlay = false;
 
 	stat.elem.read = 0;
@@ -745,7 +742,7 @@ void cdDrive::play(const uint8_t& command) {
 	stat.elem.play = 1;
 
 	bPlay = true;
-	bDataResponse = true;
+	dataResponseActive = true;
 	waitClocksDataResponse = mode.elem.speed ? 0x3ab2b : 0x72732;
 }
 
@@ -841,7 +838,7 @@ void cdDrive::readN(const uint8_t& command) {
 	//	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 	//}
 
-	bDataResponse = true;
+	dataResponseActive = true;
 
 	waitClocksDataResponse += mode.elem.speed ? 0x3ab2b : 0x72732;
 }
@@ -864,7 +861,7 @@ void cdDrive::motorOn(const uint8_t& command) {
 void cdDrive::stop(const uint8_t& command) {
 	uint32_t secondWaitClocks;
 
-	if (bDataResponse)
+	if (dataResponseActive)
 		secondWaitClocks = mode.elem.speed ? 0x18a6076 : 0x0d38aca;
 	else
 		secondWaitClocks = 0x0001d7b;
@@ -884,7 +881,7 @@ void cdDrive::stop(const uint8_t& command) {
 void cdDrive::pause(const uint8_t& command) {
 	uint32_t secondWaitClocks;
 
-	if (bDataResponse)
+	if (dataResponseActive)
 		secondWaitClocks = mode.elem.speed ? 0x010bd93 : 0x021181c;
 	else
 		secondWaitClocks = 0x0001df2;
@@ -1331,7 +1328,7 @@ void cdDrive::readS(const uint8_t& command) {
 	//	setSecondResponse(0x1c421, INT2, secondResponse, 1);
 	//}
 
-	bDataResponse = true;
+	dataResponseActive = true;
 
 	waitClocksDataResponse += mode.elem.speed ? 0x3ab2b : 0x72732;
 }

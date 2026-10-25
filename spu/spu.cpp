@@ -1312,7 +1312,7 @@ Output Spu::Clock() {
 		counter37kHz -= step37kHz;
 
 		outputCDXA = { 0.0f, 0.0f };
-		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->bDataResponse)
+		if (pBus->pCdDrive->mode.elem.xa_adpcm && pBus->pCdDrive->dataResponseActive)
 			outputCDXA = clockXA_ADPCM();
 	}
 

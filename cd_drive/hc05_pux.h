@@ -57,7 +57,7 @@ public:
 	IndexStatus indexStatus = { 0 };
 
 	//it is not vector it is just a register??
-	std::vector<uint8_t> commandVector;
+	std::queue<uint8_t> commandVector;
 	std::vector<uint8_t> paramFifo;
 
 	union RequestRegister {
@@ -76,7 +76,7 @@ public:
 	uint16_t bufferCounter = 0;
 	std::vector<char> fileDataVect;
 
-	std::vector<uint8_t> responseFifo;
+	std::queue<uint8_t> responseFifo;
 
 	union InterruptEnable {
 		uint8_t data;
@@ -90,10 +90,21 @@ public:
 
 	InterruptEnable interruptEnable = { 0 };
 
+	enum ResponseInterrupt :uint8_t {
+		NO_INTERRUPT,
+		INTERRUPT_1,
+		INTERRUPT_2,
+		INTERRUPT_3,
+		INTERRUPT_4,
+		INTERRUPT_5,
+		INTERRUPT_6,
+		INTERRUPT_7,
+	};
+
 	union IrqFlagRead {
 		uint8_t data;
 		struct {
-			uint8_t int_1_7 : 3;
+			ResponseInterrupt int_1_7 : 3;
 			uint8_t int_8 : 1;
 			uint8_t int_10 : 1;
 			uint8_t : 3;
@@ -101,41 +112,27 @@ public:
 	};
 	IrqFlagRead irqFlagRead = { 0 };
 
-	enum ResponseInterrupt :uint8_t {
-		INTERRUPT_0,
-		INTERRUPT_1,
-		INTERRUPT_2,
-		INTERRUPT_3,
-		INTERRUPT_4,
-		INTERRUPT_5
-	};
-
 	std::queue<ResponseInterrupt> responsesINT;
 
-	void SendResponseInterrupt(const ResponseInterrupt& responseINT, 
-		uint8_t* pResponses, const uint8_t& responseCount);
+	void SetResponseInterrupt(const ResponseInterrupt& responseINT);
 
 	ResponseInterrupt firstResponseINT;
-	bool bFirstResponse = false;
+	bool firstResponsePending = false;
 	uint32_t waitClocksFirstResponse = 0;
 	void SetFirstResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
 
 	ResponseInterrupt secondResponseINT;
-	bool bSecondResponse = false;
+	bool secondResponsePending = false;
 	uint32_t waitClocksSecondResponse = 0;
 	void SetSecondResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
 
 	ResponseInterrupt dataResponseINT;
-	bool bDataResponse = false;
+	bool dataResponseActive = false;
 	uint32_t waitClocksDataResponse = 0;
 	void SetDataResponse(const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
-
-	std::vector<uint8_t> tempFirstResponseVector;
-	std::vector<uint8_t> tempSecondResponseVector;
-	std::vector<uint8_t> tempDataResponseVector;
 
 	struct Command {
 		std::string name;
@@ -238,7 +235,7 @@ public:
 
 	bool bFilter = false;
 	bool bPlay = false;
-	bool bSendINT1 = true;
+	bool sendINT1 = true;
 	char storedSectorHeader[8];
 	bool bSetLocIssued = false;
 	bool bSetLocUnprocessed = false;
