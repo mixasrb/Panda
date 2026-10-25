@@ -44,7 +44,7 @@ public:
 	union IndexStatus {
 		uint8_t data;
 		struct {
-			uint8_t index : 2;
+			uint8_t bank : 2;
 			uint8_t adpbusy : 1;
 			uint8_t prmempt : 1;
 			uint8_t prmwrdy : 1;
@@ -56,9 +56,10 @@ public:
 
 	IndexStatus indexStatus = { 0 };
 
-	//it is not vector it is just a register??
-	std::queue<uint8_t> commandVector;
-	std::vector<uint8_t> paramFifo;
+	//Is it a FIFO, or it is just a register??
+	std::queue<uint8_t> commandFifo;
+	std::queue<uint8_t> paramFifo;
+	void GetParameters(uint8_t* paramPtr, const uint8_t& paramCount);
 
 	union RequestRegister {
 		uint8_t data;
@@ -76,7 +77,7 @@ public:
 	uint16_t bufferCounter = 0;
 	std::vector<char> fileDataVect;
 
-	std::queue<uint8_t> responseFifo;
+	std::queue<uint8_t> resultFifo;
 
 	union InterruptEnable {
 		uint8_t data;
@@ -119,55 +120,55 @@ public:
 	ResponseInterrupt firstResponseINT;
 	bool firstResponsePending = false;
 	uint32_t waitClocksFirstResponse = 0;
-	void SetFirstResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
+	void SetFirstResult(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
 
 	ResponseInterrupt secondResponseINT;
 	bool secondResponsePending = false;
 	uint32_t waitClocksSecondResponse = 0;
-	void SetSecondResponse(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
+	void SetSecondResult(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
 
 	ResponseInterrupt dataResponseINT;
 	bool dataResponseActive = false;
 	uint32_t waitClocksDataResponse = 0;
-	void SetDataResponse(const ResponseInterrupt& responseINT, 
+	void SetDataResult(const ResponseInterrupt& responseINT, 
 		uint8_t* pResponses, const uint8_t& responseCount);
 
 	struct Command {
 		std::string name;
-		void(cdDrive::* command)(const uint8_t& command);
+		void(cdDrive::* command)();
 	};
 
 	std::vector<Command> commandLookup;
 
-	void ExecuteCommand(const uint8_t& command);
+	void ExecuteNextCommand();
 
-	void sync(const uint8_t& command);
-	void xxxxx(const uint8_t& command);
-	void getStat(const uint8_t& command);
-	void play(const uint8_t& command);
-	void setLoc(const uint8_t& command);
-	void readN(const uint8_t& command);
-	void motorOn(const uint8_t& command);
-	void stop(const uint8_t& command);
-	void pause(const uint8_t& command);
-	void init(const uint8_t& command);
-	void mute(const uint8_t& command);
-	void demute(const uint8_t& command);
-	void setFilter(const uint8_t& command);
-	void setMode(const uint8_t& command);
-	void getParam(const uint8_t& command);
-	void getLocL(const uint8_t& command);
-	void getLocP(const uint8_t& command);
-	void getTN(const uint8_t& command);
-	void getTD(const uint8_t& command);
-	void seekL(const uint8_t& command);
-	void seekP(const uint8_t& command);
-	void test(const uint8_t& command);
-	void getID(const uint8_t& command);
-	void readS(const uint8_t& command);
-	void readTOC(const uint8_t& command);
+	void sync();
+	void xxxxx();
+	void getStat();
+	void play();
+	void setLoc();
+	void readN();
+	void motorOn();
+	void stop();
+	void pause();
+	void init();
+	void mute();
+	void demute();
+	void setFilter();
+	void setMode();
+	void getParam();
+	void getLocL();
+	void getLocP();
+	void getTN();
+	void getTD();
+	void seekL();
+	void seekP();
+	void test();
+	void getID();
+	void readS();
+	void readTOC();
 
 	enum : uint8_t {
 		STAT_PLAY = 0x80,
@@ -216,7 +217,7 @@ public:
 
 	uint16_t sectorSize;
 
-	union mode_t {
+	union Mode {
 		uint8_t data;
 		struct {
 			uint8_t cdda : 1;
@@ -230,8 +231,8 @@ public:
 		}elem;
 	}mode;
 
-	uint8_t filterFile;
-	uint8_t filterChannel;
+	uint8_t filteredFile;
+	uint8_t filteredChannel;
 
 	bool bFilter = false;
 	bool bPlay = false;
