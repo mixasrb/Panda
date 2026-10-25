@@ -13,12 +13,12 @@ constexpr uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
 class BusInterface;
 
-class cdDrive {
+class CdDrive {
 public:
 
-	cdDrive();
+	CdDrive();
 
-	BusInterface* pBus;
+	BusInterface* busPtr;
 
 	void Read8(const uint32_t& addr, uint8_t& data);
 	void Write8(const uint32_t& addr, const uint8_t& data);
@@ -73,7 +73,7 @@ public:
 	RequestRegister requestReg = { 0 };
 
 	//data fifo
-	uint8_t* pBuffer = nullptr;
+	uint8_t* dataBufferPtr = nullptr;
 	uint16_t bufferCounter = 0;
 	std::vector<char> fileDataVect;
 
@@ -113,31 +113,31 @@ public:
 	};
 	IrqFlagRead irqFlagRead = { 0 };
 
-	std::queue<ResponseInterrupt> responsesINT;
+	std::queue<ResponseInterrupt> pendingInterrupts;
 
-	void SetResponseInterrupt(const ResponseInterrupt& responseINT);
+	void SetResponseInterrupt(const ResponseInterrupt& pendingInterrupt);
 
-	ResponseInterrupt firstResponseINT;
-	bool firstResponsePending = false;
+	ResponseInterrupt firstResponseInterrupt;
+	bool isFirstResponsePending = false;
 	uint32_t waitClocksFirstResponse = 0;
-	void SetFirstResult(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
-		uint8_t* pResponses, const uint8_t& responseCount);
+	void SetFirstResult(const uint32_t& waitClocks, const ResponseInterrupt& responseInterrupt, 
+		uint8_t* responsesPtr, const uint8_t& responseCount);
 
-	ResponseInterrupt secondResponseINT;
-	bool secondResponsePending = false;
+	ResponseInterrupt secondResponseInterrupt;
+	bool isSecondResponsePending = false;
 	uint32_t waitClocksSecondResponse = 0;
-	void SetSecondResult(const uint32_t& waitClocks, const ResponseInterrupt& responseINT, 
-		uint8_t* pResponses, const uint8_t& responseCount);
+	void SetSecondResult(const uint32_t& waitClocks, const ResponseInterrupt& responseInterrupt, 
+		uint8_t* responsesPtr, const uint8_t& responseCount);
 
-	ResponseInterrupt dataResponseINT;
-	bool dataResponseActive = false;
+	ResponseInterrupt dataResponseInterrupt;
+	bool isDataResponseActive = false;
 	uint32_t waitClocksDataResponse = 0;
-	void SetDataResult(const ResponseInterrupt& responseINT, 
-		uint8_t* pResponses, const uint8_t& responseCount);
+	void SetDataResult(const ResponseInterrupt& responseInterrupt, 
+		uint8_t* responsesPtr, const uint8_t& responseCount);
 
 	struct Command {
 		std::string name;
-		void(cdDrive::* command)();
+		void(CdDrive::* command)();
 	};
 
 	std::vector<Command> commandLookup;
@@ -197,20 +197,20 @@ public:
 	}stat;
 
 	//Shell same as door??
-	bool bShellOpen = false;
+	bool isShellOpen = false;
 
 	uint8_t amm;
 	uint8_t ass;
 	uint8_t asect;
 	uint8_t track;
 
-	uint8_t stored_amm;
-	uint8_t stored_ass;
-	uint8_t stored_asect;
+	uint8_t storedAmm;
+	uint8_t storedAss;
+	uint8_t storedAsect;
 
-	uint8_t unprocessed_amm;
-	uint8_t unprocessed_ass;
-	uint8_t unprocessed_asect;
+	uint8_t unprocessedAmm;
+	uint8_t unprocessedAss;
+	uint8_t unprocessedAsect;
 
 	void ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect);
 	void CancelReading();
@@ -290,7 +290,7 @@ public:
 	uint16_t volumeRightRight = 0;
 	uint16_t volumeRightLeft = 0;
 
-	uint8_t* pNullSrc = (uint8_t*)calloc(0x930, sizeof(uint8_t));
+	uint8_t* emptySectorPtr = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
 	DebugUtilities* p_debugger;

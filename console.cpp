@@ -23,7 +23,7 @@ void psxConsole_t::connectComponents() {
 	gpu.BusPtr = &bus;
 
 	bus.pCdDrive = &cdDrive;
-	cdDrive.pBus = &bus;
+	cdDrive.busPtr = &bus;
 
 	bus.timer0.pBus = &bus;
 	bus.timer1.pBus = &bus;

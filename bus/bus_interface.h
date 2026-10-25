@@ -43,7 +43,7 @@ public:
 	Gpu* pGpu = nullptr;
 
 	//hc05_pux
-	cdDrive* pCdDrive = nullptr;
+	CdDrive* pCdDrive = nullptr;
 
 	timer0_t timer0;
 	timer1_t timer1;

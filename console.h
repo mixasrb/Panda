@@ -18,7 +18,7 @@ public:
 	Cpu cpuSOC;
 	Mdec mdec;
 	Gpu gpu;
-	cdDrive cdDrive;
+	CdDrive cdDrive;
 	joyMemCard_t joyMemCard;
 
 	uint64_t clocks = 0;
