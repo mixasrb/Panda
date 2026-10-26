@@ -465,11 +465,11 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 	switch (command >> 29) {
 	case 0b000: //Misc commands
-		if ((gp0Command >> 24) == 0x02) {
+		if ((command >> 24) == 0x02) {
 			Param param;
 
 			param.primitiveType = FILL;
-			param.commandColor1 = gp0Command;
+			param.commandColor1 = command;
 
 			uint32_t pos = GetNextCommandFifoData();
 			uint16_t xpos = pos & 0xffff;
@@ -485,13 +485,13 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 			FillRectVram(param);
 		}
-		else if ((gp0Command >> 24) == 0x01) {
+		else if ((command >> 24) == 0x01) {
 			//clear texture cache unhandled??
 
 			clutCache.Invalidate();
 		}
 		else {
-			if (gp0Command >> 24 == 0x1f) {
+			if (command >> 24 == 0x1f) {
 				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x"
 					<< std::hex << command << " " << gp0Lookup[(command >> 24)].name << "\n";
 				g_emulationPaused = true;
@@ -499,7 +499,6 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		}
 		break;
 	case 0b001: {
-
 		Param param;
 		param.primitiveType = POLYGON;
 		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
@@ -645,7 +644,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 		param.modulationType = (command & 0x01000000) ? RAW_TEXTURE : TEXTURE_BLENDING;
 
-		param.commandColor1 = gp0Command;
+		param.commandColor1 = command;
 
 		param.vert1 = GetNextCommandFifoData();
 		param.vert1 += drawOffset;
