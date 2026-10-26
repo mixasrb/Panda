@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #define OLC_PGE_APPLICATION
 #include "dependencies/olcPixelGameEngine.h"
@@ -28,16 +29,16 @@ uint32_t g_systemMinutes = 0;
 int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
 
-class psxEmulator_t : public olc::PixelGameEngine {
+class PsxEmulator_t : public olc::PixelGameEngine {
 public:
 
-	psxEmulator_t() {
+	PsxEmulator_t() {
 		sAppName = "Panda by Miloseviceva Milicija";
 	}
 
 	psxConsole_t psx;
 
-	static psxEmulator_t* pInstance;
+	static PsxEmulator_t* pInstance;
 
 	Output sampleLR = { 0.0f, 0.0f };
 
@@ -499,7 +500,18 @@ public:
 	}
 };
 
-psxEmulator_t* psxEmulator_t::pInstance = nullptr;
+PsxEmulator_t* PsxEmulator_t::pInstance = nullptr;
+
+void mainWork(PsxEmulator_t *emulator) {
+	
+#if !SCREEN
+	if (emulator->Construct(1024, 512 + 45, 1, 1, false, false))
+#endif
+#if SCREEN
+		if (emulator->Construct(640, 480, 2, 2, false, false))
+#endif
+			emulator->Start();
+}
 
 int main(int argumentCount, char* argumetVector[]) {
 
@@ -508,14 +520,11 @@ int main(int argumentCount, char* argumetVector[]) {
 		g_sideloadPath = argumetVector[1];
 	}
 
-	psxEmulator_t emulator;
-#if !SCREEN
-	if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
-#endif
-#if SCREEN
-		if (emulator.Construct(640, 480, 2, 2, false, false))
-#endif
-			emulator.Start();
+	PsxEmulator_t emulator;
+	std::thread threadMain(mainWork, &emulator);
+
+	threadMain.join();
+	emulator.psx.bus.pGpu->threadWorker.join();
 
 	return EXIT_SUCCESS;
 }

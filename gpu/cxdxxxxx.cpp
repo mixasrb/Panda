@@ -14,7 +14,7 @@ extern int g_mousePossitionY;
 extern bool g_logPixel;
 extern bool g_manualInterruptDMA;
 
-Gpu::Gpu() {
+Gpu::Gpu() : threadWorker(&Gpu::Worker, this) {
 	gp0Lookup.resize(0xef);
 	gp0Lookup = {
 		//0x00
@@ -324,6 +324,96 @@ void Gpu::Read32(const uint32_t& addr, uint32_t& data) {
 
 void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
+		std::lock_guard<std::mutex> lock(mtx);
+		threadQueue.push(data);
+		cv.notify_one();
+		return;
+	}
+
+	if (addr == 0x1f801814) {
+		gp1Command = data;
+
+		if (g_GpuCommandsLogged)
+			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';
+
+		DecodeExecuteGp1Command(gp1Command);
+	}
+}
+
+void Gpu::Clock() {
+	if (cpuScanlineClocks == cpuClocksToHblank) {
+		//Hblank clocking timer 1
+		busPtr->timer0.bHblank = true;
+		busPtr->timer0.Clock(_HBLANK_CLOCK);
+		busPtr->timer1.Clock(_HBLANK_CLOCK);
+	}
+
+	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
+
+		cpuScanlineClocks = 0;
+		scanlineCount++;
+		busPtr->timer0.bHblank = false;
+
+		if (gpuStat.elem.verticalInterlace)
+			if (!gpuStat.elem.verticalRes)
+				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
+
+		if (scanlineCount == screenY2) {
+			busPtr->timer1.bVblank = true;
+
+			if (g_GpuCommandsLogged)
+				std::cout << "~[GPU] GPU VBlank" << '\n';
+
+			//V-Sync interrupt is naturally edge trigered
+			busPtr->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
+
+
+			//Vblank synchronization timer 1
+			busPtr->timer1.Clock(_VBLANK_CLOCK);
+		}
+		else if (scanlineCount == scanlineNumber) {
+
+			scanlineCount = 0;
+			busPtr->timer1.bVblank = false;
+
+			if (g_GpuCommandsLogged)
+				std::cout << "~[GPU] GPU non VBlank" << '\n';
+
+			if (gpuStat.elem.verticalInterlace)
+				if (gpuStat.elem.verticalRes)
+					gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
+		}
+	}
+
+	if ((cpuClocks % dotClockDevider) == 0)
+		busPtr->timer0.Clock(_DOT_CLOCK);
+
+	if (cpuClocks == CPU_CLOCK)
+		cpuClocks = 0;
+	else
+		cpuClocks++;
+
+	cpuScanlineClocks++;
+}
+
+uint32_t Gpu::GetNextCommandFifoData() {
+	if (commandFifo.empty()) {
+		std::cout << "~[GPU] EMULATION PAUSED! Data requested but command fifo is empty\n";
+		g_emulationPaused = true;
+	}
+
+	uint32_t data = commandFifo.front();
+	commandFifo.pop();
+	return data;
+}
+
+void Gpu::Worker() {
+	while (true) {
+		std::unique_lock<std::mutex> lock(mtx);
+		cv.wait(lock, [this] { return !threadQueue.empty(); });
+		uint32_t data = threadQueue.front();
+		threadQueue.pop();
+
 		if (fifoCollectCount) {
 			commandFifo.push(data);
 			fifoCollectCount--;
@@ -361,84 +451,7 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			DecodeExecuteGp0Command(gp0Command);
 		}
-		return;
 	}
-
-	if (addr == 0x1f801814) {
-		gp1Command = data;
-
-		if (g_GpuCommandsLogged)
-			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';
-
-		DecodeExecuteGp1Command(gp1Command);
-	}
-}
-
-void Gpu::Clock() {
-	if (cpuScanlineClocks == cpuClocksToHblank) {
-		//Hblank clocking timer 1
-		BusPtr->timer0.bHblank = true;
-		BusPtr->timer0.Clock(_HBLANK_CLOCK);
-		BusPtr->timer1.Clock(_HBLANK_CLOCK);
-	}
-
-	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
-
-		cpuScanlineClocks = 0;
-		scanlineCount++;
-		BusPtr->timer0.bHblank = false;
-
-		if (gpuStat.elem.verticalInterlace)
-			if (!gpuStat.elem.verticalRes)
-				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
-
-		if (scanlineCount == screenY2) {
-			BusPtr->timer1.bVblank = true;
-
-			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU VBlank" << '\n';
-
-			//V-Sync interrupt is naturally edge trigered
-			BusPtr->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
-
-
-			//Vblank synchronization timer 1
-			BusPtr->timer1.Clock(_VBLANK_CLOCK);
-		}
-		else if (scanlineCount == scanlineNumber) {
-
-			scanlineCount = 0;
-			BusPtr->timer1.bVblank = false;
-
-			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU non VBlank" << '\n';
-
-			if (gpuStat.elem.verticalInterlace)
-				if (gpuStat.elem.verticalRes)
-					gpuStat.elem.drawingEvenOddLines = ~gpuStat.elem.drawingEvenOddLines;
-		}
-	}
-
-	if ((cpuClocks % dotClockDevider) == 0)
-		BusPtr->timer0.Clock(_DOT_CLOCK);
-
-	if (cpuClocks == CPU_CLOCK)
-		cpuClocks = 0;
-	else
-		cpuClocks++;
-
-	cpuScanlineClocks++;
-}
-
-uint32_t Gpu::GetNextCommandFifoData() {
-	if (commandFifo.empty()) {
-		std::cout << "~[GPU] EMULATION PAUSED! Data requested but command fifo is empty\n";
-		g_emulationPaused = true;
-	}
-
-	uint32_t data = commandFifo.front();
-	commandFifo.pop();
-	return data;
 }
 
 void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {

@@ -3,6 +3,8 @@
 #include <queue>
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <thread>
 
 #include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
@@ -58,7 +60,7 @@ public:
 
 	Gpu();
 
-	BusInterface* BusPtr;
+	BusInterface* busPtr;
 
 	void Read32(const uint32_t& addr, uint32_t& data);
 	void Write32(const uint32_t& addr, const uint32_t& data);
@@ -285,6 +287,8 @@ public:
 	uint32_t gp0Command;
 	uint32_t fifoCollectCount = 0;
 
+	void Worker();
+
 	void DecodeExecuteGp0Command(const uint32_t& command);
 
 	void CalculateTransparency(const Vector2D& p, PsxColor16& frontPixelColor);
@@ -292,6 +296,13 @@ public:
 	void FillRectVram(const Param& param);
 
 	void DrawPolygon(const Param& param);
+
+	std::thread threadWorker;
+	std::queue<uint32_t> threadQueue;
+
+	std::mutex mtx;
+	std::condition_variable cv;
+
 
 	struct TextureBitness {
 		bool is15BitTexture;
