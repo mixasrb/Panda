@@ -17,36 +17,24 @@ uint32_t g_systemFrames = 0;
 uint32_t g_systemSeconds = 0;
 uint32_t g_systemMinutes = 0;
 
-//bool g_manualInterruptDMA = false;
-//
-////clocker settings
-//constexpr uint32_t CPU_CLOCK = 44100 * 0x300; //33 868 800
-//constexpr uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
-//constexpr uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
-//constexpr uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCKS_PER_FRAME_NTSC;
-
 int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
 
-class psxEmulator_t : public olc::PixelGameEngine {
+class ApplicationEmulator : public olc::PixelGameEngine {
 public:
 
-	psxEmulator_t() {
+	ApplicationEmulator() {
 		sAppName = "Panda by Miloseviceva Milicija";
 	}
 
-	psxConsole_t psx;
+	PsxConsole psx;
 
-	static psxEmulator_t* pInstance;
+	static ApplicationEmulator* instancePtr;
 
 	Output sampleLR = { 0.0f, 0.0f };
 
 	bool isDebuggerViewed = false;
 	bool bDrawScreenWindow = false;
-
-	/*void executeGp0Commands() {
-		pInstance->psx.gpu.executeGp0CommandFuncs();
-	}*/
 
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
@@ -65,14 +53,13 @@ public:
 			}
 #endif
 
-			pInstance->sampleLR = pInstance->psx.bus.spu.Clock();
-			//pInstance->psx.gpu.loopGp0();
+			instancePtr->sampleLR = instancePtr->psx.bus.spu.Clock();
 		}
 
 		if (nChanel == 0)
-			return pInstance->sampleLR.channel0;
+			return instancePtr->sampleLR.channel0;
 		else
-			return pInstance->sampleLR.channel1;
+			return instancePtr->sampleLR.channel1;
 	}
 
 	std::unique_ptr<olc::Decal> decSprite;
@@ -83,12 +70,10 @@ public:
 		std::cout.setstate(std::ios_base::failbit);
 #endif
 
-		pInstance = this;
+		instancePtr = this;
 
 		olc::SOUND::InitialiseAudio(44100, 2, 8, 512);
 		olc::SOUND::SetUserSynthFunction(soundOut);
-
-		psx.reset();
 
 		return true;
 	}
@@ -195,9 +180,6 @@ public:
 
 				psx.clock();
 
-				//if ((g_systemClocks % 0x300) == 0)
-				//	psx.bus.spu.clock();
-
 				if (g_emulationPaused) break;
 			}
 			psx.gpu.cpuScanlineClocks = 0;
@@ -213,7 +195,6 @@ public:
 			}
 		}
 #endif
-
 
 		//debugger
 		bool executeOneInstruction = false;
@@ -234,20 +215,11 @@ public:
 				//Metal Slug DMA 2 linked list loop bypass
 				//psx.bus.dma.dma2.channelControl.reg.startBusy = ~psx.bus.dma.dma2.channelControl.reg.startBusy;
 
-
 				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
 					psx.cpuSOC.Clock();
 					//psx.clock();
 				}
-
-				
-
-				/*
-				if (psx.bus.spu.spuControlRegister.elem.irq9Enable) {
-					psx.bus.pCpu->cp0.interruptHandler(_IRQ_SPU);
-					psx.bus.spu.spuStatusRegister.elem.irq9Flag = 1;
-				}*/
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
@@ -265,12 +237,8 @@ public:
 			if (GetKey(olc::Key::Z).bPressed)
 				g_GpuCommandsLogged = !g_GpuCommandsLogged;
 
-			if (GetKey(olc::Key::B).bPressed) {
+			if (GetKey(olc::Key::B).bPressed)
 				g_buttonPressed = !g_buttonPressed;
-				/*for (int i = 0; i < psx.cpuSOC.loggedOpcodes.size(); i++) {
-					std::cout << psx.cpuSOC.loggedOpcodes[i];
-				}*/
-			}
 
 			if (GetKey(olc::Key::R).bPressed)
 				psx.debugger.dump("logs/ram.bin", psx.bus.ram.get(), 2048 * 1024);
@@ -304,15 +272,16 @@ public:
 		}
 
 		if (executeOneInstruction) {
-			do { psx.clock(); } while (!psx.cpuSOC.isInstructionExecuted);
+			do {
+				psx.clock();
+			} while (!psx.cpuSOC.isInstructionExecuted);
 			psx.cpuSOC.isInstructionExecuted = false;
 			executeOneInstruction = !executeOneInstruction;
 		}
 
-
 		if (!isDebuggerViewed) {
-			// main DRAW
-#if !SCREEN
+			// Main Drawing	
+#if DEBUG_VIEW
 			DrawSprite(0, 0, psx.gpu.GetVramSprite());
 #endif
 			uint16_t x1 = psx.gpu.displayStart.x;
@@ -364,23 +333,18 @@ public:
 				//verticalResolution = 240;
 				y2 = y1 + verticalResolution;
 			}
-#if !SCREEN
+#if DEBUG_VIEW
 			if (bDrawScreenWindow)
-				DrawRect({ x1, y1 }, { x2 - x1,y2 - y1 });
-#endif
-#if SCREEN
+				DrawRect({ x1, y1 }, { x2 - x1, y2 - y1 });
+#else
 			if (!psx.gpu.gpuStat.elem.displayEnable) {
-
-				////ff7 only
-				//x2 = x1 + 368;
-
 				if (psx.bus.pGpu->gpuStat.elem.displayAreaColorDepth) {
 					olc::Sprite vramView = olc::Sprite(horizontalResolution, verticalResolution);
 					for (int x = 0; x < horizontalResolution * 3 / 2; x++) {
 						int i = 0; //??
 						for (int y = 0; y < verticalResolution; y++) {
 							olc::Pixel pixel;
-							switch ((/*x1 +*/ x + i) % 3) {
+							switch ((x + i) % 3) {
 							case 0: {
 								uint16_t data;
 								Vector2D p;
@@ -420,7 +384,8 @@ public:
 				else {
 					decSprite.reset(new olc::Decal(psx.gpu.GetVramSprite()));
 					DrawPartialDecal({ 0, 0 }, decSprite.get(), { (float)x1, (float)y1 },
-						{ (float)x2 - (float)x1, (float)y2 - (float)y1 }, { 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
+						{ (float)x2 - (float)x1, (float)y2 - (float)y1 },
+						{ 640.0f / ((float)x2 - (float)x1), 480.0f / ((float)y2 - (float)y1) });
 				}
 			}
 			else
@@ -428,7 +393,7 @@ public:
 #endif
 		}
 		else {
-			//debugger
+			//Debugger
 
 			for (int i = 0; i < 32; i++) {
 				uint32_t data;
@@ -479,17 +444,14 @@ public:
 			DrawString(600, 512 + 4, "GTE INSTRUCTIONS LOGGED", olc::YELLOW);
 
 		std::stringstream ss;
-		ss << "system clocks: " << psx.gpu.cpuClocks;
-		DrawString(0, 512 + 4, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system frames: " << g_systemFrames;
-		DrawString(0, 512 + 4 + 9, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system seconds: " << g_systemSeconds;
-		DrawString(0, 512 + 4 + 2 * 9, ss.str(), olc::WHITE);
-		ss.str("\0");
-		ss << "system minutes: " << g_systemMinutes;
-		DrawString(0, 512 + 4 + 3 * 9, ss.str(), olc::WHITE);
+
+		ss << "System\n";
+		ss << "Minutes: " << g_systemMinutes << '\n';
+		ss << "Seconds: " << g_systemSeconds << '\n';
+		ss << "Frames: " << g_systemFrames << '\n';
+		ss << "Clocks: " << psx.gpu.cpuClocks;
+		DrawString(9, 512 + 4 - 1 * 9, ss.str(), olc::WHITE);
+
 		return true;
 	}
 
@@ -499,7 +461,7 @@ public:
 	}
 };
 
-psxEmulator_t* psxEmulator_t::pInstance = nullptr;
+ApplicationEmulator* ApplicationEmulator::instancePtr = nullptr;
 
 int main(int argumentCount, char* argumetVector[]) {
 
@@ -508,14 +470,13 @@ int main(int argumentCount, char* argumetVector[]) {
 		g_sideloadPath = argumetVector[1];
 	}
 
-	psxEmulator_t emulator;
-#if !SCREEN
+	ApplicationEmulator emulator;
+#if DEBUG_VIEW
 	if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
+#else
+	if (emulator.Construct(640, 480, 2, 2, false, false))
 #endif
-#if SCREEN
-		if (emulator.Construct(640, 480, 2, 2, false, false))
-#endif
-			emulator.Start();
+		emulator.Start();
 
 	return EXIT_SUCCESS;
 }

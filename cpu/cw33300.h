@@ -28,7 +28,6 @@ public:
 	void Read8(const uint32_t& addr, uint8_t& data, uint8_t& cycles);
 	void Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cycles);
 
-	void Reset();
 	void Clock();
 
 	CP0 cp0;
@@ -257,7 +256,6 @@ public:
 
 
 	std::vector<std::string> executedOpcodes;
-	std::vector<std::string> loggedOpcodes;
 
 	void sideLoad();
 

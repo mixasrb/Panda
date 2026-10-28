@@ -9,10 +9,10 @@
 #include "debug_utilities/debug_utilities.h"
 
 
-class psxConsole_t {
+class PsxConsole {
 public:
 
-	psxConsole_t();
+	PsxConsole();
 
 	BusInterface bus;
 	Cpu cpuSOC;
@@ -29,7 +29,6 @@ public:
 	void connectComponents();
 	void connectDebugger();
 
-	void reset();
 	void clock();
 
 	//debug

@@ -1,10 +1,14 @@
 #pragma once
 
+//App Settings
+#undef CONSOLE_LOGGING
+#undef DEBUG_VIEW
+#undef ACCURATE_SPU_CLOCKING
 #define CONSOLE_LOGGING 1
-#define SCREEN 1
+#define DEBUG_VIEW 1
 #define ACCURATE_SPU_CLOCKING 0
 
-//gpu settings
+//Gpu Settings
 #undef ENABLE_DITHERING
 #define ENABLE_DITHERING 0
 

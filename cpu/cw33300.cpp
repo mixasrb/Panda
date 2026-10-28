@@ -122,6 +122,12 @@ Cpu::Cpu() {
 
 	//debug
 	executedOpcodes.resize(32);
+
+	cycle = 0;
+	pc = 0xbfc00000;
+
+	cycle0.bWrite = false;
+	cycle1.bWrite = false;
 }
 
 void Cpu::Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug) {
@@ -438,14 +444,6 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 		g_emulationPaused = true;
 	}
 
-}
-
-void Cpu::Reset() {
-	cycle = 0;
-	pc = 0xbfc00000;
-
-	cycle0.bWrite = false;
-	cycle1.bWrite = false;
 }
 
 void Cpu::Clock() {
