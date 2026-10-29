@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include "../debug_utilities/debug_utilities.h"
-
 class Cpu;
 class BusInterface;
 
@@ -39,5 +37,4 @@ public:
 	bool irqFlag = false;
 
 	//debug
-	DebugUtilities* pDebugger;
 };

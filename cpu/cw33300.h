@@ -10,8 +10,6 @@
 #include "cp2.h"
 #include "../defines/defines.h"
 
-#include "../debug_utilities/debug_utilities.h"
-
 class BusInterface;
 
 class Cpu {
@@ -239,7 +237,6 @@ public:
 
 	//debug
 public:
-	DebugUtilities* p_debugger;
 
 	uint32_t oldCall;
 

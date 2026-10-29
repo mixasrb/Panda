@@ -7,7 +7,6 @@
 #include <fstream>
 #include <string>
 
-#include "../debug_utilities/debug_utilities.h"
 
 constexpr uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
@@ -293,8 +292,6 @@ public:
 	uint8_t* emptySectorPtr = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
-	DebugUtilities* p_debugger;
-
 
 	void PrintDriveMode();
 	void PrintStatus();

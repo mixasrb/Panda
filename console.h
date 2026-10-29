@@ -6,7 +6,6 @@
 #include "gpu/cxdxxxxx.h"
 #include "cd_drive/hc05_pux.h"
 #include "peripherals/joy_mem_card.h"
-#include "debug_utilities/debug_utilities.h"
 
 
 class PsxConsole {
@@ -27,10 +26,8 @@ public:
 
 
 	void connectComponents();
-	void connectDebugger();
 
 	void clock();
 
 	//debug
-	DebugUtilities debugger;
 };

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "debug_utilities.h"
+#include "debugger.h"
 
 DebugUtilities::DebugUtilities() {
 	std::fstream file("D:/projects/emulation_psx/vs/Panda/logs/TTY_output.txt");

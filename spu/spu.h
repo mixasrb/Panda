@@ -4,8 +4,6 @@
 #include <iostream>
 #include <vector>
 
-#include "../debug_utilities/debug_utilities.h"
-
 constexpr auto LS_SIZE = 512 * 1024; 
 constexpr auto XA_ADPCM_SECTOR_SIZE = 0x930;
 
@@ -502,5 +500,4 @@ public:
 	uint8_t* pBufferCDDA = nullptr;
 
 	//debug
-	DebugUtilities* pDebugger = nullptr;
 };

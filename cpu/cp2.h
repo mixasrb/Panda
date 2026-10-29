@@ -1,11 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <bit>
 #include <algorithm>
-
-#include "../debug_utilities/debug_utilities.h"
 
 class Cpu;
 
@@ -146,5 +145,4 @@ public:
 	void GPL(uint32_t opcode);
 
 	//debug
-	DebugUtilities* pDebugger;
 };

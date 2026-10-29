@@ -10,8 +10,6 @@
 #include "dma_4.h"
 #include "dma_6.h"
 
-#include "../../debug_utilities/debug_utilities.h"
-
 class BusInterface;
 
 class DmaController {
@@ -103,5 +101,4 @@ public:
 	bool isCpuStopped = false;
 
 	//debug
-	DebugUtilities* p_debugger = nullptr;
 };

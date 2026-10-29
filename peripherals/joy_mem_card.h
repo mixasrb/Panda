@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "../debug_utilities/debug_utilities.h"
-
 class BusInterface;
 
 class joyMemCard_t {
@@ -185,5 +183,4 @@ public:
 	uint8_t memCards[2][128 * 1024];
 
 	//debug
-	DebugUtilities* p_debugger;
 };

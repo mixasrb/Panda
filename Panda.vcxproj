@@ -161,7 +161,7 @@
     <ClCompile Include="cpu\cp0.cpp" />
     <ClCompile Include="cpu\cp2.cpp" />
     <ClCompile Include="cpu\cw33300.cpp" />
-    <ClCompile Include="debug_utilities\debug_utilities.cpp" />
+    <ClCompile Include="debugger\debugger.cpp" />
     <ClCompile Include="gpu\cxdxxxxx.cpp" />
     <ClCompile Include="gpu\drawing.cpp" />
     <ClCompile Include="main.cpp" />
@@ -188,7 +188,7 @@
     <ClInclude Include="cpu\cp0.h" />
     <ClInclude Include="cpu\cp2.h" />
     <ClInclude Include="cpu\cw33300.h" />
-    <ClInclude Include="debug_utilities\debug_utilities.h" />
+    <ClInclude Include="debugger\debugger.h" />
     <ClInclude Include="defines\defines.h" />
     <ClInclude Include="dependencies\olcPGEX_Sound.h" />
     <ClInclude Include="dependencies\olcPixelGameEngine.h" />

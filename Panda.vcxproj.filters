@@ -27,7 +27,7 @@
     <ClCompile Include="gpu\cxdxxxxx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="debug_utilities\debug_utilities.cpp">
+    <ClCompile Include="debugger\debugger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpu\cw33300.cpp">
@@ -104,7 +104,7 @@
     <ClInclude Include="defines\defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="debug_utilities\debug_utilities.h">
+    <ClInclude Include="debugger\debugger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpu\cw33300.h">

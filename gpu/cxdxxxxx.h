@@ -4,7 +4,6 @@
 #include <vector>
 #include <memory>
 
-#include "../debug_utilities/debug_utilities.h"
 #include "../dependencies/olcPixelGameEngine.h"
 
 #define size_x_b 2048
@@ -392,5 +391,4 @@ public:
 	}clutCache;
 
 	//debug
-	DebugUtilities* p_debugger;
 };

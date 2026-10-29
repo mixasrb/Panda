@@ -15,8 +15,6 @@
 #include "../peripherals/joy_mem_card.h"
 #include "../spu/spu.h"
 
-#include "../debug_utilities/debug_utilities.h"
-
 constexpr auto RAM_SIZE = 4 * 2 * 1024 * 1024 / 4;
 constexpr auto SCRATCHPAD_SIZE = 1024;
 
@@ -112,5 +110,4 @@ public:
 	delayType calculateDelays(const delayRegisterType& delayRegister);
 
 	//debug
-	DebugUtilities* pDebugger = nullptr;
 };

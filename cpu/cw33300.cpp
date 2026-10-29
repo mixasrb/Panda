@@ -1121,7 +1121,6 @@ void Cpu::printBiosCall() {
 			if (call == 0x3c) {
 				std::stringstream ss;
 				ss << (char)GetRegister(4);
-				p_debugger->log(ss.str());
 				std::cout << ss.str();
 			}
 
@@ -1204,7 +1203,6 @@ void Cpu::printBiosCall() {
 			if (call == 0x3d) {
 				std::stringstream ss;
 				ss << (char)GetRegister(4);
-				p_debugger->log(ss.str());
 				std::cout << ss.str();
 			}
 

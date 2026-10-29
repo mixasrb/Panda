@@ -21,15 +21,17 @@ int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
 
 class ApplicationEmulator : public olc::PixelGameEngine {
+private:
+	static ApplicationEmulator* instancePtr;
+
+
 public:
 
 	ApplicationEmulator() {
-		sAppName = "Panda by Miloseviceva Milicija";
+		sAppName = "Panda by MM";
 	}
 
 	PsxConsole psx;
-
-	static ApplicationEmulator* instancePtr;
 
 	Output sampleLR = { 0.0f, 0.0f };
 
@@ -56,10 +58,7 @@ public:
 			instancePtr->sampleLR = instancePtr->psx.bus.spu.Clock();
 		}
 
-		if (nChanel == 0)
-			return instancePtr->sampleLR.channel0;
-		else
-			return instancePtr->sampleLR.channel1;
+		return (nChanel == 0) ? instancePtr->sampleLR.channel0 : instancePtr->sampleLR.channel1;
 	}
 
 	std::unique_ptr<olc::Decal> decSprite;
@@ -240,6 +239,7 @@ public:
 			if (GetKey(olc::Key::B).bPressed)
 				g_buttonPressed = !g_buttonPressed;
 
+			/*
 			if (GetKey(olc::Key::R).bPressed)
 				psx.debugger.dump("logs/ram.bin", psx.bus.ram.get(), 2048 * 1024);
 
@@ -254,11 +254,9 @@ public:
 
 			if (GetKey(olc::Key::M).bPressed)
 				psx.debugger.dump("logs/memcard_dumped.bin", psx.joyMemCard.memCards[0], 128 * 1024);
+				*/
 
 			if (GetKey(olc::Key::O).bPressed)
-				executeOneInstruction = true;
-
-			if (GetKey(olc::Key::P).bHeld)
 				executeOneInstruction = true;
 
 			if (GetKey(olc::Key::E).bPressed)
