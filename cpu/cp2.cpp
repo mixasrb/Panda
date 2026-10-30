@@ -3,7 +3,7 @@
 #include "cp2.h"
 #include "cw33300.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern bool g_GteInstructionsLogged;
 
 CP2::CP2() {
@@ -317,7 +317,7 @@ void CP2::MFC2(uint8_t rt, uint8_t rd) {
 	uint32_t value = gteRegisters.cp2Data.p[rd].w;
 	if (pCpu->cycle == 0) {
 		if (pCpu->cycle0.bWrite == true)
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		pCpu->cycle0.old = pCpu->r[rt];
 		pCpu->cycle0.bWrite = true;
 		pCpu->cycle0.addr = rt;
@@ -325,7 +325,7 @@ void CP2::MFC2(uint8_t rt, uint8_t rd) {
 	}
 	else if (pCpu->cycle == 1) {
 		if (pCpu->cycle1.bWrite == true)
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		pCpu->cycle1.old = pCpu->r[rt];
 		pCpu->cycle1.bWrite = true;
 		pCpu->cycle1.addr = rt;
@@ -342,7 +342,7 @@ void CP2::CFC2(uint8_t rt, uint8_t rd) {
 	uint32_t value = gteRegisters.cp2Ctrl.p[rd].w;
 	if (pCpu->cycle == 0) {
 		if (pCpu->cycle0.bWrite == true)
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		pCpu->cycle0.old = pCpu->r[rt];
 		pCpu->cycle0.bWrite = true;
 		pCpu->cycle0.addr = rt;
@@ -350,7 +350,7 @@ void CP2::CFC2(uint8_t rt, uint8_t rd) {
 	}
 	else if (pCpu->cycle == 1) {
 		if (pCpu->cycle1.bWrite == true)
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		pCpu->cycle1.old = pCpu->r[rt];
 		pCpu->cycle1.bWrite = true;
 		pCpu->cycle1.addr = rt;
@@ -412,13 +412,13 @@ void CP2::CTC2(uint8_t rt, uint8_t rd) {
 void CP2::BC2F(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2F 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void CP2::BC2T(uint16_t imm) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled CP2 instruction BC2T 0x" << pCpu->opcode
 		<< " pc 0x" << pCpu->pc - 4 << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void CP2::COP2(uint32_t imm) {
@@ -627,7 +627,7 @@ uint32_t CP2::gteDivide(uint16_t numerator, uint16_t denominator) {
 void CP2::XXXXX(uint32_t opcode) {
 	std::cout << "[CP2] EMULATION PAUSED! unhandled opcode " << opcodeLookup[opcode & 0x3f].name
 		<< " 0x" << pCpu->opcode << " pc 0x" << pCpu->pc - 4 << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void CP2::RTPS(uint32_t opcode) {

@@ -8,6 +8,8 @@
 #define OLC_PGEX_SOUND
 #include "dependencies/olcPGEX_Sound.h"
 
+#include "debugger/debugger.h"
+
 #include "console.h"
 #include "settings.h"
 #include "gpu/cxdxxxxx.h"
@@ -19,6 +21,8 @@ uint32_t g_systemMinutes = 0;
 
 int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
+
+extern bool g_isEmulationPaused;
 
 class ApplicationEmulator : public olc::PixelGameEngine {
 private:
@@ -83,7 +87,7 @@ public:
 		Clear(olc::BLACK);
 
 		//gamepad input 
-		if (!g_emulationPaused) {
+		if (!g_isEmulationPaused) {
 
 			enum keyMap_swlo {
 				PSX_SELECT = 0x01,
@@ -174,12 +178,12 @@ public:
 
 		//clocker
 #if !ACCURATE_SPU_CLOCKING
-		if (!g_emulationPaused) {
+		if (!g_isEmulationPaused) {
 			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
 
 				psx.clock();
 
-				if (g_emulationPaused) break;
+				if (g_isEmulationPaused) break;
 			}
 			psx.gpu.cpuScanlineClocks = 0;
 
@@ -222,7 +226,7 @@ public:
 			}
 
 			if (GetKey(olc::Key::SPACE).bPressed)
-				g_emulationPaused = !g_emulationPaused;
+				g_isEmulationPaused = !g_isEmulationPaused;
 
 			if (GetKey(olc::Key::X).bPressed)
 				g_executedCpuInstructionsLogged = !g_executedCpuInstructionsLogged;
@@ -435,7 +439,7 @@ public:
 			DrawString(0, 36 * 9, ss.str());
 		}
 
-		if (g_emulationPaused)
+		if (g_isEmulationPaused)
 			DrawString(800, 512 + 4, "EMULATION PAUSED!", olc::RED);
 
 		if (g_GteInstructionsLogged)
@@ -469,6 +473,7 @@ int main(int argumentCount, char* argumetVector[]) {
 	}
 
 	ApplicationEmulator emulator;
+
 #if DEBUG_VIEW
 	if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))
 #else

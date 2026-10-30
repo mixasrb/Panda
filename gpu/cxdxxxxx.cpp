@@ -7,7 +7,7 @@
 //TO DO 
 //Define option for old and new GPU 
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern bool g_GpuCommandsLogged;
 extern int g_mousePossitionX;
 extern int g_mousePossitionY;
@@ -338,7 +338,7 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (!commandFifo.empty()) {
 				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << commandFifo.size() << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 
 				while (!commandFifo.empty())
 					commandFifo.pop();
@@ -433,7 +433,7 @@ void Gpu::Clock() {
 uint32_t Gpu::GetNextCommandFifoData() {
 	if (commandFifo.empty()) {
 		std::cout << "~[GPU] EMULATION PAUSED! Data requested but command fifo is empty\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	uint32_t data = commandFifo.front();
@@ -494,7 +494,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			if (command >> 24 == 0x1f) {
 				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x"
 					<< std::hex << command << " " << gp0Lookup[(command >> 24)].name << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 		}
 		break;
@@ -781,7 +781,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		default:
 			std::cout << "~[GPU] EMULATION PAUSED! Unhandled environment command 0x"
 				<< std::hex << command << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 
 			break;
@@ -897,7 +897,7 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 		gpuStat.elem.directionDMA = command & 0x3;
 		if (gpuStat.elem.directionDMA == 1) {
 			std::cout << "[GPU] EMULATION PAUSED! DMA Direction FIFO" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 		break;
 	case 0x5:
@@ -985,13 +985,13 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 		default:
 			std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x"
 				<< std::hex << command << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 		break;
 	default:
 		std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << command << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		break;
 	}
 	return;

@@ -12,7 +12,6 @@
 #undef ENABLE_DITHERING
 #define ENABLE_DITHERING 0
 
-bool g_emulationPaused = false;
 bool g_executedCpuInstructionsLogged = false;
 bool g_biosCallbacksLogged = false;
 bool g_GteInstructionsLogged = false;

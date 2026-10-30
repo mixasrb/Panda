@@ -1,7 +1,7 @@
 #include "dma_controller.h"
 #include "../bus_interface.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 
 DmaController::DmaController() {
 	ppDMA[0] = &dma0;
@@ -41,7 +41,7 @@ void DmaController::ReadDmaController32(const uint32_t& addr, uint32_t& data, ui
 	}
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled read32" << " addr 0x" << std::hex << addr << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -93,12 +93,12 @@ void DmaController::WriteDmaController32(const uint32_t& addr, const uint32_t& d
 
 		if (data & 0x3f) {
 			std::cout << "[DMA] EMULATION PAUSED! unhandled interrupt control" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		if (data & 0x8000) {
 			std::cout << "[DMA] EMULATION PAUSED! interruptRegister.reg.force_IRQ" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		/*	std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
@@ -112,19 +112,19 @@ void DmaController::WriteDmaController32(const uint32_t& addr, const uint32_t& d
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled write32" << " addr 0x" << std::hex << addr
 			<< " data 0x" << std::hex << data << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
 void DmaController::ReadDmaController16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled read16" << " addr 0x" << std::hex << addr << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void DmaController::WriteDmaController16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA] EMULATION PAUSED! unhandled write16" << " addr 0x" << std::hex << addr
 		<< " data 0x" << std::hex << data << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void DmaController::ReadDmaController8(const uint32_t& addr, uint8_t& data, uint8_t& cycles) {
@@ -132,7 +132,7 @@ void DmaController::ReadDmaController8(const uint32_t& addr, uint8_t& data, uint
 		data = (interruptRegister.data & 0x00ff0000) >> 16;
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled read8" << " addr 0x" << std::hex << addr << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -142,7 +142,7 @@ void DmaController::WriteDmaController8(const uint32_t& addr, const uint8_t& dat
 	else {
 		std::cout << "[DMA] EMULATION PAUSED! unhandled write8" << " addr 0x" << std::hex << addr
 			<< " data 0x" << std::hex << (uint16_t)data << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 

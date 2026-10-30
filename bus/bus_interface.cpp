@@ -1,6 +1,6 @@
 #include "bus_interface.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 
 //Memory map
 #define RAM (((addr >= 0x00000000) && (addr < 0x1f000000)) || \
@@ -81,7 +81,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read32 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -164,7 +164,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read32 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 		clocks = 3;//??
@@ -185,7 +185,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 	else if (BIOS) {
 		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
 			std::cout << "[BUS] bus_controller adress overflow\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		data = biosChip.biosData[(addr & 0x000fffff) + 3] << (6 * 4) | biosChip.biosData[(addr & 0x000fffff) + 2] << (4 * 4) |
@@ -203,7 +203,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 	}
 	else if (CD_DRIVE) {
 		std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read32 0x" << std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else if (CACHE_CONTROL) {
 		data = cacheControl;
@@ -214,7 +214,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 }
 
@@ -223,7 +223,7 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write32 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -250,13 +250,13 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 		case 0x1f801000:
 			if (data != 0x1f000000) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 		case 0x1f801004:
 			if (data != 0x1f802000) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 		case 0x1f801008:
@@ -267,27 +267,27 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 		case 0x1f80101C:
 			if ((addr == 0x1f801008) && (data != 0x0013243f)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			else if ((addr == 0x1f80100c) && (data != 0x00003022)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			else if ((addr == 0x1f801010) && (data != 0x0013243f)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			else if ((addr == 0x1f801014) && (data != 0x200931e1) && (data != 0x220931e1)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			else if ((addr == 0x1f801018) && (data != 0x00020843) && (data != 0x00020943) && (data != 0x21020843)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			else if ((addr == 0x1f80101c) && (data != 0x00070777)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 
 			delayRegisters[(addr - 0x1f801000 - 0x8) >> 2].data = data;
@@ -296,7 +296,7 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 		case 0x1f801020:
 			if ((data != 0x00031125) && (data != 0x0000132C) && (data != 0x00001325) && (data != 0x00001323)) {
 				std::cout << "[BUS] EMULATION PAUSED! unhandled memory control reg data 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			commonDelayRegister.data = data;
 			for (int i = 0; i < 6; i++) {
@@ -308,7 +308,7 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 	else if (MEMORY_CONTROL_2) {
 		if ((data != 0xb88) && (data != 0x888)) {
 			std::cout << "[BUS] unhandled ram_size reg write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 		ramSize = data;
 	}
@@ -333,7 +333,7 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write32 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -367,7 +367,7 @@ void BusInterface::Write32(const uint32_t& addr, const uint32_t& data, uint8_t& 
 	}
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -379,7 +379,7 @@ void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks,
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read16 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -430,7 +430,7 @@ void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks,
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr read16 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 		clocks = 3;//??
@@ -442,7 +442,7 @@ void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks,
 	else if (BIOS) {
 		if ((addr & 0x000fffff) + 3 > BIOS_SIZE) {
 			std::cout << "[BUS] bus_controller adress overflow\n";
-			g_emulationPaused = false;
+			g_isEmulationPaused = false;
 		}
 
 		data = biosChip.biosData[(addr & 0x000fffff) + 1] << (2 * 4) | biosChip.biosData[addr & 0x000fffff];
@@ -462,12 +462,12 @@ void BusInterface::Read16(const uint32_t& addr, uint16_t& data, uint8_t& clocks,
 	}
 	else if (CD_DRIVE) {
 		std::cout << "[BUS] EMULATION PAUSED! unavailable CD_drive addr read16 0x" << std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PAUSED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 }
 
@@ -476,7 +476,7 @@ void BusInterface::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& 
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write16 0x"
 				<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -515,7 +515,7 @@ void BusInterface::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& 
 			break;
 		default:
 			std::cout << "[BUS] EMULATION PAUSED! unavailable timer addr write16 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -531,7 +531,7 @@ void BusInterface::Write16(const uint32_t& addr, const uint16_t& data, uint8_t& 
 	}
 	else {
 		std::cout << "[BUS] EMULATION PAUSED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -543,7 +543,7 @@ void BusInterface::Read8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, c
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr read8 0x"
 				<< std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -588,7 +588,7 @@ void BusInterface::Read8(const uint32_t& addr, uint8_t& data, uint8_t& clocks, c
 	else
 		if (!debug) {
 			std::cout << "[BUS] EMULATION PASUED! unhandled read8 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 }
 
@@ -597,7 +597,7 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 		if ((addr & 0x1fffffff) > 0x00800000) {
 			std::cout << "[BUS] EMULATION PAUSED! invalid ram addr write8 0x"
 				<< std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			return;
 		}
 
@@ -622,7 +622,7 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 		pJoyMemCard->cpuWrite8(addr, data);
 	else {
 		std::cout << "[BUS] EMULATION PASUED! unhandled write8 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 

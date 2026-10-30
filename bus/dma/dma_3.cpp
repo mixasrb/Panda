@@ -2,7 +2,7 @@
 #include "../bus_interface.h"
 #include "dma_controller.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 
 void Dma3::ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
 	switch (addr << 28 >> 28) {
@@ -24,7 +24,7 @@ void Dma3::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 		memoryAddress.data = data;
 		std::cout << "~[DMA3] (CD DRIVE) madr: 0x" << std::hex << memoryAddress.data << '\n';
 		if (data == 0)
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		break;
 	case 4:
 		blockControl.data = data;
@@ -38,7 +38,7 @@ void Dma3::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 			(channelControl.data != 0x11400100)) {
 			std::cout << "[DMA3] EMULATION PAUSED! unhandled sync channel control mode data 0x"
 				<< std::hex << channelControl.data << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		if (channelControl.reg.startBusy && channelControl.reg.startTrigger) {
@@ -61,12 +61,12 @@ void Dma3::WriteDma32(const uint32_t& addr, const uint32_t& data, uint8_t& cycle
 
 void Dma3::ReadDma16(const uint32_t& addr, uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA3] EMULATION PAUSED! unhandled ReadDMA16 0x" << addr << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Dma3::WriteDma16(const uint32_t& addr, const uint16_t& data, uint8_t& cycles) {
 	std::cout << "[DMA3] EMULATION PAUSED! unhandled WriteDMA16 0x" << addr << "data 0x" << data << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Dma3::DmaRead32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {

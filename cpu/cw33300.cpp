@@ -4,7 +4,7 @@
 #undef CPU_DEBUG
 #define CPU_DEBUG 1
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern bool g_executedCpuInstructionsLogged;
 extern bool g_biosCallbacksLogged;
 
@@ -291,7 +291,7 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 		else {
 			std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << secLookup[opcode << 26 >> 26].name
 				<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 	}
 
@@ -374,7 +374,7 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 				case 0x8:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode BCnF/BCnT " << primLookup[prim_opcode].name
 						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-					g_emulationPaused = true;
+					g_isEmulationPaused = true;
 					break;
 				case 0x10:
 					cp0.RFE();
@@ -382,14 +382,14 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 				default:
 					std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode " << primLookup[prim_opcode].name
 						<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-					g_emulationPaused = true;
+					g_isEmulationPaused = true;
 					break;
 				}
 			}
 			else {  //LWC0/SWC0
 				std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop0 opcode " << primLookup[prim_opcode].name
 					<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 		case 2: //cp2
@@ -418,7 +418,7 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 					default:
 						std::cout << "[CPU] EMULATION PAUSED! unhandled decode of cop2 opcode " << primLookup[prim_opcode].name
 							<< " op 0x" << std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-						g_emulationPaused = true;
+						g_isEmulationPaused = true;
 						break;
 					}
 				else
@@ -434,14 +434,14 @@ void Cpu::DecodeExecuteOpcode(const uint32_t& opcode) {
 		default:
 			std::cout << "[CPU] EMULATION PAUSED! unhandled cop " << (uint16_t)(prim_opcode & 0x03) << " op 0x"
 				<< std::hex << opcode << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
 	else {
 		std::cout << "[CPU] EMULATION PAUSED! unhandled decode of opcode " << primLookup[prim_opcode].name << " op 0x"
 			<< std::hex << opcode << " pc 0x" << std::hex << pc_old - 4 << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 }
@@ -604,7 +604,7 @@ void Cpu::SLL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 void Cpu::XXX(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Cpu::SRL(const uint8_t& rt, const uint8_t& rd, const uint8_t& imm) {
@@ -695,7 +695,7 @@ void Cpu::DIV(const uint8_t& rs, const uint8_t& rt) {
 	}
 	else {
 		std::cout << "~[CPU] DIV divider = 0, potential problem \n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -715,7 +715,7 @@ void Cpu::DIVU(const uint8_t& rs, const uint8_t& rt) {
 	}
 	else {
 		std::cout << "~[CPU] DIVU divider = 0, potential problem \n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -786,7 +786,7 @@ void Cpu::NOR(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 void Cpu::XXX2(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << secLookup[opcode << 26 >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Cpu::SLT(const uint8_t& rs, const uint8_t& rt, const uint8_t& rd) {
@@ -993,7 +993,7 @@ void Cpu::LWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 void Cpu::XXX2(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op 0x" << std::hex << opcode << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Cpu::SB(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1047,7 +1047,7 @@ void Cpu::SW(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 void Cpu::XXX1(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
 	std::cout << "[CPU] EMULATION PAUSED! unhandled opcode " << primLookup[opcode >> 26].name
 		<< " op " << std::hex << opcode << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Cpu::SWR(const uint8_t& rs, const uint8_t& rt, const int16_t& imm) {
@@ -1211,7 +1211,7 @@ void Cpu::printBiosCall() {
 					std::cout << "~[KERNEL] port 0x" << std::hex << GetRegister(4) << '\n';
 					std::cout << "~[KERNEL] sector 0x" << std::hex << GetRegister(5) << '\n';
 					std::cout << "~[KERNEL] dst/src 0x" << std::hex << GetRegister(6) << '\n';
-					g_emulationPaused = true;
+					g_isEmulationPaused = true;
 				}
 
 				if ((call == 0x5c) || (call == 0x5d)) {
@@ -1427,7 +1427,7 @@ void Cpu::sideLoad() {
 	std::ifstream file(g_sideloadPath, std::ifstream::binary | std::ifstream::ate);
 	if (!file.is_open()) {
 		std::cout << "failed to open sideload!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	size_t lenght = (size_t)file.tellg();
@@ -1459,7 +1459,7 @@ void Cpu::sideLoad() {
 		| (((uint32_t)buffer[0x35]) << 8) | (uint32_t)buffer[0x34];
 	if (initialSpFpOffset) {
 		std::cout << "Unhandled Initial SP/R29 & FP/R30 Offs in PSX.EXE (sideload)\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	uint8_t cycles;

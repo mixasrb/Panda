@@ -1,7 +1,7 @@
 #include "console.h"
 #include "defines/defines.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern uint32_t g_systemClocks;
 
 PsxConsole::PsxConsole() {

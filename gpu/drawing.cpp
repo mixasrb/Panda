@@ -7,7 +7,7 @@
 #include "cxdxxxxx.h"
 #include "rasterize.hh"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern int g_mousePossitionX;
 extern int g_mousePossitionY;
 extern bool g_logPixel;

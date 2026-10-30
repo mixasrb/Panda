@@ -2,7 +2,7 @@
 
 #include "mdec.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 
 Mdec::Mdec() {
 	commandLookup.resize(7);
@@ -114,7 +114,7 @@ void Mdec::Read32(const uint32_t& addr, uint32_t& data) {
 	}
 	else {
 		std::cout << "[MDEC] EMULATION PAUSED! unhandled read32 addr 0x" << std::hex << addr << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -155,7 +155,7 @@ void Mdec::Write32(const uint32_t& addr, const uint32_t& data) {
 				break;
 			default:
 				std::cout << "[MDEC] EMULATION PAUSED! unhandled command 0x" << std::hex << command << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 				break;
 			}
 
@@ -205,7 +205,7 @@ void Mdec::Write32(const uint32_t& addr, const uint32_t& data) {
 	else {
 		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
 			<< " data 0x" << data << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 

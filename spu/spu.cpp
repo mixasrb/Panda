@@ -1,7 +1,7 @@
 #include "spu.h"
 #include "../bus/bus_interface.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern uint32_t g_systemClocks;
 extern uint32_t g_systemFrames;
 extern uint32_t g_systemSeconds;
@@ -139,13 +139,13 @@ void Spu::Read32(const uint32_t& addr, uint32_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
 	else {
 		std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -158,7 +158,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.data & 0x80008000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -168,7 +168,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -179,7 +179,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (mainVolumeLeftRight.data & 0x80008000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -221,7 +221,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -230,7 +230,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! Noise enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -243,7 +243,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			if (data != 0x0004) {
 				std::cout << "[SPU] EMULATION PASUED! unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -261,7 +261,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -270,11 +270,11 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) { //TO DO
 		std::cout << "[SPU] EMULATION PASUED! unhandled write32 mapped adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else {
 		std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -318,7 +318,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -447,7 +447,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -467,13 +467,13 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
 	else {
 		std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -486,7 +486,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.l & 0x8000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -495,7 +495,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (voices.voiceRegisters[voiceIndex].volumeLeftRight.hw.h & 0x8000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -525,7 +525,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -536,7 +536,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (mainVolumeLeftRight.hw.l & 0x8000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -545,7 +545,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (mainVolumeLeftRight.hw.h & 0x8000) {
 				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -618,7 +618,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -627,7 +627,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -636,7 +636,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -645,7 +645,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (data) {
 				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -684,7 +684,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			if (currentAddress >= LS_SIZE) {
 				std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
 					<< std::hex << currentAddress << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -716,7 +716,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 			if (data != 0x04) {
 				std::cout << "[SPU] EMULATION PASUED! Unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			break;
 
@@ -746,7 +746,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
@@ -755,11 +755,11 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 	}
 	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
 		std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else {
 		std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
@@ -776,19 +776,19 @@ void Spu::Read8(const uint32_t& addr, uint8_t& data) {
 
 		default:
 			std::cout << "[SPU] EMULATION PASUED! Unhandled addr read8 0x" << std::hex << addr << "\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 	}
 	else {
 		std::cout << "[SPU] EMULATION PASUED! Unhandled addr read8 0x" << std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }
 
 void Spu::Write8(const uint32_t& addr, const uint8_t& data) {
 	std::cout << "[SPU] EMULATION PASUED! Unhandled write8 adress 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void Spu::IrqSend() {
@@ -803,13 +803,13 @@ uint16_t Spu::ReadLs16(const uint32_t& addr) {
 	if (addr & 0x1) {
 		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address unaligned : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return 0;
 	}
 	if (addr >= LS_SIZE) {
 		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return 0;
 	}
 
@@ -823,13 +823,13 @@ void Spu::WriteLs16(const uint32_t& addr, const uint16_t& data) {
 	if (addr & 0x1) {
 		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address unaligned : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return;
 	}
 	if (addr >= LS_SIZE) {  // spyro 1 sends 0x10 more hw's and also Monkey Hero //??maybe warping??
 		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return;
 	}
 
@@ -844,7 +844,7 @@ uint8_t Spu::ReadLs8(const uint32_t& addr) {
 	if (addr >= LS_SIZE) {
 		std::cout << "[SPU] EMULATION PASUED! LS Read8 Address > DRAM_SIZE : 0x"
 			<< std::hex << addr << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return 0;
 	}
 

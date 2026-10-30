@@ -1,7 +1,7 @@
 #include "hc05_pux.h"
 #include "../bus/bus_interface.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
@@ -34,7 +34,7 @@ CdDrive::CdDrive() {
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	if (!file.is_open()) {
 		std::cout << "Failed to open rom!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	size_t fileSize = file.tellg();
@@ -159,7 +159,7 @@ void CdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 	case 0x1f801801:
 		if (resultFifo.empty()) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Response FIFO is empty\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 
@@ -201,7 +201,7 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 
 			if (!commandFifo.empty() || indexStatus.elem.busysts) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Command received before previous one is executed\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 
 			commandFifo.push(data);
@@ -209,12 +209,12 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 		case 1:
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index1 - Sound Map Data Out (W) 0x"
 				<< std::hex << (uint16_t)data << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		case 2:
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index2 - Sound Map Coding Info (W) 0x"
 				<< std::hex << (uint16_t)data << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		case 3:
 			tempVolumeRightRight = (uint16_t)data;
@@ -248,12 +248,12 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 
 			if (requestReg.elem.smen) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! nhandled SMEN 0x1f801803 index 0\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 
 			if (requestReg.elem.bfwr) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled BFWR 0x1f801803 index 0\n";
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 
 			if (requestReg.elem.bfrd) {
@@ -272,7 +272,7 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) { // 0 < (data & 0x7) < 7
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Interrupt Flag Register (W) state 0x"
 					<< std::hex << (uint16_t)data << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 			if (data & 0x8) {
 				if (irqFlagRead.elem.int_8)
@@ -294,7 +294,7 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			}
 			if (data & 0x80) {
 				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Reset decoder chip" << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 			}
 
 			break;
@@ -394,11 +394,11 @@ void CdDrive::Clock() {
 			std::cout << "~[CD_DRIVE] Sent Interrupt " << uint16_t(irqFlagRead.elem.int_1_7) << " flag" << '\n';
 		if (irqFlagRead.elem.int_8) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 8 Unhandled" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 		if (irqFlagRead.elem.int_10) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 10 Unhandled" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		if (interruptEnable.data & irqFlagRead.data)
@@ -480,7 +480,7 @@ void CdDrive::GetParameters(uint8_t* paramPtr, const uint8_t& paramCount) {
 	for (uint8_t i = 0; i < paramCount; i++) {
 		if (paramFifo.empty()) {
 			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Parameters requested before they are available\n";
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 			break;
 		}
 
@@ -519,13 +519,13 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	if ((ass < 2) && (amm == 0)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector ass < 2!" << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return;
 	}
 
 	if (fileDataVect.size() < (currentPossition + 0x930)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector!" << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return;
 	}
 
@@ -597,7 +597,7 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 			default:
 				std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
 					std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) << '\n';
-				g_emulationPaused = true;
+				g_isEmulationPaused = true;
 				break;
 			}
 	else
@@ -680,7 +680,7 @@ void CdDrive::sync() {
 
 void CdDrive::xxxxx() {
 	std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled command!" << '\n';
-	g_emulationPaused = true;
+	g_isEmulationPaused = true;
 }
 
 void CdDrive::getStat() {
@@ -700,7 +700,7 @@ void CdDrive::play() {
 		asect = storedAsect;
 
 		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued Play without setLoc!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else if (bSetLocUnprocessed) {
 		bSetLocUnprocessed = false;
@@ -751,7 +751,7 @@ void CdDrive::setLoc() {
 	GetParameters(&ammTemp, 1);
 	if (((ammTemp & 0x0f) > 0x9) || ((ammTemp >> 4) > 0x9) || (ammTemp >= 0x99)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock amm value 0x" << std::hex << (uint16_t)ammTemp << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		ammTemp = 0;
 	}
 	unprocessedAmm = ConvFromBcdToHex8(ammTemp);
@@ -761,7 +761,7 @@ void CdDrive::setLoc() {
 	GetParameters(&assTemp, 1);
 	if (((assTemp & 0x0f) > 0x9) || ((assTemp >> 4) > 0x5) || (assTemp >= 0x60)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock ass value 0x" << std::hex << (uint16_t)assTemp << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		assTemp = 0;
 	}
 	unprocessedAss = ConvFromBcdToHex8(assTemp);
@@ -771,7 +771,7 @@ void CdDrive::setLoc() {
 	GetParameters(&asectTemp, 1);
 	if (((asectTemp & 0x0f) > 0x9) || ((asectTemp >> 4) > 0x7) || (asectTemp >= 0x75)) {
 		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x" << std::hex << (uint16_t)asectTemp << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		asectTemp = 0;
 	}
 	unprocessedAsect = ConvFromBcdToHex8(asectTemp);
@@ -793,7 +793,7 @@ void CdDrive::readN() {
 		asect = storedAsect;
 
 		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued ReadN without setLoc!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else {
 		if (bSetLocUnprocessed) {
@@ -1028,7 +1028,7 @@ void CdDrive::getLocP() {
 
 	if (track == 0xff) {
 		std::cout << std::hex << "~[CD_DRIVE] GetLocP incorrect track number: " << std::dec << (uint16_t)track << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	std::vector<uint8_t> firstResponse;
@@ -1068,7 +1068,7 @@ void CdDrive::getTD() {
 		SetFirstResult(0xc4e1, INTERRUPT_5, firstResponse.data(), firstResponse.size());
 
 		std::cout << std::hex << "~[CD_DRIVE] GetTD incorrect track number: " << std::dec << (uint16_t)specifiedTrack << '\n';
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		return;
 	}
 
@@ -1168,7 +1168,7 @@ void CdDrive::seekL() {
 		bSetLocUnprocessed = false;
 	else {
 		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued SeekL before setLoc!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	amm = unprocessedAmm;
@@ -1194,7 +1194,7 @@ void CdDrive::seekP() {
 		bSetLocUnprocessed = false;
 	else {
 		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued SeekP before setLoc!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 
 	amm = unprocessedAmm;
@@ -1238,7 +1238,7 @@ void CdDrive::test() {
 		GetParameters(&subFunction, 1);
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function 0x" 
 			<< std::hex << (uint16_t)subFunction << "\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		break;
 	}
 }
@@ -1269,7 +1269,7 @@ void CdDrive::getID() {
 	default:
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled drive status 0x"
 			<< std::hex << driveStatus;
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 		break;
 	}
 
@@ -1288,7 +1288,7 @@ void CdDrive::readS() {
 		asect = storedAsect;
 
 		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued ReadS without setLoc!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 	else {
 		if (bSetLocUnprocessed) {
@@ -1428,6 +1428,6 @@ void CdDrive::PrintStatus() {
 		(stat.elem.read && stat.elem.play) ||
 		(stat.elem.seek && stat.elem.play)) {
 		std::cout << "[CD_DRIVE] EMULATION PAUSED! Play/Seek/Read status bits set at the same time!\n";
-		g_emulationPaused = true;
+		g_isEmulationPaused = true;
 	}
 }

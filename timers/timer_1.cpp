@@ -1,7 +1,7 @@
 #include "timer_1.h"
 #include "../bus/bus_interface.h"
 
-extern bool g_emulationPaused;
+extern bool g_isEmulationPaused;
 
 void timer1_t::Read32(const uint32_t& addr, uint32_t& data) {
 	switch (addr << 28 >> 28) {
@@ -54,7 +54,7 @@ void timer1_t::Write32(const uint32_t& addr, const uint32_t& data) {
 
 		if (counterMode.elem.irqPulseToggle) {
 			std::cout << "[TIMER1] EMULATION PAUSED! unhandled timer toggle mode" << '\n';
-			g_emulationPaused = true;
+			g_isEmulationPaused = true;
 		}
 
 		break;
