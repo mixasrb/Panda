@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 #include "../debugger/debugger.h"
 
-extern const char* g_cdPath;
+extern const char* g_romBinPath;
 extern uint8_t g_driveStatus;
 
 static uint8_t ConvFromBcdToHex8(const uint8_t& dec) {
@@ -16,20 +16,20 @@ static uint8_t ConvFromHex8ToBcd(const uint8_t& hex) {
 CdDrive::CdDrive() {
 	commandLookup.resize(20);
 	commandLookup = {
-		{"Sync",      &CdDrive::sync},{"Getstat",    &CdDrive::getStat},{"Setloc",   &CdDrive::setLoc},{"Play",        &CdDrive::play},
-		{"Forward",  &CdDrive::xxxxx},{"Backward",     &CdDrive::xxxxx},{"ReadN",     &CdDrive::readN},{"MotorOn",  &CdDrive::motorOn},
-		{"Stop",      &CdDrive::stop},{"Pause",        &CdDrive::pause},{"Init",       &CdDrive::init},{"Mute",        &CdDrive::mute},
-		{"Demute",  &CdDrive::demute},{"Setfilter",&CdDrive::setFilter},{"Setmode", &CdDrive::setMode},{"Getparam",&CdDrive::getParam},
-		{"GetlocL",&CdDrive::getLocL},{"GetlocP",    &CdDrive::getLocP},{"SetSession",&CdDrive::xxxxx},{"GetTN",      &CdDrive::getTN},
-		{"GetTD",    &CdDrive::getTD},{"SeekL",        &CdDrive::seekL},{"SeekP",     &CdDrive::seekP},{"SetClock",   &CdDrive::xxxxx},
-		{"GetClock", &CdDrive::xxxxx},{"Test",          &CdDrive::test},{"GetID",     &CdDrive::getID},{"ReadS",      &CdDrive::readS},
-		{"Reset",    &CdDrive::xxxxx},{"GetQ",         &CdDrive::xxxxx},{"ReadTOC", &CdDrive::readTOC},{"VideoCD",    &CdDrive::xxxxx},
+		{ "Sync",      &CdDrive::sync },{ "Getstat",    &CdDrive::getStat },{ "Setloc",   &CdDrive::setLoc },{ "Play",        &CdDrive::play },
+		{ "Forward",  &CdDrive::xxxxx },{ "Backward",     &CdDrive::xxxxx },{ "ReadN",     &CdDrive::readN },{ "MotorOn",  &CdDrive::motorOn },
+		{ "Stop",      &CdDrive::stop },{ "Pause",        &CdDrive::pause },{ "Init",       &CdDrive::init },{ "Mute",        &CdDrive::mute },
+		{ "Demute",  &CdDrive::demute },{ "Setfilter",&CdDrive::setFilter },{ "Setmode", &CdDrive::setMode },{ "Getparam",&CdDrive::getParam },
+		{ "GetlocL",&CdDrive::getLocL },{ "GetlocP",    &CdDrive::getLocP },{ "SetSession",&CdDrive::xxxxx },{ "GetTN",      &CdDrive::getTN },
+		{ "GetTD",    &CdDrive::getTD },{ "SeekL",        &CdDrive::seekL },{ "SeekP",     &CdDrive::seekP },{ "SetClock",   &CdDrive::xxxxx },
+		{ "GetClock", &CdDrive::xxxxx },{ "Test",          &CdDrive::test },{ "GetID",     &CdDrive::getID },{ "ReadS",      &CdDrive::readS },
+		{ "Reset",    &CdDrive::xxxxx },{ "GetQ",         &CdDrive::xxxxx },{ "ReadTOC", &CdDrive::readTOC },{ "VideoCD",    &CdDrive::xxxxx },
 	};
 
 	driveStatus = static_cast<DriveStatus>(g_driveStatus);
 
 
-	std::string path = g_cdPath;
+	std::string path = g_romBinPath;
 
 	std::ifstream file(path, std::ios::binary | std::ios::ate);
 	if (!file.is_open()) {
@@ -158,14 +158,14 @@ void CdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 
 	case 0x1f801801:
 		if (resultFifo.empty()) {
-			Log(CRITICAL, "CD_DRIVE", "Response FIFO is empty");
+			LogError("CD_DRIVE", "Result fifo is empty");
 			break;
 		}
 
 		data = resultFifo.front();
 		resultFifo.pop();
 
-		Log(TRACE, "CD_DRIVE", "Response read: {:#04x}", data);
+		LogTrace("CD_DRIVE", "Result read: {:#04x}", data);
 		break;
 
 	case 0x1f801802:
@@ -196,22 +196,18 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 	case 0x1f801801:
 		switch (indexStatus.elem.bank) {
 		case 0:
-			Log(TRACE, "CD_DRIVE", "Command received: {}", commandLookup[data].name);
+			LogTrace("CD_DRIVE", "Command received: {}", commandLookup[data].name);
 
-			if (!commandFifo.empty() || indexStatus.elem.busysts) 
-				Log(CRITICAL, "CD_DRIVE", "Command received but previous one is not executed");
+			if (!commandFifo.empty() || indexStatus.elem.busysts)
+				LogError("CD_DRIVE", "Command received but previous one is not executed");
 
 			commandFifo.push(data);
 			break;
 		case 1:
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index1 - Sound Map Data Out (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';
-			g_isEmulationPaused = true;
+			LogError("CD_DRIVE", "Unhandled 1F801801h.Index1 - Sound Map Data Out (W) {:#04x}", data);
 			break;
 		case 2:
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! 1F801801h.Index2 - Sound Map Coding Info (W) 0x"
-				<< std::hex << (uint16_t)data << '\n';
-			g_isEmulationPaused = true;
+			LogError("CD_DRIVE", "Unhandled 1F801801h.Index2 - Sound Map Coding Info (W) {:#04x}", data);
 			break;
 		case 3:
 			tempVolumeRightRight = (uint16_t)data;
@@ -223,7 +219,7 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 		switch (indexStatus.elem.bank) {
 		case 0:
 			paramFifo.push(data);
-			std::cout << "~[CD_DRIVE] Parameter received: 0x" << std::hex << (uint16_t)data << '\n';
+			LogTrace("CD_DRIVE", "Parameter received: {:#04x}", data);
 			break;
 		case 1:
 			interruptEnable.data = data;
@@ -243,19 +239,15 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 
 			requestReg.data = data;
 
-			if (requestReg.elem.smen) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! nhandled SMEN 0x1f801803 index 0\n";
-				g_isEmulationPaused = true;
-			}
+			if (requestReg.elem.smen)
+				LogError("CD_DRIVE", "Unhandled SMEN 0x1f801803 bank 0");
 
-			if (requestReg.elem.bfwr) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled BFWR 0x1f801803 index 0\n";
-				g_isEmulationPaused = true;
-			}
+			if (requestReg.elem.bfwr)
+				LogError("CD_DRIVE", "Unhandled BFWR 0x1f801803 bank 0");
 
 			if (requestReg.elem.bfrd) {
 				indexStatus.elem.drqsts = 1; //!?
-				std::cout << "~[CD_DRIVE] Load data fifo\n";
+				LogTrace("CD_DRIVE", "Request to load data fifo");
 			}
 
 			break;
@@ -263,36 +255,36 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 
 			if ((data & 0x7) == 0x7) {
 				if (irqFlagRead.elem.int_1_7)
-					std::cout << "~[CD_DRIVE] Acknowledged INT" << (uint16_t)irqFlagRead.elem.int_1_7 << '\n';
+					LogTrace("CD_DRIVE", "Acknowledged interrupt {}", std::to_string((uint16_t)irqFlagRead.elem.int_1_7));
+
 				irqFlagRead.elem.int_1_7 = NO_INTERRUPT;
 			}
-			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) { // 0 < (data & 0x7) < 7
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Interrupt Flag Register (W) state 0x"
-					<< std::hex << (uint16_t)data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if ((0x0 < (data & 0x7)) && ((data & 0x7) < 0x7)) // 0 < (data & 0x7) < 7
+				LogError("CD_DRIVE", "Unhandled interrupt flag register (W), state: {:#04x}", data);
+
 			if (data & 0x8) {
 				if (irqFlagRead.elem.int_8)
-					std::cout << "~[CD_DRIVE] Acknowledged INT8" << '\n';
+					LogTrace("CD_DRIVE", "Acknowledged interrupt 8");
+
 				irqFlagRead.elem.int_8 = 0;
 			}
 			if (data & 0x10) {
 				if (irqFlagRead.elem.int_10)
-					std::cout << "~[CD_DRIVE] Acknowledged INT10" << '\n';
+					LogTrace("CD_DRIVE", "Acknowledged interrupt 10");
+
 				irqFlagRead.elem.int_10 = 0;
 			}
-			if (data & 0x20) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Clear sound map XA - ADPCM buffer" << '\n';
-			}
+			if (data & 0x20)
+				LogError("CD_DRIVE", "Unhandled Clear sound map XA - ADPCM buffer");
+
 			if (data & 0x40) {
-				std::cout << "~[CD_DRIVE] Parameter fifo reseted, count: " << paramFifo.size() << '\n';
+				LogTrace("CD_DRIVE", "Parameter fifo reseted, count: {}", paramFifo.size());
+
 				while (!paramFifo.empty())
 					paramFifo.pop();
 			}
-			if (data & 0x80) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Unhandled Reset decoder chip" << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data & 0x80)
+				LogError("CD_DRIVE", "Unhandled reseting decoder chip");
 
 			break;
 		case 2:
@@ -330,12 +322,11 @@ void CdDrive::SetFirstResult(const uint32_t& waitClocks, const ResponseInterrupt
 	waitClocksFirstResponse = waitClocks;
 
 	//debug
-	std::cout << "~[CD_DRIVE] First response" << '\n';
 	PrintStatus();
 
 	for (uint8_t i = 0; i < resultsCount; i++) {
 		resultFifo.push(resultsPtr[i]);
-		std::cout << "~[CD_DRIVE] First Response sent: 0x" << std::hex << (uint16_t)resultsPtr[i] << '\n';
+		LogTrace("CD_DRIVE", "First result sent: {:#04x}", resultsPtr[i]);
 	}
 
 	firstResponseInterrupt = responseINT;
@@ -347,12 +338,11 @@ void CdDrive::SetSecondResult(const uint32_t& waitClocks, const ResponseInterrup
 	waitClocksSecondResponse = waitClocks;
 
 	//debug
-	std::cout << "~[CD_DRIVE] Second response" << '\n';
 	PrintStatus();
 
 	for (uint8_t i = 0; i < resultsCount; i++) {
 		resultFifo.push(resultsPtr[i]);
-		std::cout << "~[CD_DRIVE] Second Response sent: 0x" << std::hex << (uint16_t)resultsPtr[i] << '\n';
+		LogTrace("CD_DRIVE", "Second result sent: {:#04x}", resultsPtr[i]);
 	}
 
 	secondResponseInterrupt = responseINT;
@@ -362,12 +352,11 @@ void CdDrive::SetDataResult(const ResponseInterrupt& responseINT,
 	uint8_t* resultsPrt, const uint8_t& resultsCount) {
 
 	//debug
-	std::cout << "~[CD_DRIVE] data response" << '\n';
 	PrintStatus();
 
 	for (uint8_t i = 0; i < resultsCount; i++) {
 		resultFifo.push(resultsPrt[i]);
-		std::cout << "~[CD_DRIVE] Data Response sent: 0x" << std::hex << (uint16_t)resultsPrt[i] << '\n';
+		LogTrace("CD_DRIVE", "Data result sent: {:#04x}", resultsPrt[i]);
 	}
 
 	dataResponseInterrupt = responseINT;
@@ -388,15 +377,11 @@ void CdDrive::Clock() {
 		pendingInterrupts.pop();
 
 		if (irqFlagRead.elem.int_1_7)
-			std::cout << "~[CD_DRIVE] Sent Interrupt " << uint16_t(irqFlagRead.elem.int_1_7) << " flag" << '\n';
-		if (irqFlagRead.elem.int_8) {
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 8 Unhandled" << '\n';
-			g_isEmulationPaused = true;
-		}
-		if (irqFlagRead.elem.int_10) {
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Interrupt 10 Unhandled" << '\n';
-			g_isEmulationPaused = true;
-		}
+			LogTrace("CD_DRIVE", "Sent interrupt {}", (uint8_t)irqFlagRead.elem.int_1_7);
+		if (irqFlagRead.elem.int_8)
+			LogError("CD_DRIVE", "Unhandled sending interrupt 8");
+		if (irqFlagRead.elem.int_10)
+			LogError("CD_DRIVE", "Unhandled sending interrupt 10");
 
 		if (interruptEnable.data & irqFlagRead.data)
 			busPtr->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
@@ -452,11 +437,13 @@ void CdDrive::Clock() {
 					std::vector<uint8_t>dataResponse;
 					dataResponse.resize(8);
 					if ((storedAsect / 10) & 0x1)
-						dataResponse = { stat.data,  ConvFromHex8ToBcd(track), index, 
-						ConvFromHex8ToBcd(mm), ConvFromHex8ToBcd(ss + 80), ConvFromHex8ToBcd(sect), 0x7f, 0x00 };//??
+						dataResponse = { stat.data,  ConvFromHex8ToBcd(track), index,
+						ConvFromHex8ToBcd(mm), ConvFromHex8ToBcd(ss + 80), ConvFromHex8ToBcd(sect),
+						0x7f, 0x00 };//??
 					else
-						dataResponse = { stat.data, ConvFromHex8ToBcd(track), index, 
-						ConvFromHex8ToBcd(storedAmm), ConvFromHex8ToBcd(storedAss),ConvFromHex8ToBcd(storedAsect), 0x7f, 0x00 };//??
+						dataResponse = { stat.data, ConvFromHex8ToBcd(track), index,
+						ConvFromHex8ToBcd(storedAmm), ConvFromHex8ToBcd(storedAss),ConvFromHex8ToBcd(storedAsect), 
+						0x7f, 0x00 };//??
 
 					SetDataResult(INTERRUPT_1, dataResponse.data(), 8);
 					SetResponseInterrupt(dataResponseInterrupt);
@@ -476,14 +463,13 @@ void CdDrive::Clock() {
 void CdDrive::GetParameters(uint8_t* paramPtr, const uint8_t& paramCount) {
 	for (uint8_t i = 0; i < paramCount; i++) {
 		if (paramFifo.empty()) {
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Parameters requested before they are available\n";
-			g_isEmulationPaused = true;
+			LogError("CD_DRIVE", "Parameters requested before they are available");
 			break;
 		}
 
 		paramPtr[i] = paramFifo.front();
 		paramFifo.pop();
-		std::cout << "~[CD_DRIVE] Parameters read: 0x" << std::hex << (uint16_t)paramPtr[i] << '\n';
+		LogTrace("CD_DRIVE", "Parameter read: {:#04x}", paramPtr[i]);
 	}
 }
 
@@ -494,7 +480,7 @@ void CdDrive::ExecuteNextCommand() {
 	indexStatus.elem.busysts = 1;
 
 	//debug
-	std::cout << "~[CD_DRIVE] Command Executed: " << commandLookup[command].name << '\n';
+	LogTrace("CD_DRIVE", "Command executed: {}", commandLookup[command].name);
 
 	//execute command
 	(this->*commandLookup[command].command)();
@@ -512,47 +498,46 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 		stat.elem.play = 0;
 	}
 
-	uint32_t currentPossition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
+	uint32_t currentPosition = ((amm * 60 + ass - 2) * 75 + asect) * 0x930;
 
 	if ((ass < 2) && (amm == 0)) {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector ass < 2!" << '\n';
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "Inaccessible CD sector (ass < 2)");
 		return;
 	}
 
-	if (fileDataVect.size() < (currentPossition + 0x930)) {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! inaccessible CD sector!" << '\n';
-		g_isEmulationPaused = true;
+	if (fileDataVect.size() < (currentPosition + 0x930)) {
+		LogError("CD_DRIVE", "Inaccessible CD sector (position out of bounds)");
 		return;
 	}
 
 	sendINT1 = false;
-	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter && (fileDataVect[currentPossition + 0x12] & 0x04)) ||
-		(stat.elem.play && (mode.elem.report == 0)))
+	if ((bFilter && mode.elem.xa_adpcm && mode.elem.xa_filter 
+		&& (fileDataVect[currentPosition + 0x12] & 0x04)) 
+		|| (stat.elem.play && (mode.elem.report == 0)))
 		sendINT1 = false;
 	else if ((!bPlay) ||
 		(bPlay && mode.elem.report)) {
 		sendINT1 = true;
-		dataBufferPtr = (uint8_t*)fileDataVect.data() + (currentPossition + (mode.elem.sectorSize ? 0x0c : 0x18));
+		dataBufferPtr = (uint8_t*)fileDataVect.data() + (currentPosition + (mode.elem.sectorSize ? 0x0c : 0x18));
 	}
 
 	if (!bPlay)
 		for (int i = 0; i < 8; i++)
-			storedSectorHeader[i] = fileDataVect[currentPossition + 0x0c + i];
+			storedSectorHeader[i] = fileDataVect[currentPosition + 0x0c + i];
 
 	auto fillBufferXA_ADPCM = [&]() {
-		busPtr->spu.pBufferXA_ADPCM = (uint8_t*)fileDataVect.data() + currentPossition;
+		busPtr->spu.pBufferXA_ADPCM = (uint8_t*)fileDataVect.data() + currentPosition;
 		busPtr->spu.decodeSectorXA_ADPCM(busPtr->spu.pBufferXA_ADPCM);
 		busPtr->spu.currentSample = 0;
 		};
 
 	if (mode.elem.xa_adpcm &&
-		(fileDataVect[currentPossition + 0x0f] == 0x02) &&
-		(fileDataVect[currentPossition + 0x10 + 0x02] & 0x04) &&
-		(fileDataVect[currentPossition + 0x10 + 0x02] & 0x40))
+		(fileDataVect[currentPosition + 0x0f] == 0x02) &&
+		(fileDataVect[currentPosition + 0x10 + 0x02] & 0x04) &&
+		(fileDataVect[currentPosition + 0x10 + 0x02] & 0x40))
 		if (mode.elem.xa_filter) {
-			if ((fileDataVect[currentPossition + 0x10] == filteredFile) &&
-				(fileDataVect[currentPossition + 0x10 + 0x01] == filteredChannel))
+			if ((fileDataVect[currentPosition + 0x10] == filteredFile) &&
+				(fileDataVect[currentPosition + 0x10 + 0x01] == filteredChannel))
 				fillBufferXA_ADPCM();
 		}
 		else
@@ -564,41 +549,38 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	bufferCounter = sectorSize;
 
-	if ((mode.elem.xa_adpcm) && (fileDataVect[currentPossition + 0x12] & 0x4))
+	if ((mode.elem.xa_adpcm) && (fileDataVect[currentPosition + 0x12] & 0x4))
 		indexStatus.elem.adpbusy = 1;
 
 	waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
 	//waitClocksDataResponse += 0x36cd2 * 10 / 10;
-	std::cout << "~[CD_DRIVE] Read sector: " << std::dec << (uint16_t)amm << std::dec << ":" << (uint16_t)ass << std::dec << ":" << (uint16_t)asect << '\n';
+
+	LogTrace("CD_DRIVE", "Read sector: {}:{}:{}", amm, ass, asect);
 
 	if (!bPlay)
-		if ((uint8_t)fileDataVect[currentPossition + 0x11] == 0xff)
-			std::cout << "~[CD_DRIVE] unused sector" << '\n';
+		if ((uint8_t)fileDataVect[currentPosition + 0x11] == 0xff)
+			LogTrace("CD_DRIVE", "Unused sector");
 		else
-			switch (((uint8_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) {
+			switch (((uint8_t)fileDataVect[currentPosition + 0x12] & 0x0f) >> 1 << 1) {
 			case 0x0:
-				std::cout << "~[CD_DRIVE] unused sector" << '\n';
-				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				LogTrace("CD_DRIVE", "Unused sector");
 				break;
 			case 0x2:
-				std::cout << "~[CD_DRIVE] video sector" << '\n';
-				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				LogTrace("CD_DRIVE", "Video sector");
 				break;
 			case 0x4:
-				std::cout << "~[CD_DRIVE] audio sector" << '\n';
-				waitClocksDataResponse = (mode.elem.speed ? 0x37200 : 0x6e400);
+				LogTrace("CD_DRIVE", "Audio sector");
 				break;
 			case 0x8:
-				std::cout << "~[CD_DRIVE] data sector" << '\n';
+				LogTrace("CD_DRIVE", "Data sector");
 				break;
 			default:
-				std::cout << "[CD_DRIVE] EMULATION PAUSED! not recognized CD sector!" <<
-					std::hex << " 0x" << (((uint32_t)fileDataVect[currentPossition + 0x12] & 0x0f) >> 1 << 1) << '\n';
+				LogError("CD_DRIVE", "Unknown CD sector");
 				g_isEmulationPaused = true;
 				break;
 			}
 	else
-		std::cout << "~[CD_DRIVE] CDDA sector" << '\n';
+		LogTrace("CD_DRIVE", "CD-DA sector");
 
 	for (int i = 0; i < cdTracks.size(); i++) {
 		if ((amm == cdTracks[i].trackEnd.amm) &&
@@ -612,7 +594,7 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 				uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 : 0x21181c;
 				SetSecondResult(secondWaitClocks, INTERRUPT_4, secondResponse, 1);
 
-				std::cout << "~[CD_DRIVE] auto pause" << '\n';
+				LogTrace("CD_DRIVE", "Auto pause");
 			}
 			else if (i == cdTracks.size() - 1) { //Stop
 				CancelReading();
@@ -622,7 +604,7 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 				uint32_t secondWaitClocks = mode.elem.speed ? 0x10bd93 : 0x21181c;
 				SetSecondResult(secondWaitClocks, INTERRUPT_4, secondResponse, 1);
 
-				std::cout << "~[CD_DRIVE] auto stop end of the disc" << '\n';
+				LogTrace("CD_DRIVE", "Auto stop at the CD end");
 			}
 
 		}
@@ -630,9 +612,13 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	for (int i = 0; i < cdTracks.size(); i++) {
 		if (((amm * 60 * 75 + ass * 75 + asect) >=
-			(cdTracks[i].trackStart.amm * 60 * 75 + cdTracks[i].trackStart.ass * 75 + cdTracks[i].trackStart.asect)) &&
+			(cdTracks[i].trackStart.amm * 60 * 75 
+				+ cdTracks[i].trackStart.ass * 75 
+				+ cdTracks[i].trackStart.asect)) &&
 			((amm * 60 * 75 + ass * 75 + asect) <=
-				(cdTracks[i].trackEnd.amm * 60 * 75 + cdTracks[i].trackEnd.ass * 75 + cdTracks[i].trackEnd.asect))) {
+				(cdTracks[i].trackEnd.amm * 60 * 75 
+					+ cdTracks[i].trackEnd.ass * 75 
+					+ cdTracks[i].trackEnd.asect))) {
 
 			track = i + 1;
 			break;
@@ -657,35 +643,34 @@ void CdDrive::CancelReading() {
 }
 
 void CdDrive::PrintDriveMode() {
-	std::cout << std::hex << "~[CD_DRIVE] mode: " << (uint16_t)mode.data << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] speed: " << (uint16_t)mode.elem.speed << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] XA-ADCPM: " << (uint16_t)mode.elem.xa_adpcm << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] sector size: " << (uint16_t)mode.elem.sectorSize << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] ignore bit: " << (uint16_t)mode.elem.ignoreBit << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] XA-Filter: " << (uint16_t)mode.elem.xa_filter << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] report: " << (uint16_t)mode.elem.report << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] autoPause: " << (uint16_t)mode.elem.autoPause << '\n';
-	std::cout << std::hex << "~[CD_DRIVE] CDDA: " << (uint16_t)mode.elem.cdda << '\n';
+	LogTrace("CD_DRIVE", "Mode: {:#04x}", mode.data);
+	LogTrace("CD_DRIVE", "	Speed: {}", mode.elem.speed);
+	LogTrace("CD_DRIVE", "	XA-ADCPM: {}", mode.elem.xa_adpcm);
+	LogTrace("CD_DRIVE", "	Sector size: {}", mode.elem.sectorSize);
+	LogTrace("CD_DRIVE", "	Ignore bit: {}", mode.elem.ignoreBit);
+	LogTrace("CD_DRIVE", "	XA-Filter: {}", mode.elem.xa_filter);
+	LogTrace("CD_DRIVE", "	Report: {}", mode.elem.report);
+	LogTrace("CD_DRIVE", "	Auto pause: {}", mode.elem.autoPause);
+	LogTrace("CD_DRIVE", "	CD-DA: {}", mode.elem.cdda);
 }
 
 //Cd Drive Commands
 
 void CdDrive::sync() {
-	uint8_t response[2] = { stat.data | STAT_ERROR, 0x40 };
-	SetFirstResult(0xc4e1, INTERRUPT_5, response, 2);
+	uint8_t results[2] = { stat.data | STAT_ERROR, 0x40 };
+	SetFirstResult(0xc4e1, INTERRUPT_5, results, 2);
 }
 
 void CdDrive::xxxxx() {
-	std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled command!" << '\n';
-	g_isEmulationPaused = true;
+	LogError("CD_DRIVE", "Unhandled command");
 }
 
 void CdDrive::getStat() {
 	if (!isShellOpen)
 		stat.elem.shellOpen = 0;
 
-	uint8_t response[1] = { stat.data };
-	SetFirstResult(0xc4e1, INTERRUPT_3, response, 1);
+	uint8_t results[1] = { stat.data };
+	SetFirstResult(0xc4e1, INTERRUPT_3, results, 1);
 }
 
 void CdDrive::play() {
@@ -696,8 +681,7 @@ void CdDrive::play() {
 		ass = storedAss;
 		asect = storedAsect;
 
-		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued Play without setLoc!\n";
-		g_isEmulationPaused = true;
+		LogWarn("CD_DRIVE", "Play command issued without setLoc or parameter track");
 	}
 	else if (bSetLocUnprocessed) {
 		bSetLocUnprocessed = false;
@@ -745,37 +729,35 @@ void CdDrive::setLoc() {
 	bSetLocUnprocessed = true;
 
 	uint8_t ammTemp;
+	uint8_t assTemp;
+	uint8_t asectTemp;
+
 	GetParameters(&ammTemp, 1);
+	GetParameters(&assTemp, 1);
+	GetParameters(&asectTemp, 1);
+
 	if (((ammTemp & 0x0f) > 0x9) || ((ammTemp >> 4) > 0x9) || (ammTemp >= 0x99)) {
-		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock amm value 0x" << std::hex << (uint16_t)ammTemp << '\n';
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "Invalid setlock amm value {}", ammTemp);
 		ammTemp = 0;
 	}
-	unprocessedAmm = ConvFromBcdToHex8(ammTemp);
-	std::cout << "~[CD_DRIVE] amm: " << std::dec << (uint16_t)unprocessedAmm << '\n';
-
-	uint8_t assTemp;
-	GetParameters(&assTemp, 1);
 	if (((assTemp & 0x0f) > 0x9) || ((assTemp >> 4) > 0x5) || (assTemp >= 0x60)) {
-		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock ass value 0x" << std::hex << (uint16_t)assTemp << '\n';
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "Invalid setlock ass value {}", assTemp);
 		assTemp = 0;
 	}
-	unprocessedAss = ConvFromBcdToHex8(assTemp);
-	std::cout << "~[CD_DRIVE] ass: " << std::dec << (uint16_t)unprocessedAss << '\n';
-
-	uint8_t asectTemp;
-	GetParameters(&asectTemp, 1);
 	if (((asectTemp & 0x0f) > 0x9) || ((asectTemp >> 4) > 0x7) || (asectTemp >= 0x75)) {
-		std::cout << "~[CD_DRIVE] EMULATION PAUSED! invalid setlock asect value 0x" << std::hex << (uint16_t)asectTemp << '\n';
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "Invalid setlock asect value {}", asectTemp);
 		asectTemp = 0;
 	}
-	unprocessedAsect = ConvFromBcdToHex8(asectTemp);
-	std::cout << "~[CD_DRIVE] asect: " << std::dec << (uint16_t)unprocessedAsect << '\n';
 
-	uint8_t response[1] = { stat.data };
-	SetFirstResult(0xc4e1, INTERRUPT_3, response, 1);
+	unprocessedAmm = ConvFromBcdToHex8(ammTemp);
+	unprocessedAss = ConvFromBcdToHex8(assTemp);
+	unprocessedAsect = ConvFromBcdToHex8(asectTemp);
+
+	LogTrace("CD_DRIVE", "Position: {}:{}:{}",
+		unprocessedAmm, unprocessedAss, unprocessedAsect);
+
+	uint8_t results[1] = { stat.data };
+	SetFirstResult(0xc4e1, INTERRUPT_3, results, 1);
 }
 
 void CdDrive::readN() {
@@ -789,8 +771,7 @@ void CdDrive::readN() {
 		ass = storedAss;
 		asect = storedAsect;
 
-		std::cout << "[CD_DRIVE] WARNING! EMULATION PAUSED! Issued ReadN without setLoc!\n";
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "ReadN command issued without setLoc or parameter track");
 	}
 	else {
 		if (bSetLocUnprocessed) {
@@ -1038,7 +1019,7 @@ void CdDrive::getLocP() {
 	//	//firstResponse = { fromHex8ToBCD(track), fromHex8ToBCD(index), 
 	// fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA),
 	//	//	fromHex8ToBCD(pBus->spu.ammXA), fromHex8ToBCD(pBus->spu.assXA), fromHex8ToBCD(pBus->spu.asectXA) }; //??
-	firstResponse = { ConvFromHex8ToBcd(track), ConvFromHex8ToBcd(index), 
+	firstResponse = { ConvFromHex8ToBcd(track), ConvFromHex8ToBcd(index),
 		ConvFromHex8ToBcd(mm), ConvFromHex8ToBcd(ss), ConvFromHex8ToBcd(sect),
 		ConvFromHex8ToBcd(amm), ConvFromHex8ToBcd(ass), ConvFromHex8ToBcd(asect) };
 
@@ -1233,7 +1214,7 @@ void CdDrive::test() {
 	default:
 		uint8_t subFunction;
 		GetParameters(&subFunction, 1);
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function 0x" 
+		std::cout << "[CD_DRIVE] EMULATION PAUSED! unhandled test drive sub function 0x"
 			<< std::hex << (uint16_t)subFunction << "\n";
 		g_isEmulationPaused = true;
 		break;
@@ -1401,30 +1382,31 @@ void CdDrive::ReadCddaSector(uint8_t& amm, uint8_t& ass, uint8_t& asect, uint8_t
 //debug
 
 void CdDrive::PrintStatus() {
-	std::cout << "~[CD_DRIVE] stat: 0x" << std::hex << (uint16_t)stat.data << '\n';
+	LogTrace("CD_DRIVE", "Status: {:#04x}", stat.data);
+
 	if (stat.elem.play)
-		std::cout << "   Playing CD-DA\n";
+		LogTrace("CD_DRIVE", "  Playing CD-DA");
 	if (stat.elem.seek)
-		std::cout << "   Seeking\n";
+		LogTrace("CD_DRIVE", "  Seeking");
 	if (stat.elem.read)
-		std::cout << "   Reading data sectors\n";
+		LogTrace("CD_DRIVE", "  Reading data sectors");
 	if (stat.elem.shellOpen)
-		std::cout << "   Shell is/was open\n";
+		LogTrace("CD_DRIVE", "	Shell is/was open");
 	if (stat.elem.idError)
-		std::cout << "   GetID denied\n";
+		LogTrace("CD_DRIVE", "	GetID denied");
 	if (stat.elem.seekError)
-		std::cout << "   Seek error\n";
+		LogTrace("CD_DRIVE", "	Seek error");
 	if (stat.elem.spindleMotor)
-		std::cout << "   Motor on\n";
+		LogTrace("CD_DRIVE", "  Motor on");
 	else
-		std::cout << "   Motor off, or in spin-up phase\n";
+		LogTrace("CD_DRIVE", "	Motor off, or in spin-up phase");
+
 	if (stat.elem.error)
-		std::cout << "   Invalid command or command parameters!!!\n";
+		LogError("CD_DRIVE", "	Invalid command or command parameters");
 
 	if ((stat.elem.read && stat.elem.seek) ||
 		(stat.elem.read && stat.elem.play) ||
 		(stat.elem.seek && stat.elem.play)) {
-		std::cout << "[CD_DRIVE] EMULATION PAUSED! Play/Seek/Read status bits set at the same time!\n";
-		g_isEmulationPaused = true;
+		LogError("CD_DRIVE", "Play/Seek/Read status bits set at the same time!");
 	}
 }

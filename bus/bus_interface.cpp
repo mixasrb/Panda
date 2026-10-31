@@ -615,14 +615,14 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 		dma.WriteDmaController8(addr, data, cycles);
 	else if (POST) {
 		post = data;
-		Log(INFO, "POST", "Value: {:#04x}", data);
+		LogInfo("POST", "Value: {:#04x}", data);
 	}
 	else if (CD_DRIVE)
 		pCdDrive->Write8(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite8(addr, data);
 	else 
-		Log(CRITICAL, "BUS", "Unhandled write8 {:#010x} data {:#04x}", addr, data);
+		LogError("BUS", "Unhandled write8 {:#010x} data {:#04x}", addr, data);
 }
 
 BusInterface::delayType BusInterface::calculateDelays(const delayRegisterType& delayRegister) {

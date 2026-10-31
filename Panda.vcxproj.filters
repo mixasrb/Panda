@@ -27,9 +27,6 @@
     <ClCompile Include="gpu\cxdxxxxx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="debugger\debugger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="cpu\cw33300.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

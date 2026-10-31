@@ -1120,9 +1120,7 @@ void Cpu::printBiosCall() {
 			}
 
 			if (call == 0x3c) {
-				std::stringstream ss;
-				ss << (char)GetRegister(4);
-				std::cout << ss.str();
+				ssPsxLog << (char)GetRegister(4);
 			}
 
 			break;
@@ -1202,9 +1200,7 @@ void Cpu::printBiosCall() {
 			}*/
 
 			if (call == 0x3d) {
-				std::stringstream ss;
-				ss << (char)GetRegister(4);
-				std::cout << ss.str();
+				ssPsxLog << (char)GetRegister(4);
 			}
 
 			if (g_biosCallbacksLogged) {

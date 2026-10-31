@@ -245,6 +245,9 @@ public:
 	uint8_t pipelineCycle = 0;
 
 	void setBiosCallFlag();
+
+	std::stringstream ssPsxLog;
+
 	void printBiosCall();
 	std::optional<char> biosCallFlag;
 

@@ -26,14 +26,14 @@ int g_mousePossitionY = 0;
 
 extern bool g_isEmulationPaused;
 
-class ApplicationEmulator : public olc::PixelGameEngine {
+class Application : public olc::PixelGameEngine {
 private:
-	static ApplicationEmulator* instancePtr;
+	static Application* instancePtr;
 
 
 public:
 
-	ApplicationEmulator() {
+	Application() {
 		sAppName = "Panda by MM";
 	}
 
@@ -441,6 +441,32 @@ public:
 			ss.str("\0");
 			ss << "I_STAT 0x" << std::hex << psx.bus.interruptStat;
 			DrawString(0, 36 * 9, ss.str());
+
+			FillRect({ 480, 33 * 9 }, { 480, 230 }, olc::BLUE);
+
+			auto GetLastLines = [](std::string& text, size_t maxLines) {
+				std::istringstream stream(text);
+				std::string line;
+				std::vector<std::string> lines;
+
+				while (std::getline(stream, line))
+					lines.push_back(line);
+
+				size_t startOffset = (lines.size() > maxLines) ? (lines.size() - maxLines) : 0;
+
+				std::ostringstream output;
+				for (size_t i = startOffset; i < lines.size(); ++i)
+					output << lines[i] << "\n";
+
+				text = output.str();
+				};
+
+			std::string textLog = psx.bus.pCpu->ssPsxLog.str();
+
+			GetLastLines(textLog, 24);
+
+			DrawString(489, 34 * 9 - 3, "Psx Log", olc::RED);
+			DrawString(489, 35 * 9, textLog);
 		}
 
 		if (g_isEmulationPaused)
@@ -467,16 +493,17 @@ public:
 	}
 };
 
-ApplicationEmulator* ApplicationEmulator::instancePtr = nullptr;
+Application* Application::instancePtr = nullptr;
 
 int main(int argumentCount, char* argumetVector[]) {
 
 	if (argumentCount == 2) {
-		g_sideload = true;
-		g_sideloadPath = argumetVector[1];
+		/*g_sideload = true;
+		g_sideloadPath = argumetVector[1];*/
+		g_romBinPath = argumetVector[1];
 	}
 
-	ApplicationEmulator emulator;
+	Application emulator;
 
 #if DEBUG_VIEW
 	if (emulator.Construct(1024, 512 + 45, 1, 1, false, false))

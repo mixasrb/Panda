@@ -191,8 +191,8 @@ void Mdec::Write32(const uint32_t& addr, const uint32_t& data) {
 		}
 	}
 	else if (addr == 0x1f801824) {
-		std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
-			<< " data 0x" << data << '\n';
+		/*std::cout << "[MDEC] EMULATION PAUSED! unhandled write32 addr 0x" << std::hex << addr
+			<< " data 0x" << data << '\n';*/
 
 		controlRegister.data = data;
 		if (controlRegister.elem.resetMdec) {
