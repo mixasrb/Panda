@@ -14,6 +14,8 @@
 #include "settings.h"
 #include "gpu/cxdxxxxx.h"
 
+bool g_isEmulationPaused = false;
+
 uint32_t g_systemClocks = 0;
 uint32_t g_systemFrames = 0;
 uint32_t g_systemSeconds = 0;
@@ -68,6 +70,8 @@ public:
 	std::unique_ptr<olc::Decal> decSprite;
 
 	bool OnUserCreate() override {
+
+		SetLogLevel(spdlog::level::trace);
 
 #if !CONSOLE_LOGGING
 		std::cout.setstate(std::ios_base::failbit);

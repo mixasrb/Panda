@@ -173,7 +173,6 @@
     <ClCompile Include="cpu\cp0.cpp" />
     <ClCompile Include="cpu\cp2.cpp" />
     <ClCompile Include="cpu\cw33300.cpp" />
-    <ClCompile Include="debugger\debugger.cpp" />
     <ClCompile Include="gpu\cxdxxxxx.cpp" />
     <ClCompile Include="gpu\drawing.cpp" />
     <ClCompile Include="main.cpp" />

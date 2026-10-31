@@ -1,7 +1,7 @@
 #include "hc05_pux.h"
 #include "../bus/bus_interface.h"
+#include "../debugger/debugger.h"
 
-extern bool g_isEmulationPaused;
 extern const char* g_cdPath;
 extern uint8_t g_driveStatus;
 
@@ -158,15 +158,14 @@ void CdDrive::Read8(const uint32_t& addr, uint8_t& data) {
 
 	case 0x1f801801:
 		if (resultFifo.empty()) {
-			std::cout << "~[CD_DRIVE] EMULATION PAUSED! Response FIFO is empty\n";
-			g_isEmulationPaused = true;
+			Log(CRITICAL, "CD_DRIVE", "Response FIFO is empty");
 			break;
 		}
 
 		data = resultFifo.front();
 		resultFifo.pop();
 
-		std::cout << "~[CD_DRIVE] Response read: 0x" << std::hex << (uint16_t)data << '\n';
+		Log(TRACE, "CD_DRIVE", "Response read: {:#04x}", data);
 		break;
 
 	case 0x1f801802:
@@ -197,12 +196,10 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 	case 0x1f801801:
 		switch (indexStatus.elem.bank) {
 		case 0:
-			std::cout << "~[CD_DRIVE] Command received : " << commandLookup[data].name << '\n';
+			Log(TRACE, "CD_DRIVE", "Command received: {}", commandLookup[data].name);
 
-			if (!commandFifo.empty() || indexStatus.elem.busysts) {
-				std::cout << "~[CD_DRIVE] EMULATION PAUSED! Command received before previous one is executed\n";
-				g_isEmulationPaused = true;
-			}
+			if (!commandFifo.empty() || indexStatus.elem.busysts) 
+				Log(CRITICAL, "CD_DRIVE", "Command received but previous one is not executed");
 
 			commandFifo.push(data);
 			break;

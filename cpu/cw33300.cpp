@@ -1,5 +1,6 @@
 #include "cw33300.h"
 #include "../bus/bus_interface.h"
+#include "../debugger/debugger.h"
 
 #undef CPU_DEBUG
 #define CPU_DEBUG 1
@@ -17,40 +18,40 @@ Cpu::Cpu() {
 
 	primLookup.resize(0x40);
 	primLookup = {
-		{"SPECIAL"}, {"BcondZ "}, {"J      "}, {"JAL    "}, {"BEQ    "}, {"BNE    "}, {"BLEZ   "}, {"BGTZ   "},
-		{"ADDI   "}, {"ADDIU  "}, {"SLTI   "}, {"SLTIU  "}, {"ANDI   "}, {"ORI    "}, {"XORI   "}, {"LUI    "},
-		{"COP0   "}, {"COP1   "}, {"COP2   "}, {"COP3   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"LB     "}, {"LH     "}, {"LWL    "}, {"LW     "}, {"LBU    "}, {"LHU    "}, {"LWR    "}, {"N/A    "},
-		{"SB     "}, {"SH     "}, {"SWL    "}, {"SW     "}, {"N/A    "}, {"N/A    "}, {"SWR    "}, {"N/A    "},
-		{"LWC0   "}, {"LWC1   "}, {"LWC2   "}, {"LWC3   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"SWC0   "}, {"SWC1   "}, {"SWC2   "}, {"SWC3   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}
+		{ "SPECIAL" },{ "BcondZ " },{ "J      " },{ "JAL    " },{ "BEQ    " },{ "BNE    " },{ "BLEZ   " },{ "BGTZ   " },
+		{ "ADDI   " },{ "ADDIU  " },{ "SLTI   " },{ "SLTIU  " },{ "ANDI   " },{ "ORI    " },{ "XORI   " },{ "LUI    " },
+		{ "COP0   " },{ "COP1   " },{ "COP2   " },{ "COP3   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "LB     " },{ "LH     " },{ "LWL    " },{ "LW     " },{ "LBU    " },{ "LHU    " },{ "LWR    " },{ "N/A    " },
+		{ "SB     " },{ "SH     " },{ "SWL    " },{ "SW     " },{ "N/A    " },{ "N/A    " },{ "SWR    " },{ "N/A    " },
+		{ "LWC0   " },{ "LWC1   " },{ "LWC2   " },{ "LWC3   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "SWC0   " },{ "SWC1   " },{ "SWC2   " },{ "SWC3   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " }
 	};
 
 	secLookup.resize(0x40);
 	secLookup = {
-		{"SLL    "}, {"N/A    "}, {"SRL    "}, {"SRA    "}, {"SLLV   "}, {"N/A    "}, {"SRLV   "}, {"SRAV   "},
-		{"JR     "}, {"JALR   "}, {"N/A    "}, {"N/A    "}, {"SYSCALL"}, {"BREAK  "}, {"N/A    "}, {"N/A    "},
-		{"MFHI   "}, {"MTHI   "}, {"MFLO   "}, {"MTLO   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"MULT   "}, {"MULTU  "}, {"DIV    "}, {"DIVU   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"ADD    "}, {"ADDU   "}, {"SUB    "}, {"SUBU   "}, {"AND    "}, {"OR     "}, {"XOR    "}, {"NOR    "},
-		{"N/A    "}, {"N/A    "}, {"SLT    "}, {"SLTU   "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "},
-		{"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}, {"N/A    "}
+		{ "SLL    " },{ "N/A    " },{ "SRL    " },{ "SRA    " },{ "SLLV   " },{ "N/A    " },{ "SRLV   " },{ "SRAV   " },
+		{ "JR     " },{ "JALR   " },{ "N/A    " },{ "N/A    " },{ "SYSCALL" },{ "BREAK  " },{ "N/A    " },{ "N/A    " },
+		{ "MFHI   " },{ "MTHI   " },{ "MFLO   " },{ "MTLO   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "MULT   " },{ "MULTU  " },{ "DIV    " },{ "DIVU   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "ADD    " },{ "ADDU   " },{ "SUB    " },{ "SUBU   " },{ "AND    " },{ "OR     " },{ "XOR    " },{ "NOR    " },
+		{ "N/A    " },{ "N/A    " },{ "SLT    " },{ "SLTU   " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },
+		{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " },{ "N/A    " }
 	};
 
-	shift_imm[0] = {&Cpu::SLL};
-	shift_imm[1] = {&Cpu::XXX};
-	shift_imm[2] = {&Cpu::SRL};
-	shift_imm[3] = {&Cpu::SRA};
+	shift_imm[0] = { &Cpu::SLL };
+	shift_imm[1] = { &Cpu::XXX };
+	shift_imm[2] = { &Cpu::SRL };
+	shift_imm[3] = { &Cpu::SRA };
 
-	shift_reg[0] = {&Cpu::SLLV};
-	shift_reg[1] = {&Cpu::XXX2};
-	shift_reg[2] = {&Cpu::SRLV};
-	shift_reg[3] = {&Cpu::SRAV};
+	shift_reg[0] = { &Cpu::SLLV };
+	shift_reg[1] = { &Cpu::XXX2 };
+	shift_reg[2] = { &Cpu::SRLV };
+	shift_reg[3] = { &Cpu::SRAV };
 
-	sys_brk[0] = {&Cpu::SYSCALL};
-	sys_brk[1] = {&Cpu::BREAK};
+	sys_brk[0] = { &Cpu::SYSCALL };
+	sys_brk[1] = { &Cpu::BREAK };
 
 	mul_div[0] = { &Cpu::MULT };
 	mul_div[1] = { &Cpu::MULTU };
@@ -80,45 +81,45 @@ Cpu::Cpu() {
 	alu_reg[14] = { &Cpu::XXX2 };
 	alu_reg[15] = { &Cpu::XXX2 };
 
-	b_cond_z[0] = {&Cpu::BLTZ};
-	b_cond_z[1] = {&Cpu::BGEZ};
-	b_cond_z[2] = {&Cpu::BLTZAL};
-	b_cond_z[3] = {&Cpu::BGEZAL};
+	b_cond_z[0] = { &Cpu::BLTZ };
+	b_cond_z[1] = { &Cpu::BGEZ };
+	b_cond_z[2] = { &Cpu::BLTZAL };
+	b_cond_z[3] = { &Cpu::BGEZAL };
 
-	j_jal[0] = {&Cpu::J};
-	j_jal[1] = {&Cpu::JAL};
+	j_jal[0] = { &Cpu::J };
+	j_jal[1] = { &Cpu::JAL };
 
-	beq_bne[0] = {&Cpu::BEQ};
-	beq_bne[1] = {&Cpu::BNE};
+	beq_bne[0] = { &Cpu::BEQ };
+	beq_bne[1] = { &Cpu::BNE };
 
-	blez_bgtz[0] = {&Cpu::BLEZ};
-	blez_bgtz[1] = {&Cpu::BGTZ};
+	blez_bgtz[0] = { &Cpu::BLEZ };
+	blez_bgtz[1] = { &Cpu::BGTZ };
 
-	alu_imm[0] = {&Cpu::ADDI};
-	alu_imm[1] = {&Cpu::ADDIU};
-	alu_imm[2] = {&Cpu::SLTI};
-	alu_imm[3] = {&Cpu::SLTIU};
-	alu_imm[4] = {&Cpu::ANDI};
-	alu_imm[5] = {&Cpu::ORI};
-	alu_imm[6] = {&Cpu::XORI};
+	alu_imm[0] = { &Cpu::ADDI };
+	alu_imm[1] = { &Cpu::ADDIU };
+	alu_imm[2] = { &Cpu::SLTI };
+	alu_imm[3] = { &Cpu::SLTIU };
+	alu_imm[4] = { &Cpu::ANDI };
+	alu_imm[5] = { &Cpu::ORI };
+	alu_imm[6] = { &Cpu::XORI };
 
-	load_rt[0] = {&Cpu::LB};
-	load_rt[1] = {&Cpu::LH};
-	load_rt[2] = {&Cpu::LWL};
-	load_rt[3] = {&Cpu::LW};
-	load_rt[4] = {&Cpu::LBU};
-	load_rt[5] = {&Cpu::LHU};
-	load_rt[6] = {&Cpu::LWR};
-	load_rt[7] = {&Cpu::XXX2};
+	load_rt[0] = { &Cpu::LB };
+	load_rt[1] = { &Cpu::LH };
+	load_rt[2] = { &Cpu::LWL };
+	load_rt[3] = { &Cpu::LW };
+	load_rt[4] = { &Cpu::LBU };
+	load_rt[5] = { &Cpu::LHU };
+	load_rt[6] = { &Cpu::LWR };
+	load_rt[7] = { &Cpu::XXX2 };
 
-	store_rt[0] = {&Cpu::SB};
-	store_rt[1] = {&Cpu::SH};
-	store_rt[2] = {&Cpu::SWL};
-	store_rt[3] = {&Cpu::SW};
-	store_rt[4] = {&Cpu::XXX1};
-	store_rt[5] = {&Cpu::XXX1};
-	store_rt[6] = {&Cpu::SWR};
-	store_rt[7] = {&Cpu::XXX1};
+	store_rt[0] = { &Cpu::SB };
+	store_rt[1] = { &Cpu::SH };
+	store_rt[2] = { &Cpu::SWL };
+	store_rt[3] = { &Cpu::SW };
+	store_rt[4] = { &Cpu::XXX1 };
+	store_rt[5] = { &Cpu::XXX1 };
+	store_rt[6] = { &Cpu::SWR };
+	store_rt[7] = { &Cpu::XXX1 };
 
 	//debug
 	executedOpcodes.resize(32);
@@ -130,7 +131,7 @@ Cpu::Cpu() {
 	cycle1.bWrite = false;
 }
 
-void Cpu::Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles,const bool& debug) {
+void Cpu::Read32(const uint32_t& addr, uint32_t& data, uint8_t& cycles, const bool& debug) {
 	pBus->Read32(addr, data, cycles, debug);
 }
 
@@ -547,11 +548,11 @@ void Cpu::Clock() {
 		/*if (pc == 0x800133fc)
 			r[2] = 1; */
 
-		//Hack Hot Wheels - Turbo Racing (USA)
-		/*if (pc == 0x80101310)
-			r[2] = 1;
-		if (pc == 0x800b42e0)
-			r[2] = 0x200;*/
+			//Hack Hot Wheels - Turbo Racing (USA)
+			/*if (pc == 0x80101310)
+				r[2] = 1;
+			if (pc == 0x800b42e0)
+				r[2] = 0x200;*/
 
 
 		pc += 4;

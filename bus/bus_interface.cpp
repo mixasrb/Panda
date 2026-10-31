@@ -1,6 +1,5 @@
 #include "bus_interface.h"
-
-extern bool g_isEmulationPaused;
+#include "../debugger/debugger.h"
 
 //Memory map
 #define RAM (((addr >= 0x00000000) && (addr < 0x1f000000)) || \
@@ -614,16 +613,16 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 		scratchpad[addr & 0x3ff] = data;
 	else if (DMA)
 		dma.WriteDmaController8(addr, data, cycles);
-	else if (POST)
+	else if (POST) {
 		post = data;
+		Log(INFO, "POST", "Value: {:#04x}", data);
+	}
 	else if (CD_DRIVE)
 		pCdDrive->Write8(addr, data);
 	else if (JOY_MEM_CARD)
 		pJoyMemCard->cpuWrite8(addr, data);
-	else {
-		std::cout << "[BUS] EMULATION PASUED! unhandled write8 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-		g_isEmulationPaused = true;
-	}
+	else 
+		Log(CRITICAL, "BUS", "Unhandled write8 {:#010x} data {:#04x}", addr, data);
 }
 
 BusInterface::delayType BusInterface::calculateDelays(const delayRegisterType& delayRegister) {
