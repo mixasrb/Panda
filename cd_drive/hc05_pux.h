@@ -17,6 +17,10 @@ public:
 
 	CdDrive();
 
+	const char* TAG = "CD_DRIVE";
+
+	void LoadRom(const uint8_t newDriveStatus, std::string newPath);
+
 	BusInterface* busPtr;
 
 	void Read8(const uint32_t& addr, uint8_t& data);
@@ -143,31 +147,31 @@ public:
 
 	void ExecuteNextCommand();
 
-	void sync();
+	void Sync();
 	void xxxxx();
-	void getStat();
-	void play();
-	void setLoc();
-	void readN();
-	void motorOn();
-	void stop();
-	void pause();
-	void init();
-	void mute();
-	void demute();
-	void setFilter();
-	void setMode();
-	void getParam();
-	void getLocL();
-	void getLocP();
-	void getTN();
-	void getTD();
-	void seekL();
-	void seekP();
-	void test();
-	void getID();
-	void readS();
-	void readTOC();
+	void GetStat();
+	void Play();
+	void SetLoc();
+	void ReadN();
+	void MotorOn();
+	void Stop();
+	void Pause();
+	void Init();
+	void Mute();
+	void Demute();
+	void SetFilter();
+	void SetMode();
+	void GetParam();
+	void GetLocL();
+	void GetLocP();
+	void GetTN();
+	void GetTD();
+	void SeekL();
+	void SeekP();
+	void Test();
+	void GetID();
+	void ReadS();
+	void ReadTOC();
 
 	enum : uint8_t {
 		STAT_PLAY = 0x80,

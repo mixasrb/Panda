@@ -14,7 +14,7 @@ public:
 	PsxConsole();
 
 	BusInterface bus;
-	Cpu cpuSOC;
+	Cpu cpuSoc;
 	Mdec mdec;
 	Gpu gpu;
 	CdDrive cdDrive;

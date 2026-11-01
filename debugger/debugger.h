@@ -2,8 +2,10 @@
 
 #include <format>
 
-#include "../dependencies/spdlog/spdlog.h"
-#include "../dependencies/spdlog/sinks/stdout_color_sinks.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+
 
 extern bool g_isEmulationPaused;
 
@@ -20,8 +22,7 @@ namespace dbg {
 	template <class... _Types>
 	inline void LogTrace(const std::string& tag,
 		const std::format_string<_Types...> fmt, const _Types&... args) {
-
-		spdlog::trace("[{}] {}", tag, std::vformat(fmt.get(), std::make_format_args(args...)));
+		spdlog::trace("[\033[33m{}\033[0m] {}", tag, std::vformat(fmt.get(), std::make_format_args(args...)));
 	}
 
 	template <class... _Types>

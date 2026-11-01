@@ -11,8 +11,8 @@ PsxConsole::PsxConsole() {
 void PsxConsole::connectComponents() {
 	bus.dma.ConnectBus(&bus);
 
-	cpuSOC.pBus = &bus;
-	bus.pCpu = &cpuSOC;
+	cpuSoc.pBus = &bus;
+	bus.pCpu = &cpuSoc;
 	bus.pMdec = &mdec;
 	mdec.pBus = &bus;
 
@@ -35,7 +35,7 @@ void PsxConsole::connectComponents() {
 
 void PsxConsole::clock() {
 	if (!bus.dma.isCpuStopped)
-		cpuSOC.Clock();
+		cpuSoc.Clock();
 
 	bus.dma.Clock();
 

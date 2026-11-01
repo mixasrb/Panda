@@ -14,6 +14,8 @@
 #include "settings.h"
 #include "gpu/cxdxxxxx.h"
 
+extern const char* g_romBinPath;
+
 bool g_isEmulationPaused = false;
 
 uint32_t g_systemClocks = 0;
@@ -23,8 +25,6 @@ uint32_t g_systemMinutes = 0;
 
 int g_mousePossitionX = 0;
 int g_mousePossitionY = 0;
-
-extern bool g_isEmulationPaused;
 
 class Application : public olc::PixelGameEngine {
 private:
@@ -76,6 +76,8 @@ public:
 #if !CONSOLE_LOGGING
 		std::cout.setstate(std::ios_base::failbit);
 #endif
+
+		psx.cdDrive.LoadRom(g_driveStatus, g_romBinPath);
 
 		instancePtr = this;
 
@@ -224,7 +226,7 @@ public:
 
 				psx.bus.dma.isCpuStopped = !psx.bus.dma.isCpuStopped;
 				for (uint32_t i = 0; i < CPU_CLOCKS_PER_FRAME; i++) {
-					psx.cpuSOC.Clock();
+					psx.cpuSoc.Clock();
 					//psx.clock();
 				}
 			}
@@ -280,8 +282,8 @@ public:
 		if (executeOneInstruction) {
 			do {
 				psx.clock();
-			} while (!psx.cpuSOC.isInstructionExecuted);
-			psx.cpuSOC.isInstructionExecuted = false;
+			} while (!psx.cpuSoc.isInstructionExecuted);
+			psx.cpuSoc.isInstructionExecuted = false;
 			executeOneInstruction = !executeOneInstruction;
 		}
 
@@ -405,35 +407,35 @@ public:
 				uint32_t data;
 				uint8_t cycels;
 
-				psx.bus.Read32(psx.cpuSOC.pc_old - 16 * 4 + i * 4, data, cycels, true);
-				uint32_t pc = psx.cpuSOC.pc_old - 16 * 4 + i * 4;
-				DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, pc));
+				psx.bus.Read32(psx.cpuSoc.pc_old - 16 * 4 + i * 4, data, cycels, true);
+				uint32_t pc = psx.cpuSoc.pc_old - 16 * 4 + i * 4;
+				DrawString(489, 0 + 9 * i, psx.cpuSoc.getInstructionStr(data, pc));
 				if (i == 16) {
-					DrawString(489, 0 + 9 * i, psx.cpuSOC.getInstructionStr(data, psx.cpuSOC.pc_old - 16 * 4 + i * 4), olc::RED);
+					DrawString(489, 0 + 9 * i, psx.cpuSoc.getInstructionStr(data, psx.cpuSoc.pc_old - 16 * 4 + i * 4), olc::RED);
 					DrawString(464, 108 + 36, "pc:", olc::WHITE);
 					DrawLine(480, 88 + 72, 800, 88 + 72, olc::RED);
 				}
 			}
 			for (int i = 0; i < 32; i++) {
-				std::string s = psx.cpuSOC.executedOpcodes[i];
+				std::string s = psx.cpuSoc.executedOpcodes[i];
 				DrawString(489, 0 + 9 * (33 + i), s);
 			}
 			for (int i = 0; i < 32; i++) {
 				std::stringstream ss;
 				if (i < 10)
-					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSOC.GetRegister(i);
+					ss << "r[0" << i << "] 0x" << std::hex << psx.cpuSoc.GetRegister(i);
 				else
-					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSOC.GetRegister(i);
+					ss << "r[" << i << "] 0x" << std::hex << psx.cpuSoc.GetRegister(i);
 				DrawString(0, i * 9, ss.str());
 			}
 			std::stringstream ss;
-			ss << "hi 0x" << std::hex << psx.cpuSOC.hi;
+			ss << "hi 0x" << std::hex << psx.cpuSoc.hi;
 			DrawString(0, 32 * 9, ss.str());
 			ss.str("\0");
-			ss << "lo 0x" << std::hex << psx.cpuSOC.lo;
+			ss << "lo 0x" << std::hex << psx.cpuSoc.lo;
 			DrawString(0, 33 * 9, ss.str());
 			ss.str("\0");
-			ss << "Cop0 SR 0x" << std::hex << psx.cpuSOC.cp0.cop0r[12];
+			ss << "Cop0 SR 0x" << std::hex << psx.cpuSoc.cp0.cop0r[12];
 			DrawString(0, 34 * 9, ss.str());
 			ss.str("\0");
 			ss << "I_MASK 0x" << std::hex << psx.bus.interruptMask;
@@ -461,7 +463,7 @@ public:
 				text = output.str();
 				};
 
-			std::string textLog = psx.bus.pCpu->ssPsxLog.str();
+			std::string textLog = psx.cpuSoc.ssPsxLog.str();
 
 			GetLastLines(textLog, 24);
 

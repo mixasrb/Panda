@@ -212,7 +212,7 @@ void BusInterface::Read32(const uint32_t& addr, uint32_t& data, uint8_t& clocks,
 	}
 	else
 		if (!debug) {
-			std::cout << "[BUS] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
+			std::cout << "[BUS] EMULATION PAUSED! unhandled addr read32 0x" << std::hex << addr << "\n";
 			g_isEmulationPaused = true;
 		}
 }
@@ -615,7 +615,7 @@ void BusInterface::Write8(const uint32_t& addr, const uint8_t& data, uint8_t& cy
 		dma.WriteDmaController8(addr, data, cycles);
 	else if (POST) {
 		post = data;
-		LogInfo("POST", "Value: {:#04x}", data);
+		LogTrace("POST", "Value: {:#04x}", data);
 	}
 	else if (CD_DRIVE)
 		pCdDrive->Write8(addr, data);
