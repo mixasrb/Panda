@@ -113,7 +113,7 @@ const char* g_romBinPath =
 
 //have game breaking bugs
 	
-	//("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
+	("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
 
 	//("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot Warped (May 14, 1998 prototype)/CRASH3.bin"); //[CP0] EMULATION PAUSED! triggered exception code: 0x5 //[BUS] EMULATION PAUSED!invalid ram addr write32 0x8083e178 data 0x10e19
 
@@ -372,7 +372,7 @@ const char* g_romBinPath =
 	//("D:/projects/emulation_psx/binaries/roms/Mega Man X3/Mega Man X3 (Europe) (Track 01).bin"); // DMA3 CDROM 0x11400100h (chopped)
 	//("D:/projects/emulation_psx/binaries/roms/mega man x4.bin"); // setfilter // getlocp //mdec?  // but works
 
-	("D:/projects/emulation_psx/binaries/roms/Colin McRae Rally 2.0/Colin McRae Rally 2.0 (Europe) (Track 1).bin");//timer mode 0x158
+	//("D:/projects/emulation_psx/binaries/roms/Colin McRae Rally 2.0/Colin McRae Rally 2.0 (Europe) (Track 1).bin");//timer mode 0x158
 
 	//("D:/projects/emulation_psx/binaries/roms/Spec Ops - Airborne Commando.bin"); //ChangeThread stuck fixed probably
 

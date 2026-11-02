@@ -19,17 +19,22 @@ struct Vector2D {
 	Vector2D() : x(0), y(0) {}
 
 	Vector2D(const uint32_t& xTemp, const uint32_t& yTemp) {
-		*(&x) = uint16_t(xTemp);
-		*(&y) = uint16_t(yTemp);
+		x = uint16_t(xTemp);
+		y = uint16_t(yTemp);
 	}
 
 	Vector2D(const uint32_t& coord) {
-		*(&x) = Signed11bit(coord & 0x7ff);
-		*(&y) = Signed11bit((coord >> 16) & 0x7ff);
+		x = Signed11bit(coord & 0x7ff);
+		y = Signed11bit((coord >> 16) & 0x7ff);
 	}
 
-	int16_t x;
-	int16_t y;
+	union {
+		struct {
+			int16_t x;
+			int16_t y;
+		};
+		uint32_t data;
+	};
 
 	Vector2D operator+ (const Vector2D& b) const {
 		return Vector2D(x + b.x, y + b.y);
@@ -56,6 +61,8 @@ class Gpu {
 public:
 
 	Gpu();
+
+	const char* TAG = "GPU";
 
 	BusInterface* BusPtr;
 
@@ -198,10 +205,8 @@ public:
 		return color24.data;
 	}
 
-	std::queue<uint32_t> commandFifo;
-	uint32_t GetNextCommandFifoData();
-
-	std::queue<uint32_t> outputFifo;
+	std::queue<uint32_t> fifo;
+	uint32_t GetNextFifoData();
 
 	enum PrimitiveType {
 		UNDEFINED,

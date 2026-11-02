@@ -6,6 +6,7 @@
 
 #include "cxdxxxxx.h"
 #include "rasterize.hh"
+#include "../debugger/debugger.h"
 
 extern bool g_isEmulationPaused;
 extern int g_mousePossitionX;
@@ -596,7 +597,7 @@ void Gpu::CopyRectCpuToVram(const uint32_t& dest_coord, const uint32_t& width_he
 	for (int16_t y = y1; y < y2; y++) {
 		for (int16_t x = x1; x < x2; x++) {
 			if ((i & 0x1) == 0)
-				data = GetNextCommandFifoData();
+				data = GetNextFifoData();
 
 			Vector2D position(x, y);
 			WriteVram(position, ((i & 0x1) == 0) ? (uint16_t)data : uint16_t(data >> 16), true);
@@ -624,11 +625,14 @@ void Gpu::CopyRectVramToCpu(const uint32_t& source_coord, const uint32_t& width_
 				data32 = 0x00000000 | (uint32_t)data16;
 			else {
 				data32 |= (uint32_t)data16 << 16;
-				outputFifo.push(data32);
+				fifo.push(data32);
 			}
 			i++;
 		}
 	}
+
+	if ((i & 0x1) == 1) // odd number of pixels
+		fifo.push(data32);
 }
 
 void Gpu::CopyRectVramToVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight) {

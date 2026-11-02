@@ -3,6 +3,7 @@
 
 #include "cxdxxxxx.h"
 #include "../bus/bus_interface.h"
+#include "../debugger/debugger.h"
 
 //TO DO 
 //Define option for old and new GPU 
@@ -14,264 +15,284 @@ extern int g_mousePossitionY;
 extern bool g_logPixel;
 extern bool g_manualInterruptDMA;
 
+static void MaskPosFill(uint16_t& xpos, uint16_t& ypos) {
+	xpos = xpos & 0x3f0;
+	ypos = ypos & 0x1ff;
+};
+
+static void MaskSizFill(uint16_t& xsiz, uint16_t& ysiz) {
+	xsiz = ((xsiz & 0x3ff) + 0x0f) & (~0x0f);
+	ysiz = ysiz & 0x1ff;
+};
+
+static void MaskPosCopy(uint16_t& xpos, uint16_t& ypos) {
+	xpos = xpos & 0x3ff;
+	ypos = ypos & 0x1ff;
+};
+
+static void MaskSizCopy(uint16_t& xsiz, uint16_t& ysiz) {
+	xsiz = ((xsiz - 1) & 0x3ff) + 1;
+	ysiz = ((ysiz - 1) & 0x1ff) + 1;
+};
+
 Gpu::Gpu() {
 	gp0Lookup.resize(0xef);
 	gp0Lookup = {
 		//0x00
-		{"NOP (?)", 1},
-		{"Clear Cache", 1},
-		{"Fill Rectangle in VRAM", 3},
-		{"Unknown?", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
+		{ "NOP (?)", 1 },
+		{ "Clear Cache", 1 },
+		{ "Fill Rectangle in VRAM", 3 },
+		{ "Unknown?", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
 		//0x10
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Mirror of NOP (?)", 1},
-		{"Interrupt Request (IRQ1)", 1},
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Mirror of NOP (?)", 1 },
+		{ "Interrupt Request (IRQ1)", 1 },
 		//0x20
-		{"Monochrome three-point polygon, opaque", 4},
-		{"Undocumented/Nonsense", 4},
-		{"Monochrome three - point polygon, semi - transparent", 4},
-		{"Undocumented/Nonsense", 4},
-		{"Textured three-point polygon, opaque, texture-blending", 7},
-		{"Textured three-point polygon, opaque, raw-texture", 7},
-		{"Textured three-point polygon, semi-transparent, texture-blending", 7},
-		{"Textured three-point polygon, semi-transparent, raw-texture", 7},
-		{"Monochrome four-point polygon, opaque", 5},
-		{"Undocumented/Nonsense", 5},
-		{"Monochrome four-point polygon, semi-transparent", 5},
-		{"Undocumented/Nonsense", 5},
-		{"Textured four-point polygon, opaque, texture-blending", 9},
-		{"Textured four-point polygon, opaque, raw-texture", 9},
-		{"Textured four-point polygon, semi-transparent, texture-blending", 9},
-		{"Textured four-point polygon, semi-transparent, raw-texture", 9},
+		{ "Monochrome three-point polygon, opaque", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Monochrome three - point polygon, semi - transparent", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Textured three-point polygon, opaque, texture-blending", 7 },
+		{ "Textured three-point polygon, opaque, raw-texture", 7 },
+		{ "Textured three-point polygon, semi-transparent, texture-blending", 7 },
+		{ "Textured three-point polygon, semi-transparent, raw-texture", 7 },
+		{ "Monochrome four-point polygon, opaque", 5 },
+		{ "Undocumented/Nonsense", 5 },
+		{ "Monochrome four-point polygon, semi-transparent", 5 },
+		{ "Undocumented/Nonsense", 5 },
+		{ "Textured four-point polygon, opaque, texture-blending", 9 },
+		{ "Textured four-point polygon, opaque, raw-texture", 9 },
+		{ "Textured four-point polygon, semi-transparent, texture-blending", 9 },
+		{ "Textured four-point polygon, semi-transparent, raw-texture", 9 },
 		//0x30
-		{"Shaded three-point polygon, opaque", 6},
-		{"Undocumented/Nonsense", 6},
-		{"Shaded three-point polygon, semi-transparent", 6},
-		{"Undocumented/Nonsense", 6},
-		{"Shaded Textured three-point polygon, opaque, texture-blending", 9},
-		{"Undocumented/Nonsense", 9},
-		{"Shaded Textured three-point polygon, semi-transparent, tex-blend", 9},
-		{"Undocumented/Nonsense", 9},
-		{"Shaded four-point polygon, opaque", 8},
-		{"Undocumented/Nonsense", 8},
-		{"Shaded four-point polygon, semi-transparent", 8},
-		{"Undocumented/Nonsense", 8},
-		{"Shaded Textured four-point polygon, opaque, texture-blending", 12},
-		{"Undocumented/Nonsense", 12},
-		{"Shaded Textured four-point polygon, semi-transparent, tex-blend", 12},
-		{"Undocumented/Nonsense", 12},
+		{ "Shaded three-point polygon, opaque", 6 },
+		{ "Undocumented/Nonsense", 6 },
+		{ "Shaded three-point polygon, semi-transparent", 6 },
+		{ "Undocumented/Nonsense", 6 },
+		{ "Shaded Textured three-point polygon, opaque, texture-blending", 9 },
+		{ "Undocumented/Nonsense", 9 },
+		{ "Shaded Textured three-point polygon, semi-transparent, tex-blend", 9 },
+		{ "Undocumented/Nonsense", 9 },
+		{ "Shaded four-point polygon, opaque", 8 },
+		{ "Undocumented/Nonsense", 8 },
+		{ "Shaded four-point polygon, semi-transparent", 8 },
+		{ "Undocumented/Nonsense", 8 },
+		{ "Shaded Textured four-point polygon, opaque, texture-blending", 12 },
+		{ "Undocumented/Nonsense", 12 },
+		{ "Shaded Textured four-point polygon, semi-transparent, tex-blend", 12 },
+		{ "Undocumented/Nonsense", 12 },
 		//0x40
-		{"Monochrome line, opaque", 3},
-		{"Monochrome line, opaque", 3}, //???
-		{"Monochrome line, semi-transparent", 3},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Monochrome Poly-line, opaque", 3},
-		{"Undocumented/Nonsense", 1},
-		{"Monochrome Poly-line, semi-transparent", 3},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 3},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 3},
-		{"Undocumented/Nonsense", 1},
+		{ "Monochrome line, opaque", 3 },
+		{ "Monochrome line, opaque", 3 }, //???
+		{ "Monochrome line, semi-transparent", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Monochrome Poly-line, opaque", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Monochrome Poly-line, semi-transparent", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Undocumented/Nonsense", 3 },
 		//0x50
-		{"Shaded line, opaque", 4},
-		{"Undocumented/Nonsense", 4},
-		{"Shaded line, semi-transparent", 4},
-		{"Undocumented/Nonsense", 4},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 1},
-		{"Shaded Poly-line, opaque", 4},
-		{"Undocumented/Nonsense", 1},
-		{"Shaded Poly-line, semi-transparent", 4},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 4},
-		{"Undocumented/Nonsense", 1},
-		{"Undocumented/Nonsense", 4},
-		{"Undocumented/Nonsense", 1},
+		{ "Shaded line, opaque", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Shaded line, semi-transparent", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Shaded Poly-line, opaque", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Shaded Poly-line, semi-transparent", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
+		{ "Undocumented/Nonsense", 4 },
 		//0x60
-		{"Monochrome Rectangle (variable size) (opaque)", 3},
-		{"Undocumented/Nonsense", 3},
-		{"Monochrome Rectangle (variable size) (semi-transparent)", 3},
-		{"Undocumented/Nonsense", 3},
-		{"Textured Rectangle, variable size, opaque, texture-blending", 4},
-		{"Textured Rectangle, variable size, opaque, raw-texture", 4},
-		{"Textured Rectangle, variable size, semi-transp, texture-blending", 4},
-		{"Textured Rectangle, variable size, semi-transp, raw-texture", 4},
-		{"Monochrome Rectangle (1x1) (Dot) (opaque)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Monochrome Rectangle (1x1) (Dot) (semi-transparent)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Textured Rectangle, 1x1 (nonsense), opaque, texture-blending", 3},
-		{"Textured Rectangle, 1x1 (nonsense), opaque, raw-texture", 3},
-		{"Textured Rectangle, 1x1 (nonsense), semi-transp, texture-blending", 3},
-		{"Textured Rectangle, 1x1 (nonsense), semi-transp, raw-texture", 3},
+		{ "Monochrome Rectangle (variable size) (opaque)", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Monochrome Rectangle (variable size) (semi-transparent)", 3 },
+		{ "Undocumented/Nonsense", 3 },
+		{ "Textured Rectangle, variable size, opaque, texture-blending", 4 },
+		{ "Textured Rectangle, variable size, opaque, raw-texture", 4 },
+		{ "Textured Rectangle, variable size, semi-transp, texture-blending", 4 },
+		{ "Textured Rectangle, variable size, semi-transp, raw-texture", 4 },
+		{ "Monochrome Rectangle (1x1) (Dot) (opaque)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Monochrome Rectangle (1x1) (Dot) (semi-transparent)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Textured Rectangle, 1x1 (nonsense), opaque, texture-blending", 3 },
+		{ "Textured Rectangle, 1x1 (nonsense), opaque, raw-texture", 3 },
+		{ "Textured Rectangle, 1x1 (nonsense), semi-transp, texture-blending", 3 },
+		{ "Textured Rectangle, 1x1 (nonsense), semi-transp, raw-texture", 3 },
 		//0x70
-		{"Monochrome Rectangle (8x8) (opaque)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Monochrome Rectangle (8x8) (semi-transparent)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Textured Rectangle, 8x8, opaque, texture-blending", 3},
-		{"Textured Rectangle, 8x8, opaque, raw-texture", 3},
-		{"Textured Rectangle, 8x8, semi-transparent, texture-blending", 3},
-		{"Textured Rectangle, 8x8, semi-transparent, raw-texture", 3},
-		{"Monochrome Rectangle (16x16) (opaque)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Monochrome Rectangle (16x16) (semi-transparent)", 2},
-		{"Undocumented/Nonsense", 2},
-		{"Textured Rectangle, 16x16, opaque, texture-blending", 3},
-		{"Textured Rectangle, 16x16, opaque, raw-texture", 3},
-		{"Textured Rectangle, 16x16, semi-transparent, texture-blending", 3},
-		{"Textured Rectangle, 16x16, semi-transparent, raw-texture", 3},
+		{ "Monochrome Rectangle (8x8) (opaque)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Monochrome Rectangle (8x8) (semi-transparent)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Textured Rectangle, 8x8, opaque, texture-blending", 3 },
+		{ "Textured Rectangle, 8x8, opaque, raw-texture", 3 },
+		{ "Textured Rectangle, 8x8, semi-transparent, texture-blending", 3 },
+		{ "Textured Rectangle, 8x8, semi-transparent, raw-texture", 3 },
+		{ "Monochrome Rectangle (16x16) (opaque)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Monochrome Rectangle (16x16) (semi-transparent)", 2 },
+		{ "Undocumented/Nonsense", 2 },
+		{ "Textured Rectangle, 16x16, opaque, texture-blending", 3 },
+		{ "Textured Rectangle, 16x16, opaque, raw-texture", 3 },
+		{ "Textured Rectangle, 16x16, semi-transparent, texture-blending", 3 },
+		{ "Textured Rectangle, 16x16, semi-transparent, raw-texture", 3 },
 		//0x80
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
 		//0x90
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
-		{"Copy Rectangle (VRAM to VRAM)", 4},
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
+		{ "Copy Rectangle (VRAM to VRAM)", 4 },
 		//0xa0
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
 		//0xb0										  			   
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
-		{"Copy Rectangle (CPU to VRAM)", 3},
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
+		{ "Copy Rectangle (CPU to VRAM)", 3 },
 		//0xc0
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
 		//0xd0										   			   
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
-		{"Copy Rectangle (VRAM to CPU)", 3},
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
+		{ "Copy Rectangle (VRAM to CPU)", 3 },
 		//0xe0
-		{"NOP (?)", 1},
-		{"Draw Mode setting (aka 'Texpage')", 1},
-		{"Texture Window setting", 1},
-		{"Set Drawing Area top left (X1,Y1)", 1},
-		{"Set Drawing Area bottom right (X2,Y2)", 1},
-		{"Set Drawing Offset (X,Y)", 1},
-		{"Mask Bit Setting", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
-		{"NOP (?)", 1},
+		{ "NOP (?)", 1 },
+		{ "Draw Mode setting (aka 'Texpage')", 1 },
+		{ "Texture Window setting", 1 },
+		{ "Set Drawing Area top left (X1,Y1)", 1 },
+		{ "Set Drawing Area bottom right (X2,Y2)", 1 },
+		{ "Set Drawing Offset (X,Y)", 1 },
+		{ "Mask Bit Setting", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
+		{ "NOP (?)", 1 },
 	};
 
 	cpuClocks = 0;
@@ -290,9 +311,14 @@ void Gpu::Read32(const uint32_t& addr, uint32_t& data) {
 
 	if (addr == 0x1f801810) {
 		if (gpuStat.elem.readyVramCpu) {
-			data = outputFifo.front();
-			outputFifo.pop();
-			if (outputFifo.empty()) {
+			if (fifo.empty()) {
+				LogError(TAG, "GPU output FIFO is empty, but read requested");
+				data = 0;
+			}
+			else
+				data = GetNextFifoData();
+
+			if (fifo.empty()) {
 				gpuStat.elem.readyVramCpu = 0;
 			}
 			return;
@@ -324,24 +350,17 @@ void Gpu::Read32(const uint32_t& addr, uint32_t& data) {
 
 void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801810) {
-		if (fifoCollectCount) {
-			commandFifo.push(data);
-			fifoCollectCount--;
-			if ((fifoCollectCount == 0) && (collectPolylineParam))
-				if ((data & 0xf000f000) == 0x50005000)
-					collectPolylineParam = false;
-				else
-					fifoCollectCount = 1;
-		}
-		else {
-			gp0Command = data;
+		fifo.push(data);
 
-			if (!commandFifo.empty()) {
-				std::cout << "[GPU] EMULATION PAUSED! fifo not empty 0x" << std::hex << commandFifo.size() << '\n';
-				g_isEmulationPaused = true;
+		if (fifoCollectCount == 0) {
+			gp0Command = GetNextFifoData();
+			if (!fifo.empty()) {
+				LogError(TAG, "Fifo is not empty on command receive, count: {}", fifo.size());
 
-				while (!commandFifo.empty())
-					commandFifo.pop();
+				while (!fifo.empty())
+					fifo.pop();
+
+				gp0Command = data;
 			}
 
 			fifoCollectCount = gp0Lookup[gp0Command >> 24].collectPramCount - 1;
@@ -350,16 +369,59 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 				collectCopyCpuToVramData = true;
 			else if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
 				collectPolylineParam = true;
+
+			//if (gp0Command >> 29 == 0b010)
+			//	LogTrace(TAG, "Line, recieved command: {:#010x}, count: {}", gp0Command, fifoCollectCount);
+
+		}
+		else {
+			fifoCollectCount--;
+
+			//if (collectPolylineParam)
+			//	LogTrace(TAG, "Collecting polyline data: {:#010x}, count: {}, ", gp0Command, fifoCollectCount);
+
+			if (fifoCollectCount == 0) {
+				if (collectPolylineParam) {
+					if ((data & 0xf000f000) == 0x50005000)
+						collectPolylineParam = false;
+
+					fifoCollectCount = 1;
+				}
+				else if (collectCopyCpuToVramData) {
+					collectCopyCpuToVramData = false;
+
+					destCoord = GetNextFifoData();
+					uint16_t xpos = destCoord & 0xffff;
+					uint16_t ypos = destCoord >> 16;
+					MaskPosCopy(xpos, ypos);
+					destCoord = ((uint32_t)ypos << 16) | xpos;
+
+					widthHeight = GetNextFifoData();
+					uint16_t xsiz = widthHeight & 0xffff;
+					uint16_t ysiz = widthHeight >> 16;
+					MaskSizCopy(xsiz, ysiz);
+					widthHeight = ((uint32_t)ysiz << 16) | xsiz;
+
+					fifoCollectCount = (xsiz * ysiz + 1) / 2;
+				}
+			}
 		}
 
 		if (fifoCollectCount == 0) {
 
-			if (g_GpuCommandsLogged)
+			/*if (g_GpuCommandsLogged)
 				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
 				<< " " << gp0Lookup[gp0Command >> 24].name
-				<< " memAdrTemp: 0x" << '\n';
+				<< " memAdrTemp: 0x" << '\n';*/
 
 			DecodeExecuteGp0Command(gp0Command);
+
+			if (!fifo.empty() && (gp0Command >> 29 != 0b110)) {
+				LogError(TAG, "Unused Command parameters, count: {}", fifo.size());
+
+				while (!fifo.empty())
+					fifo.pop();
+			}
 		}
 		return;
 	}
@@ -367,12 +429,13 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801814) {
 		gp1Command = data;
 
-		if (g_GpuCommandsLogged)
-			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';
+		/*if (g_GpuCommandsLogged)
+			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';*/
 
 		DecodeExecuteGp1Command(gp1Command);
 	}
 }
+
 
 void Gpu::Clock() {
 	if (cpuScanlineClocks == cpuClocksToHblank) {
@@ -430,38 +493,18 @@ void Gpu::Clock() {
 	cpuScanlineClocks++;
 }
 
-uint32_t Gpu::GetNextCommandFifoData() {
-	if (commandFifo.empty()) {
-		std::cout << "~[GPU] EMULATION PAUSED! Data requested but command fifo is empty\n";
-		g_isEmulationPaused = true;
+uint32_t Gpu::GetNextFifoData() {
+	if (fifo.empty()) {
+		LogError(TAG, "Data requested but fifo is empty");
+		return 0;
 	}
 
-	uint32_t data = commandFifo.front();
-	commandFifo.pop();
+	uint32_t data = fifo.front();
+	fifo.pop();
 	return data;
 }
 
 void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
-
-	auto maskPosFill = [](uint16_t& xpos, uint16_t& ypos) {
-		xpos = xpos & 0x3f0;
-		ypos = ypos & 0x1ff;
-		};
-
-	auto maskSizFill = [](uint16_t& xsiz, uint16_t& ysiz) {
-		xsiz = ((xsiz & 0x3ff) + 0x0f) & (~0x0f);
-		ysiz = ysiz & 0x1ff;
-		};
-
-	auto maskPosCopy = [](uint16_t& xpos, uint16_t& ypos) {
-		xpos = xpos & 0x3ff;
-		ypos = ypos & 0x1ff;
-		};
-
-	auto maskSizCopy = [](uint16_t& xsiz, uint16_t& ysiz) {
-		xsiz = ((xsiz - 1) & 0x3ff) + 1;
-		ysiz = ((ysiz - 1) & 0x1ff) + 1;
-		};
 
 	switch (command >> 29) {
 	case 0b000: //Misc commands
@@ -471,16 +514,16 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			param.primitiveType = FILL;
 			param.commandColor1 = command;
 
-			uint32_t pos = GetNextCommandFifoData();
+			uint32_t pos = GetNextFifoData();
 			uint16_t xpos = pos & 0xffff;
 			uint16_t ypos = pos >> 16;
-			maskPosFill(xpos, ypos);
+			MaskPosFill(xpos, ypos);
 			param.vert1 = Vector2D(xpos, ypos);
 
-			uint32_t size_x_y = GetNextCommandFifoData();
+			uint32_t size_x_y = GetNextFifoData();
 			uint16_t xsiz = size_x_y & 0xffff;
 			uint16_t ysiz = size_x_y >> 16;
-			maskSizFill(xsiz, ysiz);
+			MaskSizFill(xsiz, ysiz);
 			param.vert4 = param.vert1 + Vector2D(xsiz, ysiz);
 
 			FillRectVram(param);
@@ -509,40 +552,40 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 		param.commandColor1 = command;
 
-		param.vert1 = GetNextCommandFifoData();
+		param.vert1 = GetNextFifoData();
 		param.vert1 += drawOffset;
 
 		if (param.isTextured)
-			param.texCoord1Palette = GetNextCommandFifoData();
+			param.texCoord1Palette = GetNextFifoData();
 
 		if (param.shadingType == GOURAUD_SHADING)
-			param.color2 = GetNextCommandFifoData();
+			param.color2 = GetNextFifoData();
 
-		param.vert2 = GetNextCommandFifoData();
+		param.vert2 = GetNextFifoData();
 		param.vert2 += drawOffset;
 
 		if (param.isTextured)
-			param.texCoord2TexPage = GetNextCommandFifoData();
+			param.texCoord2TexPage = GetNextFifoData();
 
 		if (param.shadingType == GOURAUD_SHADING)
-			param.color3 = GetNextCommandFifoData();
+			param.color3 = GetNextFifoData();
 
-		param.vert3 = GetNextCommandFifoData();
+		param.vert3 = GetNextFifoData();
 		param.vert3 += drawOffset;
 
 		if (param.isTextured)
-			param.texCoord3 = GetNextCommandFifoData();
+			param.texCoord3 = GetNextFifoData();
 
 		param.vert4 = (0, 0);//Can it cause problems??
 		if (param.verticesNumber == 4) {
 			if (param.shadingType == GOURAUD_SHADING)
-				param.color4 = GetNextCommandFifoData();
+				param.color4 = GetNextFifoData();
 
-			param.vert4 = GetNextCommandFifoData();
+			param.vert4 = GetNextFifoData();
 			param.vert4 += drawOffset;
 
 			if (param.isTextured)
-				param.texCoord4 = GetNextCommandFifoData();
+				param.texCoord4 = GetNextFifoData();
 		}
 
 		if (param.isTextured) {
@@ -588,49 +631,52 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		param.transpanencyType = (command & 0x02000000) ? SEMI_TRANSPARENT : NOT_TRANSPARENT;
 
 		param.commandColor1 = command;
+		//LogTrace(TAG, "Line command: {:#010x}", command);
 
 		Vector2D tempVert;
 		PsxColor24 tempColor;
 
-		if (param.shadingType == FLAT_SHADING) {
-			tempVert = GetNextCommandFifoData(); //Vert1
-			tempVert += drawOffset;
-			for (int i = 0; i < commandFifo.size() - 1; i++) {
-				param.vert1 = tempVert;
-				param.vert2 = GetNextCommandFifoData();
-				param.vert2 += drawOffset;
+		if (param.shadingType == GOURAUD_SHADING)
+			tempColor = (command & 0x00ffffff); //Color1
+		tempVert = GetNextFifoData(); //Vert1
+		//LogTrace(TAG, "Line Vert1: {:#010x}", tempVert.data);
+		tempVert += drawOffset;
 
+		for (int i = 0;
+			param.isPolyline
+			|| (!param.isPolyline && (i < 1));
+			i++) {
+			uint32_t data = GetNextFifoData();
+			//LogTrace(TAG, "data: {:#010x}", data);
+
+			if (param.isPolyline)
+				if ((data & 0xf000f000) == 0x50005000)
+					break; //End of polyline
+
+			param.vert1 = tempVert;
+			if (param.shadingType == GOURAUD_SHADING) {
+				param.commandColor1 = tempColor.data;
+				param.color2 = data;
+				param.vert2 = GetNextFifoData();
+			}
+			else
+				param.vert2 = data;
+
+			//LogTrace(TAG, "Line Vert2: {:#010x}", param.vert2.data);
+
+			param.vert2 += drawOffset;
+
+			if (param.vert1 == param.vert2) { //Vertices overlaping
+				param.sizeYX = 0x00010001;
+				DrawMonochromeRect(param);
+			}
+			else
 				DrawLine(param);
 
-				tempVert = param.vert2;
-			}
-		}
-		else {
-			tempColor = (command & 0x00ffffff); //Color1
-			tempVert = GetNextCommandFifoData(); //Vert1
-			tempVert += drawOffset;
-
-			for (int i = 0; i < commandFifo.size() - 2; i += 2) {
-				param.vert1 = tempVert;
-				param.commandColor1 = tempColor.data;
-				param.color2 = GetNextCommandFifoData();
-				param.vert2 = GetNextCommandFifoData();
-				param.vert2 += drawOffset;
-
-				if (param.vert1 == param.vert2) { //Vertices overlaping
-					param.sizeYX = 0x00010001;
-					DrawMonochromeRect(param);
-				}
-				else
-					DrawLine(param);
-
+			if (param.shadingType == GOURAUD_SHADING)
 				tempColor = param.color2;
-				tempVert = param.vert2;
-			}
+			tempVert = param.vert2;
 		}
-
-		if (param.isPolyline)
-			GetNextCommandFifoData(); // pop 0x50005000
 
 		break;
 	}
@@ -646,15 +692,15 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 		param.commandColor1 = command;
 
-		param.vert1 = GetNextCommandFifoData();
+		param.vert1 = GetNextFifoData();
 		param.vert1 += drawOffset;
 
 		if (param.isTextured)
-			param.texCoord1Palette = GetNextCommandFifoData();
+			param.texCoord1Palette = GetNextFifoData();
 
 		switch (param.rectSize) {
 		case 0b00:
-			param.sizeYX = GetNextCommandFifoData();
+			param.sizeYX = GetNextFifoData();
 			break;
 		case 0b01:
 			param.sizeYX = 0x00010001;
@@ -675,22 +721,22 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		break;
 	}
 	case 0b100: { //VRAM-to-VRAM blit
-		uint32_t sourceCoord = GetNextCommandFifoData();
+		uint32_t sourceCoord = GetNextFifoData();
 		uint16_t xpos = sourceCoord & 0xffff;
 		uint16_t ypos = sourceCoord >> 16;
-		maskPosCopy(xpos, ypos);
+		MaskPosCopy(xpos, ypos);
 		sourceCoord = ((uint32_t)ypos << 16) | xpos;
 
-		uint32_t destCoord = GetNextCommandFifoData();
+		uint32_t destCoord = GetNextFifoData();
 		xpos = destCoord & 0xffff;
 		ypos = destCoord >> 16;
-		maskPosCopy(xpos, ypos);
+		MaskPosCopy(xpos, ypos);
 		destCoord = ((uint32_t)ypos << 16) | xpos;
 
-		uint32_t widthHeight = GetNextCommandFifoData();
+		uint32_t widthHeight = GetNextFifoData();
 		uint16_t xsiz = widthHeight & 0xffff;
 		uint16_t ysiz = widthHeight >> 16;
-		maskSizCopy(xsiz, ysiz);
+		MaskSizCopy(xsiz, ysiz);
 		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
 		CopyRectVramToVram(sourceCoord, destCoord, widthHeight);
@@ -698,39 +744,21 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		break;
 	}
 	case 0b101: //CPU-to-VRAM blit
-		if (collectCopyCpuToVramData) {
-			collectCopyCpuToVramData = false;
-
-			destCoord = GetNextCommandFifoData();
-			uint16_t xpos = destCoord & 0xffff;
-			uint16_t ypos = destCoord >> 16;
-			maskPosCopy(xpos, ypos);
-			destCoord = ((uint32_t)ypos << 16) | xpos;
-
-			widthHeight = GetNextCommandFifoData();
-			uint16_t xsiz = widthHeight & 0xffff;
-			uint16_t ysiz = widthHeight >> 16;
-			maskSizCopy(xsiz, ysiz);
-			widthHeight = ((uint32_t)ysiz << 16) | xsiz;
-
-			fifoCollectCount = (xsiz * ysiz + 1) / 2;
-		}
-		else
-			CopyRectCpuToVram(destCoord, widthHeight);
+		CopyRectCpuToVram(destCoord, widthHeight);
 
 		break;
 
 	case 0b110: { //VRAM-to-CPU blit
-		sourceCoord = GetNextCommandFifoData();
+		sourceCoord = GetNextFifoData();
 		uint16_t xpos = sourceCoord & 0xffff;
 		uint16_t ypos = sourceCoord >> 16;
-		maskPosCopy(xpos, ypos);
+		MaskPosCopy(xpos, ypos);
 		sourceCoord = ((uint32_t)ypos << 16) | xpos;
 
-		widthHeight = GetNextCommandFifoData();
+		widthHeight = GetNextFifoData();
 		uint16_t xsiz = widthHeight & 0xffff;
 		uint16_t ysiz = widthHeight >> 16;
-		maskSizCopy(xsiz, ysiz);
+		MaskSizCopy(xsiz, ysiz);
 		widthHeight = ((uint32_t)ysiz << 16) | xsiz;
 
 		CopyRectVramToCpu(sourceCoord, widthHeight);

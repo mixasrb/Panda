@@ -479,12 +479,11 @@ public:
 
 		std::stringstream ss;
 
-		ss << "System\n";
 		ss << "Minutes: " << g_systemMinutes << '\n';
 		ss << "Seconds: " << g_systemSeconds << '\n';
 		ss << "Frames: " << g_systemFrames << '\n';
 		ss << "Clocks: " << psx.gpu.cpuClocks;
-		DrawString(9, 512 + 4 - 1 * 9, ss.str(), olc::WHITE);
+		DrawString(9, 512 + 4, ss.str(), olc::WHITE);
 
 		return true;
 	}
