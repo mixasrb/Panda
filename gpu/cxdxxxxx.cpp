@@ -311,16 +311,14 @@ void Gpu::Read32(const uint32_t& addr, uint32_t& data) {
 
 	if (addr == 0x1f801810) {
 		if (gpuStat.elem.readyVramCpu) {
-			if (fifo.empty()) {
+			if (fifo.empty())
 				LogError(TAG, "GPU output FIFO is empty, but read requested");
-				data = 0;
-			}
 			else
 				data = GetNextFifoData();
 
-			if (fifo.empty()) {
+			if (fifo.empty())
 				gpuStat.elem.readyVramCpu = 0;
-			}
+
 			return;
 		}
 
