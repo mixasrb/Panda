@@ -1,6 +1,5 @@
 #include "hc05_pux.h"
 #include "../bus/bus_interface.h"
-#include "../debugger/debugger.h"
 
 static uint8_t ConvBcdToHex8(const uint8_t& dec) {
 	return (dec >> 4) * 10 + (dec & 0x0f);
@@ -52,7 +51,7 @@ void CdDrive::LoadRom(const uint8_t newDriveStatus, std::string newPath) {
 	file.close();
 
 	LogInfo(TAG, "Loaded rom: {} ({:.1f} MB)",
-		newPath, (float)fileSize/1024.0/1024.0);
+		newPath, (float)fileSize / 1024.0 / 1024.0);
 
 	uint16_t i = 1;
 	Track currentTrack;
@@ -204,8 +203,17 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 		case 0:
 			LogTrace(TAG, "Command received: {}", commandLookup[data].name);
 
-			if (!commandFifo.empty() || indexStatus.elem.busysts)
-				LogError(TAG, "Command received but previous one is not executed");
+			if (!commandFifo.empty())
+				LogError(TAG, "Command received, previous one is not executed");
+
+			if(indexStatus.elem.busysts)
+				LogWarn(TAG, "Command received, while previous one is executing");
+
+			if (!pendingInterrupts.empty())
+				LogWarn(TAG, "Command received, interrupt {} is pending", (uint8_t)pendingInterrupts.front());
+
+			if (irqFlagRead.elem.int_1_7)
+				LogWarn(TAG, "Command received, interrupt {} is not acknowledged", (uint8_t)irqFlagRead.elem.int_1_7);
 
 			commandFifo.push(data);
 			break;
@@ -391,6 +399,8 @@ void CdDrive::Clock() {
 
 		if (interruptEnable.data & irqFlagRead.data)
 			busPtr->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
+
+		return;
 	}
 
 	if (isFirstResponsePending
@@ -400,7 +410,8 @@ void CdDrive::Clock() {
 
 		SetResponseInterrupt(firstResponseInterrupt);
 
-		indexStatus.elem.busysts = 0;
+		if (!isSecondResponsePending)
+			indexStatus.elem.busysts = 0;
 	}
 	else if (!isFirstResponsePending && isSecondResponsePending
 		&& clocks >= waitClocksSecondResponse) {
@@ -408,6 +419,8 @@ void CdDrive::Clock() {
 		clocks = 0;
 
 		SetResponseInterrupt(secondResponseInterrupt);
+
+		indexStatus.elem.busysts = 0;
 	}
 	else if (!isFirstResponsePending && !isSecondResponsePending && isDataResponseActive
 		&& dataClocks >= (waitClocksDataResponse /*+ 0x36cd2 * 1 / 10*/)) {
@@ -459,7 +472,7 @@ void CdDrive::Clock() {
 	}
 
 	if (!isFirstResponsePending && !isSecondResponsePending &&
-		!commandFifo.empty()) {
+		!commandFifo.empty() && pendingInterrupts.empty()) {
 		clocks = 0;
 
 		ExecuteNextCommand();
@@ -848,7 +861,7 @@ void CdDrive::Stop() {
 	CancelReading();
 
 	uint8_t firstResponse[1] = { stat.data };
-	SetFirstResult(0xc4e1, INTERRUPT_3, firstResponse, 1);
+	SetFirstResult(0x1c4e1, INTERRUPT_3, firstResponse, 1);
 
 	stat.elem.spindleMotor = 0;
 
@@ -866,7 +879,7 @@ void CdDrive::Pause() {
 		secondWaitClocks = 0x0001df2;
 
 	uint8_t firstResponse[1] = { stat.data };
-	SetFirstResult(0xc4e1, INTERRUPT_3, firstResponse, 1);
+	SetFirstResult(0x1c4e1, INTERRUPT_3, firstResponse, 1);
 
 	CancelReading();
 

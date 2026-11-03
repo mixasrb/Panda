@@ -113,7 +113,7 @@ const char* g_romBinPath =
 
 //have game breaking bugs
 	
-	("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
+	//("D:/projects/emulation_psx/binaries/roms/007 - The World Is Not Enough (USA).bin");// DMA3 CDROM 0x11400100h //low fps //mdec intro mission problem needs manual firing dma1 irq // gets stuck after pressing start can be bypassed by comenting emulation paused in r32 and w32 ram access
 
 	//("D:/projects/emulation_psx/binaries/roms/Crash Bandicoot Warped (May 14, 1998 prototype)/CRASH3.bin"); //[CP0] EMULATION PAUSED! triggered exception code: 0x5 //[BUS] EMULATION PAUSED!invalid ram addr write32 0x8083e178 data 0x10e19
 
@@ -399,7 +399,7 @@ const char* g_romBinPath =
 	//("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 	//("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution //needs clocks >= waitClocksFirstResponse+ <= 0x36cd2 * 5 / 20 fixed??
-	//("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
+	("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
 
 	//[warning] [CD_DRIVE] Play command issued without setLoc or parameter track
 	//("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };

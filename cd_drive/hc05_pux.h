@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 
+#include "../debugger/debugger.h"
+
 
 constexpr uint32_t SYSTEM_CLOCK = 44100 * 0x300; //33 868 800
 
@@ -16,8 +18,6 @@ class CdDrive {
 public:
 
 	CdDrive();
-
-	const char* TAG = "CD_DRIVE";
 
 	void LoadRom(const uint8_t newDriveStatus, std::string newPath);
 
@@ -296,6 +296,8 @@ public:
 	uint8_t* emptySectorPtr = (uint8_t*)calloc(0x930, sizeof(uint8_t));
 
 	//debug
+
+	const char* TAG = TAG_CD_DRIVE;
 
 	void PrintDriveMode();
 	void PrintStatus();

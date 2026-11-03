@@ -557,7 +557,7 @@ void Gpu::DrawTexRect(const Param& param) {
 			else
 				frontPixelColor.data = clutCache.GetColor(
 					texData >> (((x + (u1 & textureBitness.firstAnd))
-					& textureBitness.firstAnd) << textureBitness.shiftLeft)
+						& textureBitness.firstAnd) << textureBitness.shiftLeft)
 					& textureBitness.secondAnd);
 
 			if (frontPixelColor.data) {
@@ -633,6 +633,9 @@ void Gpu::CopyRectVramToCpu(const uint32_t& source_coord, const uint32_t& width_
 
 	if ((i & 0x1) == 1) // odd number of pixels
 		fifo.push(data32);
+
+	if ((i & 0x1) == 1)
+		LogTrace(TAG, "Odd number pixels CopyRectVramToCpu");
 }
 
 void Gpu::CopyRectVramToVram(const uint32_t& sourceCoord, const uint32_t& destCoord, const uint32_t& widthHeight) {

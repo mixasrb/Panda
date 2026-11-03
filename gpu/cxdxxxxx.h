@@ -14,9 +14,9 @@ inline uint16_t Signed11bit(const uint16_t& val) {
 	return ((int16_t)(val << 5)) >> 5;
 }
 
-struct Vector2D {
+union Vector2D {
 
-	Vector2D() : x(0), y(0) {}
+	Vector2D() : data(0) {}
 
 	Vector2D(const uint32_t& xTemp, const uint32_t& yTemp) {
 		x = uint16_t(xTemp);
@@ -28,13 +28,12 @@ struct Vector2D {
 		y = Signed11bit((coord >> 16) & 0x7ff);
 	}
 
-	union {
-		struct {
-			int16_t x;
-			int16_t y;
-		};
-		uint32_t data;
+	uint32_t data;
+	struct {
+		int16_t x;
+		int16_t y;
 	};
+
 
 	Vector2D operator+ (const Vector2D& b) const {
 		return Vector2D(x + b.x, y + b.y);
@@ -51,7 +50,7 @@ struct Vector2D {
 		return Vector2D(x * c, y * c);
 	}
 	bool operator== (const Vector2D& b) const {
-		return (x == b.x && y == b.y);
+		return (data == b.data);
 	}
 };
 
@@ -61,8 +60,6 @@ class Gpu {
 public:
 
 	Gpu();
-
-	const char* TAG = "GPU";
 
 	BusInterface* BusPtr;
 
@@ -344,9 +341,9 @@ public:
 
 	std::unique_ptr<uint8_t[]> vram = std::make_unique<uint8_t[]>(size_x_b * size_y);
 
-	void WriteVram(const Vector2D& position, const uint16_t& data, 
+	void WriteVram(const Vector2D& position, const uint16_t& data,
 		const bool& bIgnoreDrawingArea = false, const bool& bDithering = false);
-	void ReadVram(const Vector2D& position, uint16_t& data, 
+	void ReadVram(const Vector2D& position, uint16_t& data,
 		const bool& bIgnoreDrawingArea = false) const;
 
 	olc::Sprite* GetVramSprite();
@@ -396,4 +393,6 @@ public:
 	}clutCache;
 
 	//debug
+
+	const char* TAG = "GPU";
 };
