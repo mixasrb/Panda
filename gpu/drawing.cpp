@@ -222,7 +222,7 @@ void Gpu::DrawPolygon(const Param& param) {
 		else
 			calculatedPixelColor = param.commandColor1;
 
-		frontPixelColor.data = format24to16Color(calculatedPixelColor.data);
+		frontPixelColor.data = Format24To16Color(calculatedPixelColor.data);
 
 		if (param.transpanencyType == SEMI_TRANSPARENT)
 			CalculateTransparency(p, frontPixelColor);
@@ -391,7 +391,7 @@ void Gpu::DrawMonochromeRect(const Param& param) {
 		for (int16_t x = x1; x < x2; x++) {
 			Vector2D p(x, y);
 
-			PsxColor16 frontPixelColor = format24to16Color(param.commandColor1);
+			PsxColor16 frontPixelColor = Format24To16Color(param.commandColor1);
 
 			if (param.transpanencyType == SEMI_TRANSPARENT)
 				CalculateTransparency(p, frontPixelColor);
@@ -459,11 +459,11 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math //
 					+ (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
 
-				frontPixelColor = format24to16Color(calculatedColor.data);
+				frontPixelColor = Format24To16Color(calculatedColor.data);
 			}
 
 			if (param.shadingType == FLAT_SHADING)
-				frontPixelColor = format24to16Color(param.commandColor1);
+				frontPixelColor = Format24To16Color(param.commandColor1);
 
 			if (param.transpanencyType == SEMI_TRANSPARENT)
 				CalculateTransparency(p, frontPixelColor);
@@ -495,11 +495,11 @@ void Gpu::DrawLine(const Param& param) { //could be optimized //too much math //
 					+ (float)color2.component.blue * lamda2) > (float)0xff) ? 0xff :
 					(float)color1.component.blue * lamda1 + (float)color2.component.blue * lamda2;
 
-				frontPixelColor = format24to16Color(calculatedColor.data);
+				frontPixelColor = Format24To16Color(calculatedColor.data);
 			}
 
 			if (param.shadingType == FLAT_SHADING)
-				frontPixelColor = format24to16Color(param.commandColor1);
+				frontPixelColor = Format24To16Color(param.commandColor1);
 
 			if (param.transpanencyType == SEMI_TRANSPARENT)
 				CalculateTransparency(p, frontPixelColor);
@@ -672,7 +672,7 @@ void Gpu::FillRectVram(const Param& param) {
 	int16_t x2 = param.vert4.x;
 	int16_t y2 = param.vert4.y;
 
-	uint16_t data = format24to16Color(param.commandColor1);
+	uint16_t data = Format24To16Color(param.commandColor1);
 
 	uint32_t oldSetMaskBitWhileDrawing = gpuStat.elem.setMaskBitWhileDrawing;
 	gpuStat.elem.setMaskBitWhileDrawing = 0;

@@ -4,7 +4,7 @@
 #undef CONSOLE_LOGGING
 #undef DEBUG_VIEW
 #undef ACCURATE_SPU_CLOCKING
-#define CONSOLE_LOGGING 1
+#define CONSOLE_LOGGING 0
 #define DEBUG_VIEW 1
 #define ACCURATE_SPU_CLOCKING 0
 
@@ -71,7 +71,7 @@ const char* g_sideloadPath =
 	//("D:/projects/emulation_psx/binaries/tests/GTEAVSZ.exe");
 
 uint8_t g_driveStatus =
-//uint8_t g_driveStatus = _NO_DISC;
+	//_NO_DISC;
 	_LICENCED_MODE_2;
 
 //Games that are not working
@@ -344,7 +344,7 @@ const char* g_romBinPath =
 	//("D:/projects/emulation_psx/binaries/roms/Arc the Lad Collection - Arc the Lad.bin");//[BUS] EMULATION PASUED! unhandled addr read32 0x1f801014 1F801014h 4    SPU_DELAY   Delay/Size (usually 200931E1h) // gte
 	//("D:/projects/emulation_psx/binaries/roms/Lunar - Silver Star Story Complete (USA) (Disc 1)/Lunar - Silver Star Story Complete (USA) (Disc 1) (Track 1).bin"); //code execution goes wrong // 0x80000080 overwriten 
 	//("D:/projects/emulation_psx/binaries/roms/Lunar 2 - Eternal Blue Complete (USA) (Disc 1).bin");// get stuck?? fixed??
-	//("D:/projects/emulation_psx/binaries/roms/Adventures of Lomax, The (USA)/Adventures of Lomax, The (USA) (Track 01).bin"); //GetTN , addr 0x1f8005e0 ?? fixed maybe // gte??
+	("D:/projects/emulation_psx/binaries/roms/Adventures of Lomax, The (USA)/Adventures of Lomax, The (USA) (Track 01).bin"); //GetTN , addr 0x1f8005e0 ?? fixed maybe // gte??
 	//("D:/projects/emulation_psx/binaries/roms/Street Fighter Alpha 3/Street Fighter Alpha 3 (Track 1).bin"); //GetTN-, invalid setlock asect value 0x8c setmode CDDA bit set?? //but works
 
 
@@ -410,7 +410,7 @@ const char* g_romBinPath =
 
 
 	//Accesing [JOY/MEMCARD] to mutch times
-	("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
+	//("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
 	//("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 

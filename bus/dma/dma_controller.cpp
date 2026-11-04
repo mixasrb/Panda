@@ -204,7 +204,7 @@ void DmaController::Clock() {
 
 		//0->1
 		if (!bOldMasterFlag && interruptRegister.reg.IRQ_master_flag)
-			pbus->pCpu->cp0.interruptHandler(_IRQ_DMA);
+			pbus->pCpu->cp0.InterruptHandler(_IRQ_DMA);
 	}
 }
 

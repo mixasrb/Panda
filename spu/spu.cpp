@@ -786,15 +786,10 @@ void Spu::Read8(const uint32_t& addr, uint8_t& data) {
 	}
 }
 
-void Spu::Write8(const uint32_t& addr, const uint8_t& data) {
-	std::cout << "[SPU] EMULATION PASUED! Unhandled write8 adress 0x" << std::hex << addr << " data 0x" << std::hex << (uint16_t)data << "\n";
-	g_isEmulationPaused = true;
-}
-
 void Spu::IrqSend() {
 	if (spuControlRegister.elem.irq9Enable) //metal gear solid
 		if (spuStatusRegister.elem.irq9Flag == 0) {
-			pBus->pCpu->cp0.interruptHandler(_IRQ_SPU);
+			pBus->pCpu->cp0.InterruptHandler(_IRQ_SPU);
 			spuStatusRegister.elem.irq9Flag = 1;
 		}
 }

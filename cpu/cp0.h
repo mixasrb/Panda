@@ -27,7 +27,7 @@ public:
 	typedef uint8_t excode_t;
 	void exceptionHandler(const excode_t& code, const uint32_t addrRef = 0);
 
-	void interruptHandler(const uint32_t& irq);
+	void InterruptHandler(const uint32_t& irq);
 	void updateInterruptMaskStat();
 
 	bool executeInterrupt = false;

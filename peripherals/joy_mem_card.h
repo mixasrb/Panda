@@ -3,10 +3,13 @@
 #include <cstdint>
 #include <vector>
 
+#include "../debugger/debugger.h"
+
 class BusInterface;
 
 class joyMemCard_t {
 public:
+
 	joyMemCard_t();
 	~joyMemCard_t();
 
@@ -183,4 +186,6 @@ public:
 	uint8_t memCards[2][128 * 1024];
 
 	//debug
+
+	const char* TAG = TAG_PERIPHERALS;
 };

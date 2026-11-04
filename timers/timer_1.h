@@ -10,6 +10,6 @@ public:
 	void Write32(const uint32_t& addr, const uint32_t& data) override;
 	void Clock(const uint8_t& source) override;
 	uint16_t pulsingTime = 0;
-	bool bVblank = false;
+	bool isDrawingInVblank = false;
 	bool bSynchronizationEnable = false;
 };

@@ -130,6 +130,6 @@ void timer0_t::Clock(const uint8_t& source) {
 				pulsingTime++;
 
 		if ((irqOld == 1) && (counterMode.elem.irq == 0))
-			pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_0);
+			pBus->pCpu->cp0.InterruptHandler(_IRQ_TIMER_0);
 	}
 }

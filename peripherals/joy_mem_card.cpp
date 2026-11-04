@@ -1,15 +1,12 @@
 #include "joy_mem_card.h"
 
 #include "../bus/bus_interface.h"
+#include "../debugger/debugger.h"
 
 extern const char* g_memCardPaths[2];
 
 extern bool g_isEmulationPaused;
 extern bool g_buttonPressed;
-extern uint32_t g_systemClocksFrame;
-extern uint32_t g_systemFrames;
-extern uint32_t g_systemSeconds;
-extern uint32_t g_systemMinutes;
 
 joyMemCard_t::joyMemCard_t() {
 	joyRxData.elem.firstEntry = 0xff;
@@ -259,13 +256,12 @@ void joyMemCard_t::cpuWrite8(const uint32_t& addr, const uint8_t& data) {
 			if (device == MEM_CARD) {
 				memCardCommand = joyTxData.elem.dataToBeSent;
 
-				if ((memCardCommand != 0x52) && (memCardCommand != 0x57) && (memCardCommand != 0x58) && (memCardCommand != 0x5a)) {
-					std::cout << "[JOY/MEMCARD] Unhandled memory card command 0x" << std::hex << (uint16_t)memCardCommand << " sequence index: " << std::dec << (uint16_t)sequvenceIndex
-						<< " system clocks: " << std::dec << g_systemClocksFrame << " system frames: " << std::dec << g_systemFrames
-						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes << '\n';
-					g_isEmulationPaused = true;
-				}
-				if ((memCardCommand == 0x58) || (memCardCommand == 0x5a)) { //Street Fighter Alpha 3, Final Fantasy VIII //Jade Cocoon - Story of the Tamamayu (USA)
+				if ((memCardCommand != 0x52) && (memCardCommand != 0x57)
+					&& (memCardCommand != 0x58) && (memCardCommand != 0x5a))
+					LogError(TAG, "Unhandled memory card command {:#02x} sequence index: {}", memCardCommand, sequvenceIndex);
+
+				//Street Fighter Alpha 3, Final Fantasy VIII //Jade Cocoon - Story of the Tamamayu (USA)
+				if ((memCardCommand == 0x58) || (memCardCommand == 0x5a)) {
 					bSendingData = false;
 					bACK = false;
 					sequvenceIndex = 0;
@@ -778,7 +774,7 @@ void joyMemCard_t::clock() {
 					if (g_buttonPressed)
 						std::cout << "[JOY/MEMCARD] IRQ7" << /*" system clocks: " << std::dec << g_systemClocks << " system frames: " << std::dec << g_systemFrames
 						<< " system seconds: " << std::dec << g_systemSeconds << " system minutes: " << std::dec << g_systemMinutes <<*/ '\n';
-					pBus->pCpu->cp0.interruptHandler(_IRQ_7);
+					pBus->pCpu->cp0.InterruptHandler(_IRQ_7);
 				}
 				else {
 					if (g_buttonPressed)

@@ -171,7 +171,7 @@ void CP0::updateInterruptMaskStat() {
 	//}
 }
 
-void CP0::interruptHandler(const uint32_t& irq) {
+void CP0::InterruptHandler(const uint32_t& irq) {
 	pCpu->pBus->interruptStat |= irq;
 	updateInterruptMaskStat();
 }

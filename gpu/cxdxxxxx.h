@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "../dependencies/olcPixelGameEngine.h"
+#include "../debugger/debugger.h"
 
 #define size_x_b 2048
 #define size_x 1024 //half words
@@ -183,7 +184,7 @@ public:
 		}component;
 	};
 
-	uint16_t format24to16Color(const uint32_t& input) {
+	uint16_t Format24To16Color(const uint32_t& input) {
 		PsxColor24 color24 = (PsxColor24)(input & 0x00ffffff);
 		PsxColor16 color16 = 0;
 		color16.component.red = color24.component.red >> 3;
@@ -393,5 +394,5 @@ public:
 
 	//debug
 
-	const char* TAG = "GPU";
+	const char* TAG = TAG_GPU;
 };

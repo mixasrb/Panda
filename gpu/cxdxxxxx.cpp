@@ -3,7 +3,6 @@
 
 #include "cxdxxxxx.h"
 #include "../bus/bus_interface.h"
-#include "../debugger/debugger.h"
 
 //TO DO 
 //Define option for old and new GPU 
@@ -351,7 +350,7 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 		if (fifoCollectCount == 0) {
 			gp0Command = GetNextFifoData();
 			if (!fifo.empty()) {
-				LogError(TAG, "Fifo is not empty on command receive, count: {}", fifo.size());
+				LogError(TAG, "FIFO is not empty on command receive, count: {}", fifo.size());
 
 				while (!fifo.empty())
 					fifo.pop();
@@ -400,8 +399,8 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 			DecodeExecuteGp0Command(gp0Command);
 
-			if(g_GpuCommandsLogged)
-				LogTrace(TAG, "Executed GP0 command: {}", gp0Lookup[gp0Command >> 24].name);
+			if (g_GpuCommandsLogged)
+				LogTrace(TAG, "Executed GP0: {}", gp0Lookup[gp0Command >> 24].name);
 
 			if (!fifo.empty() && (gp0Command >> 29 != 0b110)) {
 				LogError(TAG, "Unused command parameters, count: {}", fifo.size());
@@ -423,6 +422,7 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 void Gpu::Clock() {
 	scanlineClocksCpu++;
+
 	if (scanlineClocksCpu == cpuClocksToHblank) {
 		//Hblank clocking timer 1
 		BusPtr->timer0.bHblank = true;
@@ -437,17 +437,17 @@ void Gpu::Clock() {
 
 		if (gpuStat.elem.verticalInterlace)
 			if (!gpuStat.elem.verticalRes)
-				gpuStat.elem.drawingEvenOddLines = 
+				gpuStat.elem.drawingEvenOddLines =
 				(scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
 
 		if (scanlineCount == screenY2) {
-			BusPtr->timer1.bVblank = true;
+			BusPtr->timer1.isDrawingInVblank = true;
 
 			if (g_GpuCommandsLogged)
 				LogTrace(TAG, "GPU VBlank IRQ sent");
 
 			//V-Sync interrupt is naturally edge trigered
-			BusPtr->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
+			BusPtr->pCpu->cp0.InterruptHandler(_IRQ_VBLANK_);
 
 
 			//Vblank synchronization timer 1
@@ -455,7 +455,7 @@ void Gpu::Clock() {
 		}
 		else if (scanlineCount == scanlineNumber) {
 			scanlineCount = 0;
-			BusPtr->timer1.bVblank = false;
+			BusPtr->timer1.isDrawingInVblank = false;
 
 			if (gpuStat.elem.verticalInterlace)
 				if (gpuStat.elem.verticalRes)
@@ -472,7 +472,7 @@ void Gpu::Clock() {
 
 uint32_t Gpu::GetNextFifoData() {
 	if (fifo.empty()) {
-		LogError(TAG, "Data requested but fifo is empty");
+		LogError(TAG, "Data requested but FIFO is empty");
 		return 0;
 	}
 
@@ -511,11 +511,9 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			clutCache.Invalidate();
 		}
 		else {
-			if (command >> 24 == 0x1f) {
-				std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU0 command 0x"
-					<< std::hex << command << " " << gp0Lookup[(command >> 24)].name << "\n";
-				g_isEmulationPaused = true;
-			}
+			if (command >> 24 == 0x1f)
+				LogError(TAG, "Unhandled GPU0 command {:#010x} {}",
+					command, gp0Lookup[(command >> 24)].name);
 		}
 		break;
 	case 0b001: {
@@ -600,7 +598,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		break;
 	}
 	case 0b010: {
-		//TODO : Not sure if shading is corectly implemented
+		//TODO : Shading is not implemented
 		Param param;
 		param.primitiveType = LINE;
 		param.shadingType = (command & 0x10000000) ? GOURAUD_SHADING : FLAT_SHADING;
@@ -628,7 +626,7 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 
 			if (param.isPolyline)
 				if ((data & 0xf000f000) == 0x50005000)
-					break; //End of polyline
+					break; //End of polyline params
 
 			param.vert1 = tempVert;
 			if (param.shadingType == GOURAUD_SHADING) {
@@ -726,13 +724,13 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 		break;
 
 	case 0b110: { //VRAM-to-CPU blit
-		sourceCoord = GetNextFifoData();
+		uint32_t sourceCoord = GetNextFifoData();
 		uint16_t xpos = sourceCoord & 0xffff;
 		uint16_t ypos = sourceCoord >> 16;
 		MaskPosCopy(xpos, ypos);
 		sourceCoord = ((uint32_t)ypos << 16) | xpos;
 
-		widthHeight = GetNextFifoData();
+		uint32_t widthHeight = GetNextFifoData();
 		uint16_t xsiz = widthHeight & 0xffff;
 		uint16_t ysiz = widthHeight >> 16;
 		MaskSizCopy(xsiz, ysiz);
@@ -784,9 +782,8 @@ void Gpu::DecodeExecuteGp0Command(const uint32_t& command) {
 			break;
 
 		default:
-			std::cout << "~[GPU] EMULATION PAUSED! Unhandled environment command 0x"
-				<< std::hex << command << '\n';
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled environment GP0 command {:#010x} {}",
+				command, gp0Lookup[(command >> 24)].name);
 			break;
 
 			break;
@@ -900,10 +897,8 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 		break;
 	case 0x4:
 		gpuStat.elem.directionDMA = command & 0x3;
-		if (gpuStat.elem.directionDMA == 1) {
-			std::cout << "[GPU] EMULATION PAUSED! DMA Direction FIFO" << '\n';
-			g_isEmulationPaused = true;
-		}
+		if (gpuStat.elem.directionDMA == 1)
+			LogError(TAG, "Unhandled DMA request if FIFO is not full");
 		break;
 	case 0x5:
 		displayStart.x = command & 0x3ff;
@@ -982,28 +977,25 @@ void Gpu::DecodeExecuteGp1Command(const uint32_t& command) {
 			gp1Result = gp1DrawOffset;
 			break;
 		case 7:
-			//std::cout << "~[GPU] Old 160pin GPU" << '\n';
+			//LogInfo(TAG, "Old 160pin GPU v1?"); //??
 
-			std::cout << "~[GPU] New 208pin GPU v2" << '\n';
+			LogInfo(TAG, "New 208pin GPU v2");
 			gp1Result = 0x2;
 			break;
 		default:
-			std::cout << "~[GPU] EMULATION PAUSED! unhandled GPU1 command 10 subfunction : 0x"
-				<< std::hex << command << '\n';
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled GPU1 command 10 subfunction: {:#010x}", command);
 			break;
 		}
 		break;
 	default:
-		std::cout << "~[GPU] unhandled GPU1 command: 0x" << std::hex << command << '\n';
-		g_isEmulationPaused = true;
+		LogError(TAG, "Unhandled GPU1 command {:#010x}", command);
 		break;
 	}
 	return;
 }
 
 void Gpu::UpdateVramView(const Vector2D& possition, const PsxColor16& color16) {
-	auto ConvertPSXtoPC_RGB_Values = [=](const PsxColor16& color16) {
+	auto psxToPcRgb = [=](const PsxColor16& color16) {
 		olc::Pixel pixel;
 		pixel.r = color16.component.red << 3;
 		pixel.g = color16.component.green << 3;
@@ -1011,7 +1003,7 @@ void Gpu::UpdateVramView(const Vector2D& possition, const PsxColor16& color16) {
 		return pixel;
 		};
 
-	vramView->SetPixel(possition.x, possition.y, ConvertPSXtoPC_RGB_Values(color16));
+	vramView->SetPixel(possition.x, possition.y, psxToPcRgb(color16));
 
 	/*if (g_logPixel && (possition.x == g_mousePossitionX) && (possition.y == g_mousePossitionY)) {
 		vramView->SetPixel(possition.x, possition.y, olc::YELLOW);

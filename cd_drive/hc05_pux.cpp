@@ -398,7 +398,7 @@ void CdDrive::Clock() {
 			LogError(TAG, "Unhandled sending interrupt 10");
 
 		if (interruptEnable.data & irqFlagRead.data)
-			busPtr->pCpu->cp0.interruptHandler(_IRQ_CD_ROM);
+			busPtr->pCpu->cp0.InterruptHandler(_IRQ_CD_ROM);
 
 		return;
 	}

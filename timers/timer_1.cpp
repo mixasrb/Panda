@@ -68,7 +68,7 @@ void timer1_t::Write32(const uint32_t& addr, const uint32_t& data) {
 void timer1_t::Clock(const uint8_t& source) {
 	if (bSynchronizationEnable) {
 		if (counterMode.elem.synchronizationMode == 0) {
-			if (bVblank)
+			if (isDrawingInVblank)
 				return;
 		}
 		else if (counterMode.elem.synchronizationMode == 1) {
@@ -82,7 +82,7 @@ void timer1_t::Clock(const uint8_t& source) {
 				currentValue.elem.currentCounterValue = 0;
 				return;
 			}
-			else if (bVblank)
+			else if (isDrawingInVblank)
 				return;
 		}
 		else if (counterMode.elem.synchronizationMode == 3) {
@@ -134,6 +134,6 @@ void timer1_t::Clock(const uint8_t& source) {
 				pulsingTime++;
 
 		if ((irqOld == 1) && (counterMode.elem.irq == 0))
-			pBus->pCpu->cp0.interruptHandler(_IRQ_TIMER_1);
+			pBus->pCpu->cp0.InterruptHandler(_IRQ_TIMER_1);
 	}
 }

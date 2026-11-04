@@ -33,7 +33,6 @@ public:
 	void Write16(const uint32_t& addr, const uint16_t& data);
 
 	void Read8(const uint32_t& addr, uint8_t& data);
-	void Write8(const uint32_t& addr, const uint8_t& data);
 
 	Output Clock();
 
