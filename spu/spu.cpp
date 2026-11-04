@@ -2,7 +2,7 @@
 #include "../bus/bus_interface.h"
 
 extern bool g_isEmulationPaused;
-extern uint32_t g_systemClocks;
+extern uint32_t g_systemClocksFrame;
 extern uint32_t g_systemFrames;
 extern uint32_t g_systemSeconds;
 extern uint32_t g_systemMinutes;

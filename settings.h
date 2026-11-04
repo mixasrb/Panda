@@ -26,6 +26,8 @@ constexpr uint32_t CPU_CLOCKS_PER_FRAME_NTSC = ((float)CPU_CLOCK / 59.29f);
 constexpr uint32_t CPU_CLOCKS_PER_FRAME_PAL = ((float)CPU_CLOCK / 49.76f);
 constexpr uint32_t CPU_CLOCKS_PER_FRAME = CPU_CLOCKS_PER_FRAME_NTSC;
 
+uint32_t g_cpuClocksPerFrame = CPU_CLOCKS_PER_FRAME;
+
 const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/scph101.bin");
 //const char* g_biosPath = ("D:/projects/emulation_psx/binaries/bios/SCPH-102B.BIN");//PAL
 
@@ -399,7 +401,7 @@ const char* g_romBinPath =
 	//("D:/projects/emulation_psx/binaries/roms/Spyro - Year of the Dragon (Europe) (En,Fr,De,Es,It) (v1.0).bin");
 
 	//("D:/projects/emulation_psx/binaries/roms/lt.bin"); //setfilter// setmode 0xca// getlocL // dont pass nowhere select gte related//stops execution //needs clocks >= waitClocksFirstResponse+ <= 0x36cd2 * 5 / 20 fixed??
-	("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
+	//("D:/projects/emulation_psx/binaries/roms/bb.bin"); //setfilter// setmode 0x4a// getlocL//GTE //needs + 0x36cd2 * 8 / 10 fixed // missing some sound effects or music plays when it should not
 
 	//[warning] [CD_DRIVE] Play command issued without setLoc or parameter track
 	//("D:/projects/emulation_psx/binaries/roms/Lucky_Luke_(USA)/Lucky Luke (USA) (Track 01).bin"); // setfilter //mdec // but works //getTN firstResponse = { stat, 0x1, 0x23 }; //getTD firstResponse = { stat, 20, 40 };
@@ -407,8 +409,8 @@ const char* g_romBinPath =
 	//("D:/projects/emulation_psx/binaries/roms/Looney Tunes - Sheep Raider.bin"); //mdec? //GetlocP // 0xffff93f0 unhandled fixed??//gets stuck at level 1?
 
 
-
-	//("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
+	//Accesing [JOY/MEMCARD] to mutch times
+	("D:/projects/emulation_psx/binaries/roms/Disney's Tarzan/Disney's Tarzan (v1.1) (Track 1).bin");
 
 	//("D:/projects/emulation_psx/binaries/roms/Disney's Hercules Action Game (v1.1).bin"); //mdec //gte
 

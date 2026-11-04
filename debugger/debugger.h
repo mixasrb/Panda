@@ -12,14 +12,16 @@
 
 extern bool g_isEmulationPaused;
 
-extern uint32_t g_systemClocks;
+extern uint32_t g_systemClocksFrame;
 extern uint32_t g_systemFrames;
 extern uint32_t g_systemSeconds;
 extern uint32_t g_systemMinutes;
+extern uint32_t g_cpuClocksPerFrame;
 
 namespace dbg {
 
 	struct EmulationTime {
+		uint32_t clocksPerFrame;
 		uint32_t clocks;
 		uint32_t frames;
 		uint32_t seconds;
@@ -28,7 +30,8 @@ namespace dbg {
 
 	struct EmulationClock {
 		static const EmulationTime get_current_time() {
-			return { g_systemClocks, g_systemFrames, g_systemSeconds, g_systemMinutes };
+			return { g_cpuClocksPerFrame, g_systemClocksFrame, 
+				g_systemFrames, g_systemSeconds, g_systemMinutes };
 		}
 	};
 
@@ -39,8 +42,8 @@ namespace dbg {
 
 			EmulationTime time = EmulationClock::get_current_time();
 
-			std::string time_str = std::format("{:02d}:{:02d}:{:02d}:{:08d}",
-				time.minutes, time.seconds, time.frames, time.clocks);
+			std::string time_str = std::format("{:02d}:{:02d}:{:02d}:{:06d}/{:06d}",
+				time.minutes, time.seconds, time.frames, time.clocks, time.clocksPerFrame);
 
 			dest.append(time_str.data(), time_str.data() + time_str.size());
 		}
@@ -58,7 +61,7 @@ namespace dbg {
 		formatter->add_flag<AppClockTimeFlag>('*');
 
 		// Set the pattern: [%*] will now inject your app clock string
-		formatter->set_pattern("[%*] %^[%l]%$ %v");
+		formatter->set_pattern("[%*] [%^%l%$] %v");
 
 		spdlog::set_formatter(std::move(formatter));
 

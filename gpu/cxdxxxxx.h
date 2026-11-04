@@ -89,13 +89,12 @@ public:
 	uint8_t dotClockDevider = 4;
 	uint16_t horizontalResolution = 640;
 
-	uint32_t cpuClocks;
-	uint32_t cpuFrameClocks;
-	uint32_t cpuScanlineClocks;
+	uint32_t scanlineClocksCpu;
 	uint32_t cpuClocksToHblank;
 	uint32_t cpuScanlineClocksNumber;
 	uint32_t scanlineNumber;
 	uint32_t scanlineCount;
+	uint8_t dotClockCounter = 0;
 
 	union GpuStat {
 		uint32_t data;

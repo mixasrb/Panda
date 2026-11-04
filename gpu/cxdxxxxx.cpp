@@ -295,9 +295,7 @@ Gpu::Gpu() {
 		{ "NOP (?)", 1 },
 	};
 
-	cpuClocks = 0;
-	cpuFrameClocks = 0;
-	cpuScanlineClocks = 0;
+	scanlineClocksCpu = 0;
 	cpuClocksToHblank = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	cpuScanlineClocksNumber = CPU_CLOCKS_PER_SCANLINE_NTSC;
 	scanlineNumber = SCANLINE_NUMBER_NTSC;
@@ -367,16 +365,9 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 				collectCopyCpuToVramData = true;
 			else if ((gp0Command >> 29 == 0b010) && (gp0Command & 0x08000000))
 				collectPolylineParam = true;
-
-			//if (gp0Command >> 29 == 0b010)
-			//	LogTrace(TAG, "Line, recieved command: {:#010x}, count: {}", gp0Command, fifoCollectCount);
-
 		}
 		else {
 			fifoCollectCount--;
-
-			//if (collectPolylineParam)
-			//	LogTrace(TAG, "Collecting polyline data: {:#010x}, count: {}, ", gp0Command, fifoCollectCount);
 
 			if (fifoCollectCount == 0) {
 				if (collectPolylineParam) {
@@ -407,15 +398,13 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 
 		if (fifoCollectCount == 0) {
 
-			/*if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU0 command executed: 0x" << std::hex << gp0Command
-				<< " " << gp0Lookup[gp0Command >> 24].name
-				<< " memAdrTemp: 0x" << '\n';*/
-
 			DecodeExecuteGp0Command(gp0Command);
 
+			if(g_GpuCommandsLogged)
+				LogTrace(TAG, "Executed GP0 command: {}", gp0Lookup[gp0Command >> 24].name);
+
 			if (!fifo.empty() && (gp0Command >> 29 != 0b110)) {
-				LogError(TAG, "Unused Command parameters, count: {}", fifo.size());
+				LogError(TAG, "Unused command parameters, count: {}", fifo.size());
 
 				while (!fifo.empty())
 					fifo.pop();
@@ -427,37 +416,35 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 	if (addr == 0x1f801814) {
 		gp1Command = data;
 
-		/*if (g_GpuCommandsLogged)
-			std::cout << "~[GPU] GPU1 command executed: 0x" << std::hex << gp1Command << '\n';*/
-
 		DecodeExecuteGp1Command(gp1Command);
 	}
 }
 
 
 void Gpu::Clock() {
-	if (cpuScanlineClocks == cpuClocksToHblank) {
+	scanlineClocksCpu++;
+	if (scanlineClocksCpu == cpuClocksToHblank) {
 		//Hblank clocking timer 1
 		BusPtr->timer0.bHblank = true;
 		BusPtr->timer0.Clock(_HBLANK_CLOCK);
 		BusPtr->timer1.Clock(_HBLANK_CLOCK);
 	}
 
-	if (cpuScanlineClocks == cpuScanlineClocksNumber) {
-
-		cpuScanlineClocks = 0;
+	if (scanlineClocksCpu == cpuScanlineClocksNumber) {
+		scanlineClocksCpu = 0;
 		scanlineCount++;
 		BusPtr->timer0.bHblank = false;
 
 		if (gpuStat.elem.verticalInterlace)
 			if (!gpuStat.elem.verticalRes)
-				gpuStat.elem.drawingEvenOddLines = (scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
+				gpuStat.elem.drawingEvenOddLines = 
+				(scanlineCount < screenY2) ? scanlineCount & 0x1 : 0;
 
 		if (scanlineCount == screenY2) {
 			BusPtr->timer1.bVblank = true;
 
 			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU VBlank" << '\n';
+				LogTrace(TAG, "GPU VBlank IRQ sent");
 
 			//V-Sync interrupt is naturally edge trigered
 			BusPtr->pCpu->cp0.interruptHandler(_IRQ_VBLANK_);
@@ -467,12 +454,8 @@ void Gpu::Clock() {
 			BusPtr->timer1.Clock(_VBLANK_CLOCK);
 		}
 		else if (scanlineCount == scanlineNumber) {
-
 			scanlineCount = 0;
 			BusPtr->timer1.bVblank = false;
-
-			if (g_GpuCommandsLogged)
-				std::cout << "~[GPU] GPU non VBlank" << '\n';
 
 			if (gpuStat.elem.verticalInterlace)
 				if (gpuStat.elem.verticalRes)
@@ -480,15 +463,11 @@ void Gpu::Clock() {
 		}
 	}
 
-	if ((cpuClocks % dotClockDevider) == 0)
+	dotClockCounter++;
+	if (dotClockCounter == dotClockDevider) {
+		dotClockCounter = 0;
 		BusPtr->timer0.Clock(_DOT_CLOCK);
-
-	if (cpuClocks == CPU_CLOCK)
-		cpuClocks = 0;
-	else
-		cpuClocks++;
-
-	cpuScanlineClocks++;
+	}
 }
 
 uint32_t Gpu::GetNextFifoData() {

@@ -18,7 +18,7 @@ extern const char* g_romBinPath;
 
 bool g_isEmulationPaused = false;
 
-uint32_t g_systemClocks = 0;
+uint32_t g_systemClocksFrame = 0;
 uint32_t g_systemFrames = 0;
 uint32_t g_systemSeconds = 0;
 uint32_t g_systemMinutes = 0;
@@ -185,22 +185,10 @@ public:
 		//clocker
 #if !ACCURATE_SPU_CLOCKING
 		if (!g_isEmulationPaused) {
-			for (g_systemClocks = 0; g_systemClocks < CPU_CLOCKS_PER_FRAME; g_systemClocks++) {
-
+			for (uint32_t clock = 0; clock < CPU_CLOCKS_PER_FRAME; clock++) {
 				psx.clock();
 
 				if (g_isEmulationPaused) break;
-			}
-			psx.gpu.cpuScanlineClocks = 0;
-
-			g_systemFrames++;
-			if (g_systemFrames == 60) {
-				g_systemFrames = 0;
-				g_systemSeconds++;
-				if (g_systemSeconds == 60) {
-					g_systemSeconds = 0;
-					g_systemMinutes++;
-				}
 			}
 		}
 #endif
@@ -482,7 +470,7 @@ public:
 		ss << "Minutes: " << g_systemMinutes << '\n';
 		ss << "Seconds: " << g_systemSeconds << '\n';
 		ss << "Frames: " << g_systemFrames << '\n';
-		ss << "Clocks: " << psx.gpu.cpuClocks;
+		ss << "Clocks: " << g_systemClocksFrame;
 		DrawString(9, 512 + 4, ss.str(), olc::WHITE);
 
 		return true;

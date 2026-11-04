@@ -4,7 +4,7 @@
 #include <cmath>
 
 extern bool g_isEmulationPaused;
-extern uint32_t g_systemClocks;
+extern uint32_t g_systemClocksFrame;
 extern bool g_manualInterruptDMA;
 
 void Dma2::ReadDma32(const uint32_t& addr, uint32_t& data, uint8_t& cycles) {
