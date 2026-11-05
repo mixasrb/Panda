@@ -368,12 +368,17 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 		else {
 			fifoCollectCount--;
 
+			if (g_GpuCommandsLogged) {
+				if (gp0Command < 0x80000000 || gp0Command>0xe0000000)
+					LogTrace(TAG, "Param GP0 {:#010x} {:#010x}", gp0Command, data);
+			}
+
 			if (fifoCollectCount == 0) {
 				if (collectPolylineParam) {
 					if ((data & 0xf000f000) == 0x50005000)
 						collectPolylineParam = false;
-
-					fifoCollectCount = 1;
+					else
+						fifoCollectCount = 1;
 				}
 				else if (collectCopyCpuToVramData) {
 					collectCopyCpuToVramData = false;
@@ -400,10 +405,10 @@ void Gpu::Write32(const uint32_t& addr, const uint32_t& data) {
 			DecodeExecuteGp0Command(gp0Command);
 
 			if (g_GpuCommandsLogged)
-				LogTrace(TAG, "Executed GP0: {}", gp0Lookup[gp0Command >> 24].name);
+				LogTrace(TAG, "Executed GP0 {:#010x} {}", gp0Command, gp0Lookup[gp0Command >> 24].name);
 
 			if (!fifo.empty() && (gp0Command >> 29 != 0b110)) {
-				LogError(TAG, "Unused command parameters, count: {}", fifo.size());
+				LogError(TAG, "Unused GP0 {:#010x} param, count: {}", gp0Command, fifo.size());
 
 				while (!fifo.empty())
 					fifo.pop();
