@@ -297,7 +297,7 @@ public:
 
 	//debug
 
-	const char* TAG = TAG_CD_DRIVE;
+	inline static const char* TAG = TAG_CD_DRIVE;
 
 	void PrintDriveMode();
 	void PrintStatus();

@@ -546,7 +546,7 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 
 	auto fillBufferXA_ADPCM = [&]() {
 		busPtr->spu.pBufferXA_ADPCM = (uint8_t*)fileDataVect.data() + currentPosition;
-		busPtr->spu.decodeSectorXA_ADPCM(busPtr->spu.pBufferXA_ADPCM);
+		busPtr->spu.DecodeSectorXaAdpcm(busPtr->spu.pBufferXA_ADPCM);
 		busPtr->spu.currentSample = 0;
 		};
 

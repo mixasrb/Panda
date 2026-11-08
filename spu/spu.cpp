@@ -1,13 +1,7 @@
 #include "spu.h"
 #include "../bus/bus_interface.h"
 
-extern bool g_isEmulationPaused;
-extern uint32_t g_systemClocksFrame;
-extern uint32_t g_systemFrames;
-extern uint32_t g_systemSeconds;
-extern uint32_t g_systemMinutes;
-
-Spu::Spu() {
+Spu::Spu() : reverb{ 0 } {
 	voices->spuPtr = this;
 
 	pos_adpcm_table.resize(5);
@@ -141,15 +135,12 @@ void Spu::Read32(const uint32_t& addr, uint32_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr read32 {:#010x}", addr);
 			break;
 		}
 	}
-	else {
-		std::cout << "[SPU] EMULATION PASUED! unhandled addr read32 0x" << std::hex << addr << "\n";
-		g_isEmulationPaused = true;
-	}
+	else
+		LogError(TAG, "Unhandled addr read32 {:#010x}", addr);
 }
 
 void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
@@ -159,10 +150,8 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 		case 0x0:
 			voices[index].reg.volume.data = data;
 
-			if (voices[index].reg.volume.data & 0x80008000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_isEmulationPaused = true;
-			}
+			if (voices[index].reg.volume.data & 0x80008000)
+				LogError(TAG, "Unhandled sweep volume mode voice index {}", index);
 			break;
 
 		case 0x8:
@@ -170,8 +159,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr write32 {:#010x} data {:#010x}", addr, data);
 			break;
 		}
 	}
@@ -180,10 +168,8 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 		case 0x1f801d80:
 			mainVolume.data = data;
 
-			if (mainVolume.data & 0x80008000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_isEmulationPaused = true;
-			}
+			if (mainVolume.data & 0x80008000)
+				LogError(TAG, "Unhandled sweep volume mode main");
 			break;
 
 		case 0x1f801d84:
@@ -222,19 +208,15 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 		case 0x1f801d90:
 			voices->channelFmMode.data = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled channel FM mode {:#010x}", data);
 			break;
 
 		case 0x1f801d94:
 			voices->channelNoiseMode.data = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! Noise enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled channel noise mode {:#010x}", data);
 			break;
 
 		case 0x1f801d98:
@@ -244,10 +226,8 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 		case 0x1f801dac:
 			lsTransferControl.data = (uint16_t)data;
 
-			if (data != 0x0004) {
-				std::cout << "[SPU] EMULATION PASUED! unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
-				g_isEmulationPaused = true;
-			}
+			if (data != 0x0004)
+				LogError(TAG, "Unhandled lsTransferControl {:#010x}", data);
 			break;
 
 		case 0x1f801db0:
@@ -263,22 +243,17 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr write32 {:#010x} data {:#010x}", addr, data);
 			break;
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfc)) {
 		*((uint32_t*)(reverb + addr - 0x1f801dc0)) = data;
 	}
-	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) { //TO DO
-		std::cout << "[SPU] EMULATION PASUED! unhandled write32 mapped adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_isEmulationPaused = true;
-	}
-	else {
-		std::cout << "[SPU] EMULATION PASUED! unhandled write32 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_isEmulationPaused = true;
-	}
+	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) //TO DO
+		LogError(TAG, "Unmapped write32 addr {:#010x} data {:#010x}", addr, data);
+	else
+		LogError(TAG, "Unhandled write32 addr {:#010x} data {:#010x}", addr, data);
 }
 
 void Spu::Read16(const uint32_t& addr, uint16_t& data) {
@@ -320,8 +295,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr read16 {:#010x}", addr);
 			break;
 		}
 	}
@@ -408,7 +382,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		case 0x1f801da8:
-			data = ReadLs16(currentAddress);
+			data = LsRead16(currentAddress);
 			currentAddress += 2;
 			break;
 
@@ -449,8 +423,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr read16 {:#010x}", addr);
 			break;
 		}
 	}
@@ -469,15 +442,12 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr read16 {:#010x}", addr);
 			break;
 		}
 	}
-	else {
-		std::cout << "[SPU] EMULATION PASUED! unhandled addr read16 0x" << std::hex << addr << "\n";
-		g_isEmulationPaused = true;
-	}
+	else
+		LogError(TAG, "Unhandled addr read16 {:#010x}", addr);
 }
 
 void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
@@ -487,19 +457,15 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x0:
 			voices[index].reg.volume.hw.l = data;
 
-			if (voices[index].reg.volume.hw.l & 0x8000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_isEmulationPaused = true;
-			}
+			if (voices[index].reg.volume.hw.l & 0x8000)
+				LogError(TAG, "Unhandled sweep volume mode voice index {}", index);
 			break;
 
 		case 0x2:
 			voices[index].reg.volume.hw.h = data;
 
-			if (voices[index].reg.volume.hw.h & 0x8000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode voice\n";
-				g_isEmulationPaused = true;
-			}
+			if (voices[index].reg.volume.hw.h & 0x8000)
+				LogError(TAG, "Unhandled sweep volume mode voice index {}", index);
 			break;
 
 		case 0x4:
@@ -527,8 +493,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr write16 {:#010x} data {:#06x}", addr, data);
 			break;
 		}
 	}
@@ -537,19 +502,15 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d80:
 			mainVolume.hw.l = data;
 
-			if (mainVolume.hw.l & 0x8000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_isEmulationPaused = true;
-			}
+			if (mainVolume.hw.l & 0x8000)
+				LogError(TAG, "Unhandled sweep volume mode main");
 			break;
 
 		case 0x1f801d82:
 			mainVolume.hw.h = data;
 
-			if (mainVolume.hw.h & 0x8000) {
-				std::cout << "[SPU] EMULATION PASUED! Sweep Volume Mode main\n";
-				g_isEmulationPaused = true;
-			}
+			if (mainVolume.hw.h & 0x8000)
+				LogError(TAG, "Unhandled sweep volume mode main");
 			break;
 
 		case 0x1f801d84:
@@ -619,37 +580,29 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801d90:
 			voices->channelFmMode.hw.l = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled channel FM mode {:#06x}", data);
 			break;
 
 		case 0x1f801d92:
 			voices->channelFmMode.hw.h = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! Pitch Modulation Enable enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled channel FM mode {:#06x}", data);
 			break;
 
 		case 0x1f801d94:
 			voices->channelNoiseMode.hw.l = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled noise {:#06x}", data);
 			break;
 
 		case 0x1f801d96:
 			voices->channelNoiseMode.hw.h = data;
 
-			if (data) {
-				std::cout << "[SPU] EMULATION PASUED! noise enabled 0x" << std::hex << data << '\n';
-				g_isEmulationPaused = true;
-			}
+			if (data)
+				LogError(TAG, "Unhandled noise {:#06x}", data);
 			break;
 
 		case 0x1f801d98:
@@ -684,16 +637,19 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			lsTransferAddress = data;
 			currentAddress = lsTransferAddress << 3;
 
-			if (currentAddress >= LS_SIZE) {
-				std::cout << "[SPU] EMULATION PASUED! dramDataTransferAddress : 0x"
-					<< std::hex << currentAddress << "\n";
-				g_isEmulationPaused = true;
-			}
+			LogTrace(TAG, "lsTransferAddress {:#010x}", currentAddress);
+
+			if (currentAddress >= LS_SIZE)
+				LogError(TAG, "lsTransferAddress {:#010x} > LS_SIZE ({:#06x})", 
+					currentAddress, LS_SIZE);
 			break;
 
 		case 0x1f801da8:
-			dramDataTransferFifo = data;
-			WriteLs16(currentAddress, data);
+			lsTransferFifo = data;
+
+			//LogTrace(TAG, "LS write16 currentAddress {:#010x}, data {:#06x}", currentAddress, data);
+
+			LsWrite16(currentAddress, data);
 
 			currentAddress += 2;
 			break;
@@ -717,10 +673,8 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 		case 0x1f801dac:
 			lsTransferControl.data = data;
 
-			if (data != 0x04) {
-				std::cout << "[SPU] EMULATION PASUED! Unhandled dramDataTransferControl = 0x" << std::hex << data << "\n";
-				g_isEmulationPaused = true;
-			}
+			if (data != 0x04)
+				LogError(TAG, "Unhandled lsTransferControl {:#06x}", data);
 			break;
 
 		case 0x1f801db0:
@@ -748,22 +702,17 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr write16 {:#010x} data {:#06x}", addr, data);
 			break;
 		}
 	}
 	else if ((addr >= 0x1f801dc0) && (addr <= 0x1f801dfe)) {
 		reverb[(addr - 0x1f801dc0) >> 1] = data;
 	}
-	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60)) {
-		std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_isEmulationPaused = true;
-	}
-	else {
-		std::cout << "[SPU] EMULATION PASUED! Unhandled write16 adress 0x" << std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_isEmulationPaused = true;
-	}
+	else if ((addr >= 0x1f801e00) && (addr < 0x1f801e60))
+		LogError(TAG, "Unmapped write16 addr {:#010x} data {:#06x}", addr, data);
+	else
+		LogError(TAG, "Unhandled write16 addr {:#010x} data {:#06x}", addr, data);
 }
 
 void Spu::Read8(const uint32_t& addr, uint8_t& data) {
@@ -778,15 +727,12 @@ void Spu::Read8(const uint32_t& addr, uint8_t& data) {
 			break;
 
 		default:
-			std::cout << "[SPU] EMULATION PASUED! Unhandled addr read8 0x" << std::hex << addr << "\n";
-			g_isEmulationPaused = true;
+			LogError(TAG, "Unhandled addr read8 {:#010x}", addr);
 			break;
 		}
 	}
-	else {
-		std::cout << "[SPU] EMULATION PASUED! Unhandled addr read8 0x" << std::hex << addr << "\n";
-		g_isEmulationPaused = true;
-	}
+	else
+		LogError(TAG, "Unhandled addr read8 {:#010x}", addr);
 }
 
 void Spu::IrqSend() {
@@ -797,52 +743,44 @@ void Spu::IrqSend() {
 		}
 }
 
-uint16_t Spu::ReadLs16(const uint32_t& addr) {
+uint16_t Spu::LsRead16(const uint32_t& addr) {
 	if (addr & 0x1) {
-		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address unaligned : 0x"
-			<< std::hex << addr << "\n";
-		g_isEmulationPaused = true;
+		LogError(TAG, "LS read16 address {:#010x} unaligned", addr);
 		return 0;
 	}
 	if (addr >= LS_SIZE) {
-		std::cout << "[SPU] EMULATION PASUED! LS Read16 Address > DRAM_SIZE : 0x"
-			<< std::hex << addr << "\n";
-		g_isEmulationPaused = true;
+		LogError(TAG, "LS read16 address {:#010x} > LS_SIZE ({:#06x})", 
+			addr, LS_SIZE);
 		return 0;
 	}
 
 	if ((irqAddress == addr) || ((irqAddress & 0xfffffffe) == addr))
 		IrqSend();
 
-	return *reinterpret_cast<const uint16_t*>(ls + addr);
+	return *reinterpret_cast<const uint16_t*>(ls.get() + addr);
 }
 
-void Spu::WriteLs16(const uint32_t& addr, const uint16_t& data) {
+void Spu::LsWrite16(const uint32_t& addr, const uint16_t& data) {
 	if (addr & 0x1) {
-		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address unaligned : 0x"
-			<< std::hex << addr << "\n";
-		g_isEmulationPaused = true;
+		LogError(TAG, "LS write16 address {:#010x} unaligned", addr);
 		return;
 	}
 	if (addr >= LS_SIZE) {  // spyro 1 sends 0x10 more hw's and also Monkey Hero //??maybe warping??
-		std::cout << "[SPU] EMULATION PASUED! LS Write16 Address > DRAM_SIZE : 0x"
-			<< std::hex << addr << " data 0x" << std::hex << data << "\n";
-		g_isEmulationPaused = true;
+		LogError(TAG, "LS write16 address {:#010x} > LS_SIZE ({:#06x}), data {:#06x}",
+			addr, LS_SIZE, data);
 		return;
 	}
-
 
 	if ((irqAddress == addr) || ((irqAddress & 0xfffffffe) == addr))
 		IrqSend();
 
-	*reinterpret_cast<uint16_t*>(ls + addr) = data;
+	*reinterpret_cast<uint16_t*>(ls.get() + addr) = data;
 }
 
-uint8_t Spu::ReadLs8(const uint32_t& addr) {
+uint8_t Spu::LsRead8(const uint32_t& addr) {
 	if (addr >= LS_SIZE) {
-		std::cout << "[SPU] EMULATION PASUED! LS Read8 Address > DRAM_SIZE : 0x"
-			<< std::hex << addr << "\n";
-		g_isEmulationPaused = true;
+		LogError(TAG, "LS read8 address {:#010x} > LS_SIZE ({:#06x})",
+			addr, LS_SIZE);
 		return 0;
 	}
 
@@ -862,18 +800,16 @@ void Spu::Voices::Register::DecodeCompressedSamples() {
 	uint8_t shift = 12 - valueShift;
 
 	uint8_t filter = (shiftFilter & 0x70) >> 4; //?? SPU-ADPCM has 5 filters
-	if (filter > 5) {
-		std::cout << "[SPU] EMULATION PASUED! ADPCM filter > 5 filter = " << std::dec << (uint16_t)filter << "\n";
-		//g_emulationPaused = true;
-	}
+	if (filter > 5)
+		LogError(TAG, "ADPCM filter > 5, filter = {}", filter);
 
-	int32_t fo = spuPtr->pos_adpcm_table[filter];
+	int32_t f0 = spuPtr->pos_adpcm_table[filter];
 	int32_t f1 = spuPtr->neg_adpcm_table[filter];
 
 
 	for (int i = 0; i < 28; i++) {
 		int16_t t = int16_t(compressedSamples[i] << 12) >> 12;
-		int16_t s = (t << shift) + ((old * fo + older * f1 + 32) / 64);
+		int16_t s = (t << shift) + ((old * f0 + older * f1 + 32) / 64);
 
 		if (s > 0x7fff) s = 0x7fff;
 		else if (s < -0x8000) s = -0x8000;
@@ -885,7 +821,7 @@ void Spu::Voices::Register::DecodeCompressedSamples() {
 	}
 }
 
-int16_t Spu::Voices::Register::OutputSample() {
+int16_t Spu::Voices::Register::GetNextSample() {
 
 	uint16_t currentSampleNumber = counter >> 12;
 	uint16_t i = (counter >> 4) & 0xff;
@@ -901,13 +837,13 @@ int16_t Spu::Voices::Register::OutputSample() {
 	if (step > 0x3fff)
 		step = 0x4000;
 
-	counter += step; 
+	counter += step;
 
 	if (currentSampleNumber > 27) {
 		counter = 0;
 
 		for (int i = 0; i < 16; i++)
-			blockBytes[i] = spuPtr->ReadLs8(currentAddress + i);
+			blockBytes[i] = spuPtr->LsRead8(currentAddress + i);
 
 		shiftFilter = blockBytes[0];
 
@@ -944,10 +880,11 @@ int16_t Spu::Voices::Register::OutputSample() {
 	}
 
 	sample = samples[currentSampleNumber];
-	//PushSample(sample);
 
 	//Does not work
-	/*out = ((int32_t)spuPtr->gauss[0x0ff - i] * voiceOldest) >> 15;
+	/*
+	PushSample(sample);
+	out = ((int32_t)spuPtr->gauss[0x0ff - i] * voiceOldest) >> 15;
 	out += ((int32_t)spuPtr->gauss[0x1ff - i] * voiceOlder) >> 15;
 	out += ((int32_t)spuPtr->gauss[0x100 + i] * voiceOld) >> 15;
 	out += ((int32_t)spuPtr->gauss[0x000 + i] * voiceNew) >> 15;*/
@@ -955,7 +892,7 @@ int16_t Spu::Voices::Register::OutputSample() {
 	return sample;
 }
 
-static int32_t saturate(int32_t a, int32_t min, int32_t max) {
+static int32_t Saturate(int32_t a, int32_t min, int32_t max) {
 	if (a < min)
 		return min;
 	else if (a > max)
@@ -963,7 +900,7 @@ static int32_t saturate(int32_t a, int32_t min, int32_t max) {
 	return a;
 }
 
-static int32_t max(int32_t a, int32_t b) {
+static int32_t Max(int32_t a, int32_t b) {
 	return (a > b) ? a : b;
 }
 
@@ -976,10 +913,10 @@ void Spu::Voices::Register::StartEnvelopeAttack() {
 	isEnvelopeRelease = false;
 
 	uint32_t shiftValue = adsr.elem.attackShift;
-	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+	adsrCycles = 1 << Max(0, (int32_t)shiftValue - 11);
 
 	int32_t stepValue = 7 - adsr.elem.attackStep;
-	adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.attackShift);
+	adsrStep = stepValue << Max(0, 11 - (int32_t)adsr.elem.attackShift);
 
 	bool exponential = adsr.elem.attackMode;
 	if (exponential && (adsrLevel > 0x6000))
@@ -996,10 +933,10 @@ void Spu::Voices::Register::StartEnvelopeDecay() {
 	isEnvelopeRelease = false;
 
 	uint32_t shiftValue = adsr.elem.decayShift;
-	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+	adsrCycles = 1 << Max(0, (int32_t)shiftValue - 11);
 
 	int32_t stepValue = -8;
-	adsrStep = stepValue << max(0, 11 - (int32_t)adsr.elem.decayShift);
+	adsrStep = stepValue << Max(0, 11 - (int32_t)adsr.elem.decayShift);
 
 	adsrStep = adsrStep * adsrLevel / 0x8000;
 
@@ -1013,12 +950,12 @@ void Spu::Voices::Register::StartEnvelopeSustain() {
 	isEnvelopeRelease = false;
 
 	uint32_t shiftValue = adsr.elem.sustainShift;
-	adsrCycles = 1 << max(0, shiftValue - 11);
+	adsrCycles = 1 << Max(0, shiftValue - 11);
 
 	bool increase = !adsr.elem.sustainDirection;
 	int32_t stepValue =
 		increase ? 7 - adsr.elem.sustainStep : -8 + adsr.elem.sustainStep;
-	adsrStep = stepValue << max(0, 11 - shiftValue);
+	adsrStep = stepValue << Max(0, 11 - shiftValue);
 
 	bool exponential = adsr.elem.sustainMode;
 	if (exponential && increase && (adsrLevel > 0x6000))
@@ -1037,10 +974,10 @@ void Spu::Voices::Register::StartEnvelopeRelease() {
 	isEnvelopeRelease = true;
 
 	uint32_t shiftValue = adsr.elem.releaseShift;
-	adsrCycles = 1 << max(0, (int32_t)shiftValue - 11);
+	adsrCycles = 1 << Max(0, (int32_t)shiftValue - 11);
 
 	int32_t stepValue = -8;
-	adsrStep = stepValue << max(0, 11 - (int32_t)shiftValue);
+	adsrStep = stepValue << Max(0, 11 - (int32_t)shiftValue);
 
 	bool exponential = adsr.elem.releaseMode;
 	if (exponential)
@@ -1058,7 +995,7 @@ Output Spu::Voices::Register::Envelope(const int16_t& input) {
 		if (adsrCycles == 0) {
 			adsrCycles = adsrCyclesNumber;
 
-			adsrLevel = saturate(adsrLevel + adsrStep, 0, 0x7fff);
+			adsrLevel = Saturate(adsrLevel + adsrStep, 0, 0x7fff);
 
 			if (isEnvelopeAttack) {
 				if (adsrLevel == 0x7fff)
@@ -1174,7 +1111,7 @@ void Spu::ReverbClock(const Output& input) {
 		if (addr >= LS_SIZE)
 			return 0;
 
-		return (int32_t)(int16_t)ReadLs16(addr);
+		return (int32_t)(int16_t)LsRead16(addr);
 		};
 
 	auto lsWrite = [&](uint32_t addr, uint16_t data) {
@@ -1190,7 +1127,7 @@ void Spu::ReverbClock(const Output& input) {
 			return;
 
 		if (spuControl.elem.reverbMasterEnable)
-			WriteLs16(addr, data);
+			LsWrite16(addr, data);
 		};
 
 	if (bReverbCycle) { //left
@@ -1198,23 +1135,23 @@ void Spu::ReverbClock(const Output& input) {
 		int32_t Lin = (vLIN * int16_t(input.channel0 * 32767.0f)) >> 15;
 
 		lsWrite(mLSAME,
-			saturate(((Lin + (lsRead(dLSAME) * vWALL >> 15) - lsRead(mLSAME - 2)) * vIIR >> 15) +
+			Saturate(((Lin + (lsRead(dLSAME) * vWALL >> 15) - lsRead(mLSAME - 2)) * vIIR >> 15) +
 				lsRead(mLSAME - 2), -0x8000, 0x7fff));
 
 		lsWrite(mLDIFF,
-			saturate(((Lin + (lsRead(dRDIFF) * vWALL >> 15) - lsRead(mLDIFF - 2)) * vIIR >> 15) +
+			Saturate(((Lin + (lsRead(dRDIFF) * vWALL >> 15) - lsRead(mLDIFF - 2)) * vIIR >> 15) +
 				lsRead(mLDIFF - 2), -0x8000, 0x7fff));
 
 		int32_t Lout = (vCOMB1 * lsRead(mLCOMB1) >> 15) + (vCOMB2 * lsRead(mLCOMB2) >> 15) +
 			(vCOMB3 * lsRead(mLCOMB3) >> 15) + (vCOMB4 * lsRead(mLCOMB4) >> 15);
 
 		Lout = Lout - (vAPF1 * lsRead(mLAPF1 - dAPF1) >> 15);
-		lsWrite(mLAPF1, saturate(Lout, -0x8000, 0x7fff));
+		lsWrite(mLAPF1, Saturate(Lout, -0x8000, 0x7fff));
 		Lout = (vAPF1 * Lout >> 15) + lsRead(mLAPF1 - dAPF1);
 
 		Lout = Lout - (vAPF2 * lsRead(mLAPF2 - dAPF2) >> 15);
-		lsWrite(mLAPF2, saturate(Lout, -0x8000, 0x7fff));
-		Lout = saturate((vAPF2 * Lout >> 15) + lsRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
+		lsWrite(mLAPF2, Saturate(Lout, -0x8000, 0x7fff));
+		Lout = Saturate((vAPF2 * Lout >> 15) + lsRead(mLAPF2 - dAPF2), -0x8000, 0x7fff);
 
 		reverbOutput.channel0 = float(vLOUT * Lout >> 15) / 32767.0f;
 	}
@@ -1223,27 +1160,27 @@ void Spu::ReverbClock(const Output& input) {
 		int32_t Rin = (vRIN * int16_t(input.channel1 * 32767.0f)) >> 15;
 
 		lsWrite(mRSAME,
-			saturate(((Rin + (lsRead(dRSAME) * vWALL >> 15) - lsRead(mRSAME - 2)) * vIIR >> 15) +
+			Saturate(((Rin + (lsRead(dRSAME) * vWALL >> 15) - lsRead(mRSAME - 2)) * vIIR >> 15) +
 				lsRead(mRSAME - 2), -0x8000, 0x7fff));
 
 		lsWrite(mRDIFF,
-			saturate(((Rin + (lsRead(dLDIFF) * vWALL >> 15) - lsRead(mRDIFF - 2)) * vIIR >> 15) +
+			Saturate(((Rin + (lsRead(dLDIFF) * vWALL >> 15) - lsRead(mRDIFF - 2)) * vIIR >> 15) +
 				lsRead(mRDIFF - 2), -0x8000, 0x7fff));
 
 		int32_t Rout = (vCOMB1 * lsRead(mRCOMB1) >> 15) + (vCOMB2 * lsRead(mRCOMB2) >> 15) +
 			(vCOMB3 * lsRead(mRCOMB3) >> 15) + (vCOMB4 * lsRead(mRCOMB4) >> 15);
 
 		Rout = Rout - (vAPF1 * lsRead(mRAPF1 - dAPF1) >> 15);
-		lsWrite(mRAPF1, saturate(Rout, -0x8000, 0x7fff));
+		lsWrite(mRAPF1, Saturate(Rout, -0x8000, 0x7fff));
 		Rout = (vAPF1 * Rout >> 15) + lsRead(mRAPF1 - dAPF1);
 
 		Rout = Rout - (vAPF2 * lsRead(mRAPF2 - dAPF2) >> 15);
-		lsWrite(mRAPF2, saturate(Rout, -0x8000, 0x7fff));
-		Rout = saturate((vAPF2 * Rout >> 15) + lsRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
+		lsWrite(mRAPF2, Saturate(Rout, -0x8000, 0x7fff));
+		Rout = Saturate((vAPF2 * Rout >> 15) + lsRead(mRAPF2 - dAPF2), -0x8000, 0x7fff);
 
 		reverbOutput.channel1 = float(vROUT * Rout >> 15) / 32767.0f;
 
-		reverbCurrentBufferAddress = max(mBASE << 3, (reverbCurrentBufferAddress + 2) & 0x7fffe);
+		reverbCurrentBufferAddress = Max(mBASE << 3, (reverbCurrentBufferAddress + 2) & 0x7fffe);
 	}
 
 	bReverbCycle = !bReverbCycle;
@@ -1258,17 +1195,17 @@ Output Spu::Clock() {
 	//SPU Audio
 
 	for (int index = 0; index < 24; index++) {
-		Output outputVoice = voices[index].reg.Envelope(voices[index].reg.OutputSample());
+		Output outputVoice = voices[index].reg.Envelope(voices[index].reg.GetNextSample());
 
 		if (!spuControl.elem.unmuteSPU)
 			outputVoice = { 0.0f, 0.0f };
 
 		if (index == 1) {
-			WriteLs16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
+			LsWrite16(0x800 + ((voice1MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
 			voice1MonoBufferCounter++;
 		}
 		else if (index == 3) {
-			WriteLs16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
+			LsWrite16(0xc00 + ((voice3MonoBufferCounter & 0x1ff) << 1), uint16_t(outputVoice.channel0 * 32767.0f));
 			voice3MonoBufferCounter++;
 		}
 
@@ -1301,7 +1238,7 @@ Output Spu::Clock() {
 
 		outputCDXA = { 0.0f, 0.0f };
 		if (busPtr->pCdDrive->mode.elem.xa_adpcm && busPtr->pCdDrive->isDataResponseActive)
-			outputCDXA = clockXA_ADPCM();
+			outputCDXA = ClockXaAdpcm();
 	}
 
 	Output outputCDDA = { 0.0f, 0.0f };
@@ -1331,8 +1268,8 @@ Output Spu::Clock() {
 	if (busPtr->pCdDrive->bMuted)
 		outputCD_DriveAudio = { 0.0f, 0.0f };
 
-	WriteLs16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCD_DriveAudio.channel0 * 32767.0f));
-	WriteLs16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCD_DriveAudio.channel1 * 32767.0f));
+	LsWrite16(0 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCD_DriveAudio.channel0 * 32767.0f));
+	LsWrite16(0x400 + ((cdAudioBufferCounter & 0x1ff) << 1), uint16_t(outputCD_DriveAudio.channel1 * 32767.0f));
 	cdAudioBufferCounter++;
 
 	outputCD_DriveAudio.channel0 *= (float)((int16_t)cdVolume.hw.l) / 32767.0f;
@@ -1344,9 +1281,7 @@ Output Spu::Clock() {
 	if (spuControl.elem.cdAudioReverb)
 		inputReverb = inputReverb + outputCD_DriveAudio;
 
-
 	//Reverb
-
 	ReverbClock(inputReverb);
 
 	if (spuControl.elem.reverbMasterEnable)
@@ -1359,7 +1294,7 @@ Output Spu::Clock() {
 	return output;
 }
 
-void Spu::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
+void Spu::Decode28NibblesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
 	int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter) {
 
 	uint8_t valueShift = (src[4 + (block << 1) + nibble] & 0x0f);
@@ -1370,12 +1305,12 @@ void Spu::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint
 
 	int8_t filter = (src[4 + (block << 1) + nibble] & 0x30) >> 4;
 
-	int32_t fo = pos_adpcm_table[filter];
+	int32_t f0 = pos_adpcm_table[filter];
 	int32_t f1 = neg_adpcm_table[filter];
 
 	for (uint8_t j = 0; j < 28; j++) {
 		int16_t t = int16_t((((src[16 + block + j * 4]) >> (nibble * 4)) & 0x0f) << 12) >> 12;
-		int16_t s = (t << shift) + ((old * fo + older * f1 + 32) / 64);
+		int16_t s = (t << shift) + ((old * f0 + older * f1 + 32) / 64);
 
 		if (s > 0x7fff) s = 0x7fff;
 		else if (s < -0x8000) s = -0x8000;
@@ -1387,7 +1322,7 @@ void Spu::decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint
 	}
 }
 
-void Spu::decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& byte,
+void Spu::Decode28BytesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& byte,
 	int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter) {
 
 	uint8_t valueShift = (src[4 + (block << 1) + byte] & 0x0f);
@@ -1398,12 +1333,12 @@ void Spu::decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_
 
 	uint8_t filter = (src[4 + (block << 1) + byte] & 0x30) >> 4;
 
-	int32_t fo = pos_adpcm_table[filter];
+	int32_t f0 = pos_adpcm_table[filter];
 	int32_t f1 = neg_adpcm_table[filter];
 
 	for (uint8_t j = 0; j < 28; j++) {
 		int32_t t = int16_t((int8_t)(src[16 + block + j * 4 + byte] & 0xff));
-		int32_t s = (t << shift) + (((int32_t)old * fo + (int32_t)older * f1 + 32) / 64);
+		int32_t s = (t << shift) + (((int32_t)old * f0 + (int32_t)older * f1 + 32) / 64);
 
 		if (s > 0x7fff) s = 0x7fff;
 		else if (s < -0x8000) s = -0x8000;
@@ -1415,7 +1350,7 @@ void Spu::decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_
 	}counter++;
 }
 
-void Spu::decodeSectorXA_ADPCM(uint8_t*& src) {
+void Spu::DecodeSectorXaAdpcm(uint8_t*& src) {
 	submode.data = src[0x10 + 0x02];
 	codinginfo.data = src[0x10 + 0x03];
 	bStereo = codinginfo.elem.monoStereo;
@@ -1431,12 +1366,12 @@ void Spu::decodeSectorXA_ADPCM(uint8_t*& src) {
 		for (uint8_t i = 0; i < 0x12; i++) {
 			for (uint8_t block = 0; block < 4; block++) {
 				if (bStereo) {
-					decode28NibblesXA_ADPCM(src, block, 0, samplesLeftXA, oldLeft, olderLeft, counterLeft);
-					decode28NibblesXA_ADPCM(src, block, 1, samplesRightXA, oldRight, olderRight, counterRight);
+					Decode28NibblesXaAdpcm(src, block, 0, samplesLeftXA, oldLeft, olderLeft, counterLeft);
+					Decode28NibblesXaAdpcm(src, block, 1, samplesRightXA, oldRight, olderRight, counterRight);
 				}
 				else {
-					decode28NibblesXA_ADPCM(src, block, 0, samplesMonoXA, oldMono, olderMono, counterMono);
-					decode28NibblesXA_ADPCM(src, block, 1, samplesMonoXA, oldMono, olderMono, counterMono);
+					Decode28NibblesXaAdpcm(src, block, 0, samplesMonoXA, oldMono, olderMono, counterMono);
+					Decode28NibblesXaAdpcm(src, block, 1, samplesMonoXA, oldMono, olderMono, counterMono);
 				}
 			}
 			src += 128;
@@ -1445,12 +1380,12 @@ void Spu::decodeSectorXA_ADPCM(uint8_t*& src) {
 		for (uint8_t i = 0; i < 0x12; i++) {
 			for (uint8_t block = 0; block < 2; block++) {
 				if (bStereo) {
-					decode28BytesXA_ADPCM(src, block, 0, samplesLeftXA, oldLeft, olderLeft, counterLeft);
-					decode28BytesXA_ADPCM(src, block, 1, samplesRightXA, oldRight, olderRight, counterRight);
+					Decode28BytesXaAdpcm(src, block, 0, samplesLeftXA, oldLeft, olderLeft, counterLeft);
+					Decode28BytesXaAdpcm(src, block, 1, samplesRightXA, oldRight, olderRight, counterRight);
 				}
 				else {
-					decode28BytesXA_ADPCM(src, block, 0, samplesMonoXA, oldMono, olderMono, counterMono);
-					decode28BytesXA_ADPCM(src, block, 1, samplesMonoXA, oldMono, olderMono, counterMono);
+					Decode28BytesXaAdpcm(src, block, 0, samplesMonoXA, oldMono, olderMono, counterMono);
+					Decode28BytesXaAdpcm(src, block, 1, samplesMonoXA, oldMono, olderMono, counterMono);
 				}
 			}
 			src += 128;
@@ -1458,7 +1393,7 @@ void Spu::decodeSectorXA_ADPCM(uint8_t*& src) {
 	src += 0x14 + 0x4;
 }
 
-Output Spu::clockXA_ADPCM() {
+Output Spu::ClockXaAdpcm() {
 	Output outputSample = OldOutputSampleXA;
 
 	const uint16_t samplesPerSectorXA_ADPCM = 28 * 2 * 4 * 18;

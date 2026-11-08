@@ -7,9 +7,9 @@
 
 #define TAG_GPU "\033[36mGPU\033[0m"
 #define TAG_CPU "\033[34mCPU\033[0m"
-#define TAG_SPU "\033[33mBUS\033[0m"
+#define TAG_SPU "\033[35mSPU\033[0m"
 #define TAG_CD_DRIVE "\033[32mCD-DRIVE\033[0m"
-#define TAG_PERIPHERALS "\033[35mPERIPHERALS\033[0m"
+#define TAG_PERIPHERALS "\033[33mPERIPHERALS\033[0m"
 
 extern bool g_isEmulationPaused;
 

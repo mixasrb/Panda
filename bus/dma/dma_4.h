@@ -2,7 +2,7 @@
 
 #include "dma.h"
 
-#define CLOCKS_PER_WORD_DMA_4 1056.f/256.f // 0x420/0x100
+inline static constexpr float CLOCKS_PER_WORD_DMA_4 = 1056.f / 256.f; // 0x420/0x100
 
 class DmaController;
 

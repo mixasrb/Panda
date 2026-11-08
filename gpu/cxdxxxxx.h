@@ -394,5 +394,5 @@ public:
 
 	//debug
 
-	const char* TAG = TAG_GPU;
+	inline static const char* TAG = TAG_GPU;
 };

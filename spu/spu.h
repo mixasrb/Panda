@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
 #include <vector>
+#include <memory>
 
 #include "../debugger/debugger.h"
 
@@ -39,13 +39,13 @@ public:
 
 	Output Clock();
 
-	uint8_t* ls = new uint8_t[LS_SIZE];
+	std::unique_ptr<uint8_t[]> ls = std::make_unique<uint8_t[]>(LS_SIZE);
 	int16_t reverb[32];
 
-	uint16_t ReadLs16(const uint32_t& addr);
-	void WriteLs16(const uint32_t& addr, const uint16_t& data);
+	uint16_t LsRead16(const uint32_t& addr);
+	void LsWrite16(const uint32_t& addr, const uint16_t& data);
 
-	uint8_t ReadLs8(const uint32_t& addr);
+	uint8_t LsRead8(const uint32_t& addr);
 
 	struct Voices {
 
@@ -125,7 +125,7 @@ public:
 			uint16_t step;
 			uint32_t counter;
 
-			int16_t OutputSample();
+			int16_t GetNextSample();
 			void DecodeCompressedSamples();
 
 			uint32_t adsrCycles = 0;
@@ -221,7 +221,7 @@ public:
 
 	uint32_t currentAddress;
 
-	uint16_t dramDataTransferFifo;
+	uint16_t lsTransferFifo;
 
 	union SpuControl {
 		uint16_t data;
@@ -288,7 +288,7 @@ public:
 	uint32_t irqAddress = 0;
 	void IrqSend();
 
-	Output clockXA_ADPCM();
+	Output ClockXaAdpcm();
 
 	Output outputSamplesBufferXA[7];
 	Output OldOutputSampleXA;
@@ -317,10 +317,10 @@ public:
 
 	int16_t ringBuffer[32];
 
-	void decodeSectorXA_ADPCM(uint8_t*& src);
-	void decode28NibblesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
+	void DecodeSectorXaAdpcm(uint8_t*& src);
+	void Decode28NibblesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
 		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
-	void decode28BytesXA_ADPCM(uint8_t* src, const uint8_t& block, const uint8_t& byte,
+	void Decode28BytesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& byte,
 		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
 
 	union submode_t {
@@ -363,7 +363,6 @@ public:
 	uint16_t voice1MonoBufferCounter = 0;
 	uint16_t voice3MonoBufferCounter = 0;
 
-
 	uint8_t asectCdda;
 	uint8_t assCdda;
 	uint8_t ammCdda;
@@ -376,5 +375,5 @@ public:
 
 	//debug
 
-	const char* TAG = TAG_SPU;
+	inline static const char* TAG = TAG_SPU;
 };

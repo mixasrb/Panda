@@ -47,7 +47,7 @@ public:
 	static float soundOut(int nChanel, float fGlobalTime, float fTimeStep) {
 		if (nChanel == 0) {
 #if ACCURATE_SPU_CLOCKING
-			if (!g_emulationPaused) {
+			if (!g_isEmulationPaused) {
 
 				for (int i = 0; i < 0x300; i++) {
 					if (g_systemClocks == CPU_CLOCKS_PER_FRAME) {
@@ -60,8 +60,8 @@ public:
 				}
 			}
 #endif
-
-			instancePtr->sampleLR = instancePtr->psx.bus.spu.Clock();
+			if (!g_isEmulationPaused)
+				instancePtr->sampleLR = instancePtr->psx.bus.spu.Clock();
 		}
 
 		return (nChanel == 0) ? instancePtr->sampleLR.channel0 : instancePtr->sampleLR.channel1;
