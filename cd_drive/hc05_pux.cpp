@@ -727,10 +727,10 @@ void CdDrive::Play() {
 
 	CancelReading();
 
-	busPtr->spu.ammCDDA = amm;
-	busPtr->spu.assCDDA = ass;
-	busPtr->spu.asectCDDA = asect;
-	busPtr->spu.counterCDDA = 0x930;
+	busPtr->spu.ammCdda = amm;
+	busPtr->spu.assCdda = ass;
+	busPtr->spu.asectCdda = asect;
+	busPtr->spu.counterCdda = 0x930;
 
 	uint8_t firstResponse[1] = { stat.data };
 	SetFirstResult(0xc4e1, INTERRUPT_3, firstResponse, 1);

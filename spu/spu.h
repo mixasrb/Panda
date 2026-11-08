@@ -4,7 +4,9 @@
 #include <iostream>
 #include <vector>
 
-constexpr auto LS_SIZE = 512 * 1024; 
+#include "../debugger/debugger.h"
+
+constexpr auto LS_SIZE = 512 * 1024;
 constexpr auto XA_ADPCM_SECTOR_SIZE = 0x930;
 
 class BusInterface;
@@ -23,6 +25,7 @@ struct Output {
 
 class Spu {
 public:
+	BusInterface* busPtr;
 
 	Spu();
 
@@ -36,8 +39,6 @@ public:
 
 	Output Clock();
 
-	BusInterface* pBus;
-
 	uint8_t* ls = new uint8_t[LS_SIZE];
 	int16_t reverb[32];
 
@@ -46,28 +47,26 @@ public:
 
 	uint8_t ReadLs8(const uint32_t& addr);
 
-	class Voices {
-	public:
-		Spu* p_spu;
+	struct Voices {
 
-		struct voiceRegister_t {
+		inline static Spu* spuPtr;
 
-			union voiceVolumeLeftRight_t {
+		struct Register {
+
+			mutable uint8_t INDEX;
+
+			union Volume {
 				uint32_t data;
 				struct {
 					uint16_t l, h;
 				}hw;
-			}volumeLeftRight;
+			}volume;
 
-			union voice_ADPCM_SampleRate_t {
-				uint16_t data;
-			}adpcmSampleRate;
+			uint16_t adpcmSampleRate;
 
-			union voice_ADPCM_StartAddress_t {
-				uint16_t data;
-			}adpcmStartAddress;
+			uint16_t adpcmStartAddress;
 
-			union voice_ADSR_t {
+			union Adsr {
 				struct {
 					uint8_t l, h1, h2, h3;
 				}b;
@@ -93,55 +92,27 @@ public:
 				}elem;
 			}adsr;
 
-			union voice_ADSR_CurrentVolume_t {
-				uint16_t data;
-			}adsrCurrentVolume;
+			uint16_t adsrCurrentVolume;
 
-			union voice_ADPCM_RepeatAddress_t {
-				uint16_t data;
-			}adpcmRepeatAddress;
+			uint16_t adpcmRepeatAddress;
 
-			union voice_CurrentVolumeLeftRight_t {
+			union CurrentVolume {
 				uint32_t data;
 				struct {
 					uint16_t l, h;
 				}hw;
-			}currentVolumeLeftRight;
+			}currentVolume;
 
-			uint32_t currentVoiceAddress;
+			uint32_t currentAddress;
 
 			int16_t older = 0;
 			int16_t old = 0;
 
-			int16_t voiceOldest = 0;
-			int16_t voiceOlder = 0;
-			int16_t voiceOld = 0;
-			int16_t voiceNewest = 0;
-
-			void pushSample(int16_t sample) {
-				voiceOldest = voiceOlder;
-				voiceOlder = voiceOld;
-				voiceOld = voiceNewest;
-				voiceNewest = sample;
-			}
-
 			uint8_t blockBytes[16];
 
-			union {
-				uint8_t data;
-			}shiftFilter;
+			uint8_t shiftFilter;
 
-			union {
-				uint8_t data;
-				struct {
-					uint8_t loopEnd : 1;
-					uint8_t loopRepeat : 1;
-					uint8_t loopStart : 1;
-					uint8_t : 5;
-				}elem;
-			}flagBits;
-
-			uint8_t code;
+			uint8_t flagBits;
 
 			uint8_t compressedSamples[28];
 
@@ -154,7 +125,8 @@ public:
 			uint16_t step;
 			uint32_t counter;
 
-			int16_t out;
+			int16_t OutputSample();
+			void DecodeCompressedSamples();
 
 			uint32_t adsrCycles = 0;
 			uint32_t adsrCyclesNumber = 0;
@@ -162,150 +134,62 @@ public:
 			int32_t adsrStep = 0;
 			int32_t adsrLevel = 0;
 
-			bool bEnvelopeAttack = false;
-			bool bEnvelopeDecay = false;
-			bool bEnvelopeSustain = false;
-			bool bEnvelopeRelease = false;
+			bool isEnvelopeAttack = false;
+			bool isEnvelopeDecay = false;
+			bool isEnvelopeSustain = false;
+			bool isEnvelopeRelease = false;
 
-			void startEnvelopeAttack();
-			void startEnvelopeDecay();
-			void startEnvelopeSustain();
-			void startEnvelopeRelease();
+			void StartEnvelopeAttack();
+			void StartEnvelopeDecay();
+			void StartEnvelopeSustain();
+			void StartEnvelopeRelease();
 
-			Output envelope(const int16_t& input);
-		};
+			Output Envelope(const int16_t& input);
 
-		voiceRegister_t voiceRegisters[24];
+		}reg;
 
-		union voiceKeyOn_t {
+		inline static union KeyOn {
 			uint32_t data;
 			struct {
 				uint16_t l, h;
 			}hw;
-			struct {
-				uint32_t voice0On : 1;
-				uint32_t voice1On : 1;
-				uint32_t voice2On : 1;
-				uint32_t voice3On : 1;
-				uint32_t voice4On : 1;
-				uint32_t voice5On : 1;
-				uint32_t voice6On : 1;
-				uint32_t voice7On : 1;
-				uint32_t voice8On : 1;
-				uint32_t voice9On : 1;
-				uint32_t voice10On : 1;
-				uint32_t voice11On : 1;
-				uint32_t voice12On : 1;
-				uint32_t voice13On : 1;
-				uint32_t voice14On : 1;
-				uint32_t voice15On : 1;
-				uint32_t voice16On : 1;
-				uint32_t voice17On : 1;
-				uint32_t voice18On : 1;
-				uint32_t voice19On : 1;
-				uint32_t voice20On : 1;
-				uint32_t voice21On : 1;
-				uint32_t voice22On : 1;
-				uint32_t voice23On : 1;
-				uint32_t : 8;
-			}elem;
-		};
+		}keyOn, tempKeyOn;
 
-		voiceKeyOn_t keyOn, tempKeyOn;
-
-		union voiceKeyOff_t {
-			uint32_t data;
-			struct {
-				uint32_t voice0Off : 1;
-				uint32_t voice1Off : 1;
-				uint32_t voice2Off : 1;
-				uint32_t voice3Off : 1;
-				uint32_t voice4Off : 1;
-				uint32_t voice5Off : 1;
-				uint32_t voice6Off : 1;
-				uint32_t voice7Off : 1;
-				uint32_t voice8Off : 1;
-				uint32_t voice9Off : 1;
-				uint32_t voice10Off : 1;
-				uint32_t voice11Off : 1;
-				uint32_t voice12Off : 1;
-				uint32_t voice13Off : 1;
-				uint32_t voice14Off : 1;
-				uint32_t voice15Off : 1;
-				uint32_t voice16Off : 1;
-				uint32_t voice17Off : 1;
-				uint32_t voice18Off : 1;
-				uint32_t voice19Off : 1;
-				uint32_t voice20Off : 1;
-				uint32_t voice21Off : 1;
-				uint32_t voice22Off : 1;
-				uint32_t voice23Off : 1;
-				uint32_t : 8;
-			}elem;
-			struct {
-				uint16_t l, h;
-			}hw;
-		};
-
-		voiceKeyOff_t keyOff, tempKeyOff;
-
-		union voiceChannel_FM_Mode_t {
+		inline static union KeyOff {
 			uint32_t data;
 			struct {
 				uint16_t l, h;
 			}hw;
-		}channel_FM_Mode;
+		}keyOff, tempKeyOff;
 
-		union voiceChannelNoiseMode_t {
+
+		inline static union ChannelFmMode {
+			uint32_t data;
+			struct {
+				uint16_t l, h;
+			}hw;
+		}channelFmMode;
+
+		inline static union ChannelNoiseMode {
 			uint32_t data;
 			struct {
 				uint16_t l, h;
 			}hw;
 		}channelNoiseMode;
 
-		union voiceChannelReverbMode_t {
+		inline static union ChannelReverbMode {
 			uint32_t data;
 			struct {
 				uint16_t l, h;
 			}hw;
 		}channelReverbMode;
 
-		union voiceChannelOnOff_t {
+		inline static union ChannelOnOff {
 			uint32_t data;
 			struct {
 				uint16_t l, h;
 			}hw;
-			struct {
-				uint32_t voice0Status : 1;
-				uint32_t voice1Status : 1;
-				uint32_t voice2Status : 1;
-				uint32_t voice3Status : 1;
-				uint32_t voice4Status : 1;
-				uint32_t voice5Status : 1;
-				uint32_t voice6Status : 1;
-				uint32_t voice7Status : 1;
-				uint32_t voice8Status : 1;
-				uint32_t voice9Status : 1;
-				uint32_t voice10Status : 1;
-				uint32_t voice11Status : 1;
-				uint32_t voice12Status : 1;
-				uint32_t voice13Status : 1;
-				uint32_t voice14Status : 1;
-				uint32_t voice15Status : 1;
-				uint32_t voice16Status : 1;
-				uint32_t voice17Status : 1;
-				uint32_t voice18Status : 1;
-				uint32_t voice19Status : 1;
-				uint32_t voice20Status : 1;
-				uint32_t voice21Status : 1;
-				uint32_t voice22Status : 1;
-				uint32_t voice23Status : 1;
-				uint32_t : 8;
-			}elem;
 		}channelOnOff;
-
-		void decodeCompressedSample(voiceRegister_t& currentVoiceRegisters);
-		int16_t output(const uint8_t& voice);
 	};
 
 	uint32_t reverbCurrentBufferAddress;
@@ -313,41 +197,33 @@ public:
 	void ReverbClock(const Output& input);
 	Output reverbOutput = { 0, 0 };
 
-	Voices voices;
+	Voices voices[24];
 
-	union mainVolumeLeftRight_t {
+	union MainVolume {
 		uint32_t data;
 		struct {
 			uint16_t l, h;
 		}hw;
-	}mainVolumeLeftRight;
+	}mainVolume;
 
-	union reverbOutputVolumeLeftRight_t {
+	union ReverbVolume {
 		uint32_t data;
 		struct {
 			uint16_t l, h;
 		}hw;
-	}reverbOutputVolumeLeftRight;
+	}reverbVolume;
 
-	union dramReverbWorkAreaStartAddress_t {
-		uint16_t data;
-	}lsReverbWorkAreaStartAddress;
+	uint16_t lsReverbAddress;
 
-	union dram_IRQ_Address_t {
-		uint16_t data;
-	}dram_IRQ_Address;
+	uint16_t lsIrqAddress;
 
-	union dramDataTransferAddress_t {
-		uint16_t data;
-	}dramDataTransferAddress;
+	uint16_t lsTransferAddress;
 
 	uint32_t currentAddress;
 
-	union dramDataTransferFifo_t {
-		uint16_t data;
-	}dramDataTransferFifo;
+	uint16_t dramDataTransferFifo;
 
-	union spuControlRegister_t {
+	union SpuControl {
 		uint16_t data;
 		struct {
 			uint16_t cdAudioEnable : 1;
@@ -362,13 +238,13 @@ public:
 			uint16_t unmuteSPU : 1;
 			uint16_t spuEnable : 1;
 		}elem;
-	}spuControlRegister;
+	}spuControl;
 
-	union dramDataTransferControl_t {
+	union LsTransferControl {
 		uint16_t data;
-	}dramDataTransferControl;
+	}lsTransferControl;
 
-	union spuStatusRegister_t {
+	union SpuStatus {
 		uint16_t data;
 		struct {
 			uint16_t currentSPUMode : 6;
@@ -380,28 +256,28 @@ public:
 			uint16_t writingFirstSecondHalfCaptureBuffers : 1;
 			uint16_t unused : 4;
 		}elem;
-	}spuStatusRegister;
+	}spuStatus;
 
-	union cdVolumeLeftRight_t {
+	union CdVolume {
 		uint32_t data;
 		struct {
 			uint16_t l, h;
 		}hw;
-	}cdVolumeLeftRight;
+	}cdVolume;
 
-	union externVolumeLeftRight_t {
+	union ExternVolume {
 		uint32_t data;
 		struct {
 			uint16_t l, h;
 		}hw;
-	}externVolumeLeftRight;
+	}externVolume;
 
-	union currentMainVolumeLeftRight_t {
+	union CurrentMainVolume {
 		uint32_t data;
 		struct {
 			uint16_t l, h;
 		}hw;
-	}currentMainVolumeLeftRight;
+	}currentMainVolume;
 
 	std::vector<int32_t> pos_adpcm_table;
 	std::vector<int32_t> neg_adpcm_table;
@@ -488,15 +364,17 @@ public:
 	uint16_t voice3MonoBufferCounter = 0;
 
 
-	uint8_t asectCDDA;
-	uint8_t assCDDA;
-	uint8_t ammCDDA;
+	uint8_t asectCdda;
+	uint8_t assCdda;
+	uint8_t ammCdda;
 
-	uint32_t counterCDDA = 0x930;
+	uint32_t counterCdda = 0x930;
 
-	Output clockCDDA();
+	Output ClockCdda();
 
-	uint8_t* pBufferCDDA = nullptr;
+	uint8_t* pBufferCdda = nullptr;
 
 	//debug
+
+	const char* TAG = TAG_SPU;
 };

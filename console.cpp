@@ -31,7 +31,7 @@ void PsxConsole::connectComponents() {
 	bus.timer1.pBus = &bus;
 	bus.timer2.pBus = &bus;
 
-	bus.spu.pBus = &bus;
+	bus.spu.busPtr = &bus;
 
 	joyMemCard.pBus = &bus;
 	bus.pJoyMemCard = &joyMemCard;
