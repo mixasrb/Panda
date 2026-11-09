@@ -206,7 +206,7 @@ void CdDrive::Write8(const uint32_t& addr, const uint8_t& data) {
 			if (!commandFifo.empty())
 				LogError(TAG, "Command received, previous one is not executed");
 
-			if(indexStatus.elem.busysts)
+			if (indexStatus.elem.busysts)
 				LogWarn(TAG, "Command received, while previous one is executing");
 
 			if (!pendingInterrupts.empty())
@@ -545,8 +545,7 @@ void CdDrive::ReadSector(uint8_t& amm, uint8_t& ass, uint8_t& asect) {
 			storedSectorHeader[i] = fileDataVect[currentPosition + 0x0c + i];
 
 	auto fillBufferXA_ADPCM = [&]() {
-		busPtr->spu.pBufferXA_ADPCM = (uint8_t*)fileDataVect.data() + currentPosition;
-		busPtr->spu.DecodeSectorXaAdpcm(busPtr->spu.pBufferXA_ADPCM);
+		busPtr->spu.DecodeSectorXaAdpcm((uint8_t*)fileDataVect.data() + currentPosition);
 		busPtr->spu.currentSample = 0;
 		};
 

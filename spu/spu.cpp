@@ -117,7 +117,7 @@ Spu::Spu() : reverb{ 0 } {
 		voices[index].reg.INDEX = index;
 }
 
-void Spu::Read32(const uint32_t& addr, uint32_t& data) {
+void Spu::Read32(const uint32_t addr, uint32_t& data) {
 	data = 0;
 
 	if ((addr >= 0x1f801d80) && (addr <= 0x1f801dbc)) {
@@ -143,7 +143,7 @@ void Spu::Read32(const uint32_t& addr, uint32_t& data) {
 		LogError(TAG, "Unhandled addr read32 {:#010x}", addr);
 }
 
-void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
+void Spu::Write32(const uint32_t addr, const uint32_t data) {
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
 		uint8_t index = (addr >> 4) - 0x1f801c0;
 		switch (addr & 0xf) {
@@ -256,7 +256,7 @@ void Spu::Write32(const uint32_t& addr, const uint32_t& data) {
 		LogError(TAG, "Unhandled write32 addr {:#010x} data {:#010x}", addr, data);
 }
 
-void Spu::Read16(const uint32_t& addr, uint16_t& data) {
+void Spu::Read16(const uint32_t addr, uint16_t& data) {
 	data = 0;
 
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
@@ -450,7 +450,7 @@ void Spu::Read16(const uint32_t& addr, uint16_t& data) {
 		LogError(TAG, "Unhandled addr read16 {:#010x}", addr);
 }
 
-void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
+void Spu::Write16(const uint32_t addr, const uint16_t data) {
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
 		uint8_t index = (addr >> 4) - 0x1f801c0;
 		switch (addr & 0xf) {
@@ -485,7 +485,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			break;
 
 		case 0xc:
-			voices[index].reg.adsrLevel = (int32_t)(int16_t)data;
+			voices[index].reg.adsrLevel = static_cast<int16_t>(data);
 			break;
 
 		case 0xe:
@@ -630,7 +630,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 
 		case 0x1f801da4:
 			lsIrqAddress = data;
-			irqAddress = data << 3;
+			irqAddr = data << 3;
 			break;
 
 		case 0x1f801da6:
@@ -640,7 +640,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 			LogTrace(TAG, "lsTransferAddress {:#010x}", currentAddress);
 
 			if (currentAddress >= LS_SIZE)
-				LogError(TAG, "lsTransferAddress {:#010x} > LS_SIZE ({:#06x})", 
+				LogError(TAG, "lsTransferAddress {:#010x} > LS_SIZE ({:#06x})",
 					currentAddress, LS_SIZE);
 			break;
 
@@ -715,7 +715,7 @@ void Spu::Write16(const uint32_t& addr, const uint16_t& data) {
 		LogError(TAG, "Unhandled write16 addr {:#010x} data {:#06x}", addr, data);
 }
 
-void Spu::Read8(const uint32_t& addr, uint8_t& data) {
+void Spu::Read8(const uint32_t addr, uint8_t& data) {
 	data = 0;
 
 	if ((addr >= 0x1f801c00) && (addr <= 0x1f801d7e)) {
@@ -735,7 +735,7 @@ void Spu::Read8(const uint32_t& addr, uint8_t& data) {
 		LogError(TAG, "Unhandled addr read8 {:#010x}", addr);
 }
 
-void Spu::IrqSend() {
+void Spu::SendIrq() {
 	if (spuControl.elem.irq9Enable) //metal gear solid
 		if (spuStatus.elem.irq9Flag == 0) {
 			busPtr->pCpu->cp0.InterruptHandler(_IRQ_SPU);
@@ -743,24 +743,24 @@ void Spu::IrqSend() {
 		}
 }
 
-uint16_t Spu::LsRead16(const uint32_t& addr) {
+uint16_t Spu::LsRead16(const uint32_t addr) {
 	if (addr & 0x1) {
 		LogError(TAG, "LS read16 address {:#010x} unaligned", addr);
 		return 0;
 	}
 	if (addr >= LS_SIZE) {
-		LogError(TAG, "LS read16 address {:#010x} > LS_SIZE ({:#06x})", 
+		LogError(TAG, "LS read16 address {:#010x} > LS_SIZE ({:#06x})",
 			addr, LS_SIZE);
 		return 0;
 	}
 
-	if ((irqAddress == addr) || ((irqAddress & 0xfffffffe) == addr))
-		IrqSend();
+	if ((irqAddr == addr) || ((irqAddr & 0xfffffffe) == addr))
+		SendIrq();
 
 	return *reinterpret_cast<const uint16_t*>(ls.get() + addr);
 }
 
-void Spu::LsWrite16(const uint32_t& addr, const uint16_t& data) {
+void Spu::LsWrite16(const uint32_t addr, const uint16_t data) {
 	if (addr & 0x1) {
 		LogError(TAG, "LS write16 address {:#010x} unaligned", addr);
 		return;
@@ -771,21 +771,21 @@ void Spu::LsWrite16(const uint32_t& addr, const uint16_t& data) {
 		return;
 	}
 
-	if ((irqAddress == addr) || ((irqAddress & 0xfffffffe) == addr))
-		IrqSend();
+	if ((irqAddr == addr) || ((irqAddr & 0xfffffffe) == addr))
+		SendIrq();
 
 	*reinterpret_cast<uint16_t*>(ls.get() + addr) = data;
 }
 
-uint8_t Spu::LsRead8(const uint32_t& addr) {
+uint8_t Spu::LsRead8(const uint32_t addr) {
 	if (addr >= LS_SIZE) {
 		LogError(TAG, "LS read8 address {:#010x} > LS_SIZE ({:#06x})",
 			addr, LS_SIZE);
 		return 0;
 	}
 
-	if (irqAddress == addr)
-		IrqSend();
+	if (irqAddr == addr)
+		SendIrq();
 
 	return ls[addr];
 }
@@ -849,26 +849,22 @@ int16_t Spu::Voices::Register::GetNextSample() {
 
 		flagBits = blockBytes[1];
 
+		if (flagBits & 0x4)
+			adpcmRepeatAddress = currentAddress >> 3;
+
 		switch (flagBits & 0x3) {
 		case 0:
 		case 2:
-			adpcmRepeatAddress = currentAddress >> 3;
-
 			currentAddress += 16;
 			break;
 		case 1:
 			currentAddress = adpcmRepeatAddress << 3;
-
 			spuPtr->voices->channelOnOff.data |= 1 << INDEX;
-
 			StartEnvelopeRelease();
 			adsrLevel = 0;
 			break;
 		case 3:
-			adpcmRepeatAddress = currentAddress >> 3;
-
 			currentAddress = adpcmRepeatAddress << 3;
-
 			spuPtr->voices->channelOnOff.data |= 1 << INDEX;
 			break;
 		}
@@ -988,7 +984,7 @@ void Spu::Voices::Register::StartEnvelopeRelease() {
 	adsrCycles = 0;
 }
 
-Output Spu::Voices::Register::Envelope(const int16_t& input) {
+Output Spu::Voices::Register::Envelope(const int16_t input) {
 
 	if (isEnvelopeAttack || isEnvelopeDecay ||
 		isEnvelopeSustain || isEnvelopeRelease)
@@ -1025,7 +1021,7 @@ Output Spu::Voices::Register::Envelope(const int16_t& input) {
 	return output;
 }
 
-void Spu::ReverbClock(const Output& input) {
+void Spu::ReverbClock(const Output input) {
 
 #undef vLOUT
 #undef vROUT
@@ -1294,7 +1290,7 @@ Output Spu::Clock() {
 	return output;
 }
 
-void Spu::Decode28NibblesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
+void Spu::Decode28NibblesXaAdpcm(const uint8_t* src, const uint8_t block, const uint8_t nibble,
 	int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter) {
 
 	uint8_t valueShift = (src[4 + (block << 1) + nibble] & 0x0f);
@@ -1322,7 +1318,7 @@ void Spu::Decode28NibblesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8
 	}
 }
 
-void Spu::Decode28BytesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& byte,
+void Spu::Decode28BytesXaAdpcm(const uint8_t* src, const uint8_t block, const uint8_t byte,
 	int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter) {
 
 	uint8_t valueShift = (src[4 + (block << 1) + byte] & 0x0f);
@@ -1350,7 +1346,7 @@ void Spu::Decode28BytesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t
 	}counter++;
 }
 
-void Spu::DecodeSectorXaAdpcm(uint8_t*& src) {
+void Spu::DecodeSectorXaAdpcm(const uint8_t* src) {
 	submode.data = src[0x10 + 0x02];
 	codinginfo.data = src[0x10 + 0x03];
 	bStereo = codinginfo.elem.monoStereo;

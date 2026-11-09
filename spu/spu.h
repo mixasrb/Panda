@@ -29,23 +29,23 @@ public:
 
 	Spu();
 
-	void Read32(const uint32_t& addr, uint32_t& data);
-	void Write32(const uint32_t& addr, const uint32_t& data);
+	void Read32(const uint32_t addr, uint32_t& data);
+	void Write32(const uint32_t addr, const uint32_t data);
 
-	void Read16(const uint32_t& addr, uint16_t& data);
-	void Write16(const uint32_t& addr, const uint16_t& data);
+	void Read16(const uint32_t addr, uint16_t& data);
+	void Write16(const uint32_t addr, const uint16_t data);
 
-	void Read8(const uint32_t& addr, uint8_t& data);
+	void Read8(const uint32_t addr, uint8_t& data);
 
 	Output Clock();
 
 	std::unique_ptr<uint8_t[]> ls = std::make_unique<uint8_t[]>(LS_SIZE);
 	int16_t reverb[32];
 
-	uint16_t LsRead16(const uint32_t& addr);
-	void LsWrite16(const uint32_t& addr, const uint16_t& data);
+	uint16_t LsRead16(const uint32_t addr);
+	void LsWrite16(const uint32_t addr, const uint16_t data);
 
-	uint8_t LsRead8(const uint32_t& addr);
+	uint8_t LsRead8(const uint32_t addr);
 
 	struct Voices {
 
@@ -144,7 +144,7 @@ public:
 			void StartEnvelopeSustain();
 			void StartEnvelopeRelease();
 
-			Output Envelope(const int16_t& input);
+			Output Envelope(const int16_t input);
 
 		}reg;
 
@@ -194,7 +194,7 @@ public:
 
 	uint32_t reverbCurrentBufferAddress;
 	bool bReverbCycle = false;
-	void ReverbClock(const Output& input);
+	void ReverbClock(const Output input);
 	Output reverbOutput = { 0, 0 };
 
 	Voices voices[24];
@@ -285,8 +285,8 @@ public:
 	std::vector<int16_t> gauss;
 	std::vector<int16_t> table;
 
-	uint32_t irqAddress = 0;
-	void IrqSend();
+	uint32_t irqAddr = 0;
+	void SendIrq();
 
 	Output ClockXaAdpcm();
 
@@ -296,8 +296,6 @@ public:
 	uint8_t asectXA;
 	uint8_t assXA;
 	uint8_t ammXA;
-
-	uint8_t* pBufferXA_ADPCM = new uint8_t[XA_ADPCM_SECTOR_SIZE];
 
 	int16_t samplesMonoXA[56 * 0x12 * 8];
 	int16_t samplesLeftXA[28 * 0x12 * 8];
@@ -315,15 +313,13 @@ public:
 	uint32_t counterLeft = 0;
 	uint32_t counterRight = 0;
 
-	int16_t ringBuffer[32];
-
-	void DecodeSectorXaAdpcm(uint8_t*& src);
-	void Decode28NibblesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& nibble,
+	void DecodeSectorXaAdpcm(const uint8_t* src);
+	void Decode28NibblesXaAdpcm(const uint8_t* src, const uint8_t block, const uint8_t nibble,
 		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
-	void Decode28BytesXaAdpcm(uint8_t* src, const uint8_t& block, const uint8_t& byte,
+	void Decode28BytesXaAdpcm(const uint8_t* src, const uint8_t block, const uint8_t byte,
 		int16_t* dst, int16_t& old, int16_t& older, uint32_t& counter);
 
-	union submode_t {
+	union Submode {
 		uint8_t data;
 		struct {
 			uint8_t endOfRecord : 1;
@@ -337,7 +333,7 @@ public:
 		}elem;
 	}submode;
 
-	union codinginfo_t {
+	union CodingInfo {
 		uint8_t data;
 		struct {
 			uint8_t monoStereo : 2;
